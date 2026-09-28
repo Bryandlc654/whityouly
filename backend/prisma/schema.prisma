@@ -1,0 +1,512 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// 1. Identidad, Autenticación y Seguridad
+// ----------------------------------------------------------------------------
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  SUPERADMIN
+}
+
+enum Status {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  isEmailVerified  Boolean           @default(false)
+  passwordHash     String?
+  internalUsername String?           @unique
+  role             Role              @default(USER)
+  status           Status            @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  oauthIdentities  OAuthIdentity[]
+  sessions         Session[]
+  preferences      UserPreference?
+  character        Character?
+  bookmarks        Bookmark[]
+  emotionalLogs    EmotionalLog[]
+  creations        Creation[]
+  reports          Report[]
+  notifications    Notification[]
+  mediaAssets      MediaAsset[]
+
+  @@map("users")
+}
+
+model OAuthIdentity {
+  id             String   @id @default(uuid())
+  userId         String
+  provider       String
+  providerUserId String
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("oauth_identities")
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  refreshToken String    @unique
+  deviceInfo   String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model UserPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  theme              String   @default("light")
+  language           String   @default("es")
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Character {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  name            String   @unique
+  avatarUrl       String?
+  bio             String?
+  privacySettings Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stories         Story[]
+  comments        Comment[]
+  companionshipsGiven  Companionship[] @relation("CharacterGivesCompanionship")
+  companionshipsReceived Companionship[] @relation("CharacterReceivesCompanionship")
+  followers       Follower[] @relation("CharacterFollowers")
+  following       Follower[] @relation("CharacterFollowing")
+
+  @@map("characters")
+}
+
+// ----------------------------------------------------------------------------
+// 2. Archivos y Multimedia
+// ----------------------------------------------------------------------------
+
+enum EntityType {
+  AVATAR
+  STORY_MEDIA
+  CREATION_MEDIA
+  NONE
+}
+
+model MediaAsset {
+  id         String     @id @default(uuid())
+  userId     String
+  fileUrl    String
+  mimeType   String?
+  sizeBytes  BigInt?
+  entityType EntityType @default(NONE)
+  entityId   String?
+  createdAt  DateTime   @default(now())
+
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyUpdates   StoryUpdate[]
+  creations      Creation[]
+  musicTracks    MusicTrack[]
+
+  @@map("media_assets")
+}
+
+// ----------------------------------------------------------------------------
+// 3. Historias y Evolución
+// ----------------------------------------------------------------------------
+
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+enum StoryStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  REPORTED
+  MODERATED
+  DELETED
+}
+
+model Story {
+  id          String      @id @default(uuid())
+  characterId String
+  title       String
+  visibility  Visibility  @default(PUBLIC)
+  status      StoryStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  updates        StoryUpdate[]
+  categories     StoryCategory[]
+  tags           StoryTag[]
+  emotions       StoryEmotion[]
+  comments       Comment[]
+  companionships Companionship[] @relation("StoryReceivesCompanionship")
+  followers      Follower[]      @relation("StoryFollowers")
+  music          StoryMusic[]
+
+  @@index([createdAt])
+  @@map("stories")
+}
+
+model StoryUpdate {
+  id           String   @id @default(uuid())
+  storyId      String
+  content      String
+  mediaAssetId String?
+  stageOrder   Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  story      Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+
+  @@map("story_updates")
+}
+
+// ----------------------------------------------------------------------------
+// 4. Taxonomía
+// ----------------------------------------------------------------------------
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
+
+  stories StoryCategory[]
+
+  @@map("categories")
+}
+
+model Emotion {
+  id       String @id @default(uuid())
+  name     String @unique
+  colorHex String?
+
+  stories StoryEmotion[]
+  logs    EmotionalLog[]
+
+  @@map("emotions")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  stories StoryTag[]
+
+  @@map("tags")
+}
+
+model StoryCategory {
+  storyId    String
+  categoryId String
+  story      Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, categoryId])
+  @@map("story_categories")
+}
+
+model StoryEmotion {
+  storyId   String
+  emotionId String
+  story     Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  emotion   Emotion @relation(fields: [emotionId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, emotionId])
+  @@map("story_emotions")
+}
+
+model StoryTag {
+  storyId String
+  tagId   String
+  story   Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, tagId])
+  @@map("story_tags")
+}
+
+// ----------------------------------------------------------------------------
+// 5. Interacción, Comunidad y Notificaciones
+// ----------------------------------------------------------------------------
+
+model Companionship {
+  id                String   @id @default(uuid())
+  characterId       String
+  targetCharacterId String?
+  targetStoryId     String?
+  createdAt         DateTime @default(now())
+
+  character       Character  @relation("CharacterGivesCompanionship", fields: [characterId], references: [id], onDelete: Cascade)
+  targetCharacter Character? @relation("CharacterReceivesCompanionship", fields: [targetCharacterId], references: [id], onDelete: Cascade)
+  targetStory     Story?     @relation("StoryReceivesCompanionship", fields: [targetStoryId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@map("companionships")
+}
+
+enum CommentStatus {
+  ACTIVE
+  HIDDEN
+  MODERATED
+  DELETED
+}
+
+model Comment {
+  id          String        @id @default(uuid())
+  storyId     String
+  characterId String
+  parentId    String?
+  content     String
+  status      CommentStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  story     Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Follower {
+  id                   String   @id @default(uuid())
+  followerId           String
+  followingCharacterId String?
+  followingStoryId     String?
+  createdAt            DateTime @default(now())
+
+  follower           Character  @relation("CharacterFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followingCharacter Character? @relation("CharacterFollowers", fields: [followingCharacterId], references: [id], onDelete: Cascade)
+  followingStory     Story?     @relation("StoryFollowers", fields: [followingStoryId], references: [id], onDelete: Cascade)
+
+  @@map("followers")
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+model Notification {
+  id         String             @id @default(uuid())
+  userId     String
+  type       String
+  entityType String
+  entityId   String
+  status     NotificationStatus @default(UNREAD)
+  createdAt  DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+// ----------------------------------------------------------------------------
+// 6. Módulos Privados e IA
+// ----------------------------------------------------------------------------
+
+enum TargetType {
+  STORY
+  CREATION
+  MEDIA
+}
+
+model Bookmark {
+  id         String     @id @default(uuid())
+  userId     String
+  targetType TargetType
+  targetId   String
+  createdAt  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bookmarks")
+}
+
+model EmotionalLog {
+  id          String   @id @default(uuid())
+  userId      String
+  emotionId   String
+  intensity   Int      // 1 to 10
+  contextNote String?
+  loggedAt    DateTime
+  createdAt   DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emotion Emotion @relation(fields: [emotionId], references: [id], onDelete: Cascade)
+
+  @@map("emotional_logs")
+}
+
+enum CreationVisibility {
+  PRIVATE
+  PUBLIC
+  STORY_SHARED
+}
+
+model Creation {
+  id           String             @id @default(uuid())
+  userId       String
+  type         String
+  title        String
+  content      String
+  mediaAssetId String?
+  visibility   CreationVisibility @default(PRIVATE)
+  aiMetadata   Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+
+  @@map("creations")
+}
+
+// ----------------------------------------------------------------------------
+// 7. Moderación y Analíticas
+// ----------------------------------------------------------------------------
+
+enum ReportedType {
+  USER
+  CHARACTER
+  STORY
+  COMMENT
+  CREATION
+}
+
+enum ReportStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model Report {
+  id             String       @id @default(uuid())
+  reporterUserId String
+  reportedType   ReportedType
+  reportedId     String
+  reason         String
+  status         ReportStatus @default(PENDING)
+  createdAt      DateTime     @default(now())
+  resolvedAt     DateTime?
+
+  reporter User @relation(fields: [reporterUserId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  eventType   String
+  userId      String?
+  characterId String?
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+// ----------------------------------------------------------------------------
+// 8. Música (Fase 4)
+// ----------------------------------------------------------------------------
+
+model MusicTrack {
+  id               String   @id @default(uuid())
+  title            String
+  artist           String?
+  mediaAssetId     String
+  durationSeconds  Int?
+  licensingModel   String?
+  createdAt        DateTime @default(now())
+
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  storyMusic StoryMusic[]
+  playlistTracks PlaylistTrack[]
+
+  @@map("music_tracks")
+}
+
+model StoryMusic {
+  storyId      String
+  musicTrackId String
+  volumeLevel  Int    @default(50)
+
+  story      Story      @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  musicTrack MusicTrack @relation(fields: [musicTrackId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, musicTrackId])
+  @@map("story_music")
+}
+
+enum PlaylistVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+model Playlist {
+  id          String             @id @default(uuid())
+  characterId String
+  name        String
+  visibility  PlaylistVisibility @default(PRIVATE)
+  createdAt   DateTime           @default(now())
+
+  tracks PlaylistTrack[]
+
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  playlistId   String
+  musicTrackId String
+  order        Int
+
+  playlist   Playlist   @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  musicTrack MusicTrack @relation(fields: [musicTrackId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, musicTrackId])
+  @@map("playlist_tracks")
+}
