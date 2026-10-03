@@ -258,8 +258,17 @@ export class CharactersService {
       throw new NotFoundException('Personaje no encontrado.');
     }
 
-    const character = await this.prisma.character.findFirst({
-      where: { name: { equals: normalized, mode: 'insensitive' } },
+    // Dos consultas en vez de una: la primera es la única forma de resolver el
+    // seudónimo con índice y la segunda es una búsqueda por clave primaria, la
+    // más barata que hay. Juntos traen los intereses sin escribir el JOIN a mano.
+    const match = await this.findByNameInsensitive(normalized);
+
+    if (!match) {
+      throw new NotFoundException('Personaje no encontrado.');
+    }
+
+    const character = await this.prisma.character.findUnique({
+      where: { id: match.id },
       select: {
         id: true,
         name: true,
@@ -366,11 +375,28 @@ export class CharactersService {
     }
   }
 
+  /**
+   * Localiza el id de un seudónimo sin distinguir mayúsculas.
+   *
+   * `mode: 'insensitive'` no sirve aquí: Prisma lo compila como `name ILIKE $1` y
+   * en Postgres `ILIKE` no tiene operador de índice, así que cada visita a un
+   * perfil y cada comprobación de disponibilidad recorren la tabla entera. La
+   * forma `lower(name) = lower(...)` sí la resuelve el índice funcional
+   * `characters_name_lower_key` que ya existe en la base, y que es además lo que
+   * garantiza que "Ana" y "ana" no puedan coexistir.
+   *
+   * El valor se envía como parámetro de Prisma, nunca concatenado en el texto.
+   *
+   * El nombre de la tabla va escrito a mano porque Prisma no lo expone: es el
+   * `@@map("characters")` de `schema.prisma`, que hay que cambiar en los dos
+   * sitios si alguna vez se renombra.
+   */
   private findByNameInsensitive(name: string): Promise<{ id: string } | null> {
-    return this.prisma.character.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } },
-      select: { id: true },
-    });
+    return this.prisma
+      .$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT "id" FROM "characters" WHERE lower("name") = lower(${name}) LIMIT 1`,
+      )
+      .then((rows) => rows[0] ?? null);
   }
 
   private assertNameAllowed(name: string) {

@@ -14,7 +14,6 @@ describe('CharactersService', () => {
   let prisma: {
     character: {
       findUnique: ReturnType<typeof vi.fn>;
-      findFirst: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
@@ -24,6 +23,7 @@ describe('CharactersService', () => {
     };
     interest: { findMany: ReturnType<typeof vi.fn> };
     analyticsEvent: { create: ReturnType<typeof vi.fn> };
+    $queryRaw: ReturnType<typeof vi.fn>;
   };
 
   const characterRow = (overrides: Record<string, unknown> = {}) => ({
@@ -39,11 +39,19 @@ describe('CharactersService', () => {
     ...overrides,
   });
 
+  /**
+   * La ruta pública localiza el seudónimo con la consulta indexada y después
+   * carga la fila por clave primaria.
+   */
+  const mockPublicProfile = (row: Record<string, unknown>) => {
+    prisma.$queryRaw.mockResolvedValue([{ id: row.id }]);
+    prisma.character.findUnique.mockResolvedValue(row);
+  };
+
   beforeEach(async () => {
     prisma = {
       character: {
         findUnique: vi.fn(),
-        findFirst: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
       },
@@ -53,6 +61,9 @@ describe('CharactersService', () => {
       },
       interest: { findMany: vi.fn().mockResolvedValue([]) },
       analyticsEvent: { create: vi.fn().mockResolvedValue({}) },
+      // La búsqueda por seudónimo va en SQL parametrizado para poder usar el
+      // índice funcional; por defecto no encuentra a nadie.
+      $queryRaw: vi.fn().mockResolvedValue([]),
     };
 
     // El servicio usa transacciones interactivas; el mock simula el executor.
@@ -69,7 +80,6 @@ describe('CharactersService', () => {
 
   it('crea la identidad seudónima sin exponer userId', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
-    prisma.character.findFirst.mockResolvedValue(null);
     prisma.character.create.mockResolvedValue({
       id: 'char-1',
       name: 'ElViajero',
@@ -114,20 +124,21 @@ describe('CharactersService', () => {
 
   it('detecta nombres repetidos sin distinguir mayúsculas', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
-    prisma.character.findFirst.mockResolvedValue({ id: 'char-2' });
+    prisma.$queryRaw.mockResolvedValue([{ id: 'char-2' }]);
 
     await expect(service.create('user-1', { name: 'elviajero' } as any)).rejects.toBeInstanceOf(
       ConflictException,
     );
-    expect(prisma.character.findFirst).toHaveBeenCalledWith({
-      where: { name: { equals: 'elviajero', mode: 'insensitive' } },
-      select: { id: true },
-    });
+    // La forma `lower(name) = lower(...)` es la que resuelve el índice funcional;
+    // con `mode: 'insensitive'` Prisma genera `ILIKE`, que no usa ningún índice.
+    const [query] = prisma.$queryRaw.mock.calls[0];
+    expect(query.strings.join('?')).toContain('lower("name") = lower(?)');
+    expect(query.strings.join('?')).not.toContain('ILIKE');
+    expect(query.values).toEqual(['elviajero']);
   });
 
   it('convierte la violación de unicidad (carrera) en conflicto', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
-    prisma.character.findFirst.mockResolvedValue(null);
     prisma.character.create.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: '5.22.0' }),
     );
@@ -139,7 +150,6 @@ describe('CharactersService', () => {
 
   it('rechaza un avatar alojado en un dominio externo', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
-    prisma.character.findFirst.mockResolvedValue(null);
 
     await expect(
       service.create('user-1', {
@@ -157,10 +167,9 @@ describe('CharactersService', () => {
   });
 
   it('informa disponibilidad del seudónimo', async () => {
-    prisma.character.findFirst.mockResolvedValue(null);
     await expect(service.isNameAvailable('Libre123')).resolves.toEqual({ available: true });
 
-    prisma.character.findFirst.mockResolvedValue({ id: 'char-1' });
+    prisma.$queryRaw.mockResolvedValue([{ id: 'char-1' }]);
     await expect(service.isNameAvailable('ocupado')).resolves.toEqual({
       available: false,
       reason: 'Ese nombre ya está en uso',
@@ -174,7 +183,6 @@ describe('CharactersService', () => {
 
   it('guarda los ajustes de privacidad enviados al crear', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
-    prisma.character.findFirst.mockResolvedValue(null);
     prisma.character.create.mockResolvedValue({
       id: 'char-1',
       name: 'ElViajero',
@@ -205,7 +213,7 @@ describe('CharactersService', () => {
   });
 
   it('expone el perfil público sin userId ni ajustes de privacidad', async () => {
-    prisma.character.findFirst.mockResolvedValue({
+    mockPublicProfile({
       id: 'char-1',
       name: 'ElViajero',
       tagline: null,
@@ -218,18 +226,13 @@ describe('CharactersService', () => {
 
     const result = await service.getPublicProfile('elviajero');
 
-    expect(prisma.character.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { name: { equals: 'elviajero', mode: 'insensitive' } },
-      }),
-    );
     expect(result).not.toHaveProperty('userId');
     expect(result).not.toHaveProperty('privacySettings');
     expect(result.bio).toBe('Bio pública');
   });
 
   it('oculta avatar y bio cuando la privacidad lo indica', async () => {
-    prisma.character.findFirst.mockResolvedValue({
+    mockPublicProfile({
       id: 'char-1',
       name: 'ElViajero',
       avatarUrl: 'https://cdn.whityouly.com/a.png',
@@ -245,7 +248,7 @@ describe('CharactersService', () => {
   });
 
   it('devuelve 404 para perfiles privados sin revelar su existencia', async () => {
-    prisma.character.findFirst.mockResolvedValue({
+    mockPublicProfile({
       id: 'char-1',
       name: 'ElViajero',
       avatarUrl: null,
@@ -261,7 +264,7 @@ describe('CharactersService', () => {
     await expect(service.getPublicProfile('a'.repeat(500))).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(prisma.character.findFirst).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('fusiona los ajustes de privacidad al actualizar', async () => {
@@ -293,7 +296,6 @@ describe('CharactersService', () => {
 
   it('normaliza el seudónimo antes de guardarlo para no volverlo irrecuperable', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
-    prisma.character.findFirst.mockResolvedValue(null);
     prisma.character.create.mockResolvedValue({
       id: 'char-1',
       name: 'Ana Del Valle',
@@ -381,7 +383,7 @@ describe('CharactersService', () => {
   });
 
   it('sanea la biografía también al leer el perfil público', async () => {
-    prisma.character.findFirst.mockResolvedValue({
+    mockPublicProfile({
       id: 'char-1',
       name: 'ElViajero',
       tagline: null,
@@ -398,16 +400,11 @@ describe('CharactersService', () => {
   });
 
   it('normaliza el seudónimo también en la ruta pública', async () => {
-    prisma.character.findFirst.mockResolvedValue(null);
-
     await expect(service.getPublicProfile('  el  VIAJERO ')).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(prisma.character.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { name: { equals: 'el VIAJERO', mode: 'insensitive' } },
-      }),
-    );
+    const [query] = prisma.$queryRaw.mock.calls[0];
+    expect(query.values).toEqual(['el VIAJERO']);
   });
 
   it('unifica el criterio de normalización entre escritura y lectura', () => {
@@ -425,7 +422,6 @@ describe('CharactersService', () => {
 
     it('crea el personaje con la descripción y los intereses del catálogo', async () => {
       prisma.character.findUnique.mockResolvedValue(null);
-      prisma.character.findFirst.mockResolvedValue(null);
       prisma.interest.findMany.mockResolvedValue([
         { id: 'int-musica', name: 'Música' },
         { id: 'int-arte', name: 'Arte' },
@@ -457,7 +453,6 @@ describe('CharactersService', () => {
 
     it('rechaza un interés que no está en el catálogo y no crea nada', async () => {
       prisma.character.findUnique.mockResolvedValue(null);
-      prisma.character.findFirst.mockResolvedValue(null);
       prisma.interest.findMany.mockResolvedValue([{ id: 'int-musica', name: 'Música' }]);
 
       await expect(
@@ -536,7 +531,7 @@ describe('CharactersService', () => {
     });
 
     it('expone descripción e intereses en el perfil público', async () => {
-      prisma.character.findFirst.mockResolvedValue(
+      mockPublicProfile(
         characterRow({
           tagline: 'Escribo de madrugada',
           bio: 'Bio',
@@ -552,7 +547,7 @@ describe('CharactersService', () => {
     });
 
     it('oculta descripción e intereses cuando la biografía está oculta', async () => {
-      prisma.character.findFirst.mockResolvedValue(
+      mockPublicProfile(
         characterRow({
           tagline: 'Escribo de madrugada',
           bio: 'Bio',

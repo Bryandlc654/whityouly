@@ -9,28 +9,58 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const profile = await fetchPublicProfile(params.name);
+  const result = await fetchPublicProfile(params.name);
 
-  if (!profile) {
-    return { title: 'Perfil no encontrado · Whityouly' };
+  if (result.status === 'found') {
+    const { profile } = result;
+
+    return {
+      title: `${profile.name} · Whityouly`,
+      description:
+        profile.tagline ?? (profile.bio ? profile.bio.slice(0, 160) : `El perfil público de ${profile.name}.`),
+    };
   }
 
+  // Un fallo de la API no se indexa como "no existe": un título neutro evita
+  // que un 429 puntual deje un perfil inexistente en los buscadores.
   return {
-    title: `${profile.name} · Whityouly`,
-    description:
-      profile.tagline ?? (profile.bio ? profile.bio.slice(0, 160) : `El perfil público de ${profile.name}.`),
+    title: result.status === 'missing' ? 'Perfil no encontrado · Whityouly' : 'Perfil · Whityouly',
   };
 }
 
 export default async function PublicProfilePage({ params }: PageProps) {
-  const profile = await fetchPublicProfile(params.name);
+  const result = await fetchPublicProfile(params.name);
 
   // Un perfil privado responde igual que uno inexistente: el mensaje no revela
   // si ese seudónimo está registrado.
-  if (!profile) {
+  if (result.status === 'missing') {
     notFound();
   }
 
+  // Aquí sí se distinguen: la API no pudo responder, así que no se afirma nada
+  // sobre el perfil. Se ofrece reintentar en lugar de un 404 que no es cierto.
+  if (result.status === 'unavailable') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface-container-lowest px-6 text-center font-body-md text-on-surface antialiased">
+        <span className="material-symbols-outlined text-4xl text-on-surface-variant">
+          cloud_off
+        </span>
+        <h1 className="text-headline-sm font-bold">No se pudo cargar el perfil</h1>
+        <p className="max-w-md text-body-md text-on-surface-variant">
+          Whityouly no respondió a tiempo. El perfil puede seguir existiendo: inténtalo de nuevo en un
+          momento.
+        </p>
+        <a
+          href={`/personaje/${encodeURIComponent(params.name)}`}
+          className="rounded-full bg-primary px-space-lg py-3 text-label-lg font-bold text-on-primary transition-opacity hover:opacity-90"
+        >
+          Reintentar
+        </a>
+      </div>
+    );
+  }
+
+  const profile = result.profile;
   const joinDate = formatJoinDate(profile.createdAt);
   const initial = profile.name.trim().charAt(0).toUpperCase();
 

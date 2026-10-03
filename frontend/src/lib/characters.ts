@@ -17,38 +17,50 @@ export interface PublicProfile {
 }
 
 /**
- * Un perfil privado y uno inexistente devuelven el mismo 404 desde la API, así
- * que desde fuera no se puede distinguir si el seudónimo existe. Esta función
- * conserva esa propiedad: cualquier fallo se traduce en `null`, nunca en un
- * error que permita adivinar la existencia del personaje.
+ * Se distingue entre "no hay perfil" y "no se pudo saber". Un perfil privado y
+ * uno inexistente devuelven el mismo 404, así que `missing` no revela si el
+ * seudónimo está registrado. Un 429 o un 500 no son un 404 y no se deben
+ * disfrazar como tal.
  */
-export async function fetchPublicProfile(name: string): Promise<PublicProfile | null> {
+export type PublicProfileResult =
+  | { status: 'found'; profile: PublicProfile }
+  | { status: 'missing' }
+  | { status: 'unavailable' };
+
+export async function fetchPublicProfile(name: string): Promise<PublicProfileResult> {
   const normalized = name.normalize('NFKC').replace(/\s+/g, ' ').trim();
 
   if (!normalized || normalized.length > MAX_NAME_LENGTH) {
-    return null;
+    return { status: 'missing' };
   }
+
+  let response: Response;
 
   try {
-    const response = await fetch(
-      `${API_URL}/characters/${encodeURIComponent(normalized)}`,
-      {
-        // Sin caché: al cambiar la privacidad o la biografía el perfil tiene que
-        // desaparecer o actualizarse de inmediato, sin esperar a revalidar.
-        cache: 'no-store',
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        headers: { Accept: 'application/json' },
-      },
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return parseProfile(await response.json());
+    response = await fetch(`${API_URL}/characters/${encodeURIComponent(normalized)}`, {
+      // Sin caché: al cambiar la privacidad o la biografía el perfil tiene que
+      // desaparecer o actualizarse de inmediato, sin esperar a revalidar.
+      cache: 'no-store',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { Accept: 'application/json' },
+    });
   } catch {
-    return null;
+    return { status: 'unavailable' };
   }
+
+  if (response.status === 404) {
+    return { status: 'missing' };
+  }
+
+  if (!response.ok) {
+    return { status: 'unavailable' };
+  }
+
+  const profile = parseProfile(await response.json().catch(() => null));
+
+  // Un cuerpo que no encaja con el contrato es un problema de la API, no la
+  // prueba de que el perfil no exista.
+  return profile ? { status: 'found', profile } : { status: 'unavailable' };
 }
 
 /**
