@@ -37,6 +37,11 @@ if (storageDriver === 's3') {
   required('PUBLIC_MEDIA_BASE_URL');
 }
 
+const publicMediaBaseUrl = (
+  process.env.PUBLIC_MEDIA_BASE_URL ??
+  'http://localhost:3000/media'
+).replace(/\/$/, '');
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   isProduction: process.env.NODE_ENV === 'production',
@@ -83,9 +88,11 @@ export const env = {
     driver: storageDriver,
     localDir: process.env.MEDIA_LOCAL_DIR ?? './uploads/media',
     // Base pública de los archivos. En local la sirve la propia API.
-    publicBaseUrl: (process.env.PUBLIC_MEDIA_BASE_URL ?? 'http://localhost:3000/media').replace(
-      /\/$/,
-      '',
+    publicBaseUrl: publicMediaBaseUrl,
+    // Un bucle local solo vale en desarrollo: en producción produce URLs rotas
+    // y, además, `keyFromPublicUrl` deja de reconocerlas para poder borrarlas.
+    publicBaseUrlIsLoopback: /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i.test(
+      publicMediaBaseUrl,
     ),
     s3: {
       endpoint: process.env.S3_ENDPOINT ?? '',

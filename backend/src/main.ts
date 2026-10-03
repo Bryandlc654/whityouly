@@ -54,6 +54,18 @@ async function bootstrap() {
       }),
     );
     console.log(`🖼️  Medios locales servidos en ${env.storage.publicBaseUrl}`);
+    if (env.isProduction && env.storage.publicBaseUrlIsLoopback) {
+      // No se interrumpe el arranque: es un aviso, no un error, para no dejar
+      // el sitio caído mientras se corrige la variable.
+      console.warn(
+        '⚠️  PUBLIC_MEDIA_BASE_URL apunta a un bucle local: las URLs de los archivos quedarán rotas y no se podrán borrar. Debe ser la URL pública del servicio, por ejemplo https://tu-api.com/media',
+      );
+    }
+    if (env.isProduction) {
+      console.warn(
+        '⚠️  STORAGE_DRIVER=local en producción: los archivos viven en el disco del contenedor y se pierden en cada despliegue o reinicio. Configura S3/R2.',
+      );
+    }
   }
 
   // Pipes globales (Validación de DTOs automatizada)
