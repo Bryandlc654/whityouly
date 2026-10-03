@@ -57,15 +57,38 @@ const config: Config = {
         "secondary-fixed-dim": "#6bd8cb",
         "on-secondary-fixed-variant": "#005049"
       },
+      spacing: {
+        "space-xs": "0.25rem",
+        "space-sm": "0.5rem",
+        "space-md": "1rem",
+        "space-lg": "1.5rem",
+        "space-xl": "2.25rem",
+        gutter: "1.25rem",
+        "gutter-mobile": "0.75rem",
+        margin: "2rem",
+        "margin-mobile": "1rem"
+      },
+      fontSize: {
+        "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "600" }],
+        "headline-md": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "headline-sm": ["18px", { lineHeight: "26px", letterSpacing: "-0.015em", fontWeight: "600" }],
+        "body-lg": ["16px", { lineHeight: "26px", fontWeight: "400" }],
+        "body-md": ["15px", { lineHeight: "24px", fontWeight: "400" }],
+        "body-sm": ["13px", { lineHeight: "20px", fontWeight: "400" }],
+        "label-lg": ["14px", { lineHeight: "20px", fontWeight: "600" }],
+        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "500" }],
+        "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "500" }]
+      },
       fontFamily: {
         "display-lg": ["Plus Jakarta Sans"],
         "body-md": ["Plus Jakarta Sans"],
         "headline-sm": ["Plus Jakarta Sans"],
         "body-sm": ["Plus Jakarta Sans"],
-        "label-md": ["Plus Jakarta Sans"],
         "headline-md": ["Plus Jakarta Sans"],
-        "headline-lg": ["Plus Jakarta Sans"],
         "label-sm": ["Plus Jakarta Sans"],
+        "label-md": ["Plus Jakarta Sans"],
+        "headline-lg": ["Plus Jakarta Sans"],
         "label-lg": ["Plus Jakarta Sans"],
         "body-lg": ["Plus Jakarta Sans"]
       },

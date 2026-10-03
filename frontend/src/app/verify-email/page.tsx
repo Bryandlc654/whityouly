@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { API_URL, extractErrorMessage } from '@/lib/api';
 
 function VerifyEmailLogic() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -20,7 +21,7 @@ function VerifyEmailLogic() {
 
     const verify = async () => {
       try {
-        const res = await fetch('http://localhost:3000/auth/verify-email', {
+        const res = await fetch(`${API_URL}/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -29,7 +30,7 @@ function VerifyEmailLogic() {
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.message || 'Error al verificar el correo');
+          throw new Error(extractErrorMessage(data, 'Error al verificar el correo'));
         }
 
         setStatus('success');
@@ -38,9 +39,9 @@ function VerifyEmailLogic() {
         setTimeout(() => {
           router.push('/login');
         }, 3000);
-      } catch (err: any) {
+      } catch (err) {
         setStatus('error');
-        setMessage(err.message);
+        setMessage(err instanceof Error ? err.message : 'Error al verificar el correo');
       }
     };
 

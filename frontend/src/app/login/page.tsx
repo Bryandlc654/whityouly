@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_URL, extractErrorMessage } from '@/lib/api';
+import { tokenStorage } from '@/lib/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,27 +21,29 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/auth/login', {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       if (!res.ok) {
-        throw new Error('Credenciales inválidas');
+        const errorData = await res.json().catch(() => null);
+        throw new Error(extractErrorMessage(errorData, 'Credenciales inválidas'));
       }
 
       const data = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      // El refresh token viaja en una cookie httpOnly; solo guardamos el access token.
+      tokenStorage.setAccess(data.accessToken);
 
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');
       }, 1500);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Credenciales inválidas');
       setLoading(false);
     }
   };

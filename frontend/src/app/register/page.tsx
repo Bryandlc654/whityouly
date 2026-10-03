@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { API_URL, extractErrorMessage } from '@/lib/api';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -11,34 +11,28 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const router = useRouter();
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/auth/register', {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Error al crear la cuenta');
+        const errorData = await res.json().catch(() => null);
+        throw new Error(extractErrorMessage(errorData, 'Error al crear la cuenta'));
       }
 
-      const data = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-
+      // El registro NO devuelve tokens: la cuenta debe verificarse por correo primero.
       setSuccess(true);
-      // Removed redirect to dashboard so they read the email instruction
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear la cuenta');
       setLoading(false);
     }
   };
@@ -101,6 +95,10 @@ export default function RegisterPage() {
                   placeholder="Mínimo 8 caracteres"
                   required
                   minLength={8}
+                  maxLength={72}
+                  pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
+                  title="Debe incluir al menos una mayúscula, una minúscula y un número"
+                  autoComplete="new-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

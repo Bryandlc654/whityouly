@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { API_URL, extractErrorMessage } from '@/lib/api';
 
 function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState('');
@@ -24,7 +25,7 @@ function ResetPasswordForm() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/auth/reset-password', {
+      const res = await fetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword }),
@@ -32,13 +33,13 @@ function ResetPasswordForm() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Error al restablecer la contraseña');
+        throw new Error(extractErrorMessage(data, 'Error al restablecer la contraseña'));
       }
 
       setSuccess(data.message);
       setTimeout(() => router.push('/login'), 2000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al restablecer la contraseña');
     } finally {
       setLoading(false);
     }
@@ -58,6 +59,10 @@ function ResetPasswordForm() {
             placeholder="Mínimo 8 caracteres"
             required
             minLength={8}
+            maxLength={72}
+            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
+            title="Debe incluir al menos una mayúscula, una minúscula y un número"
+            autoComplete="new-password"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}

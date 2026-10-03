@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_URL, extractErrorMessage } from '@/lib/api';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ export default function ForgotPasswordPage() {
     setSuccess('');
 
     try {
-      const res = await fetch('http://localhost:3000/auth/forgot-password', {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -23,12 +24,12 @@ export default function ForgotPasswordPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Error al solicitar el restablecimiento');
+        throw new Error(extractErrorMessage(data, 'Error al solicitar el restablecimiento'));
       }
 
       setSuccess(data.message);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al solicitar el restablecimiento');
     } finally {
       setLoading(false);
     }
