@@ -18,7 +18,9 @@ export default function SideNav({ open, onClose }: SideNavProps) {
           {NAV_MAIN.map((item) => (
             <a
               key={item.label}
-              href="#"
+              // Las secciones que aún no existen apuntan a "#"; la configuración
+              // sí es una página real y debe navegar de verdad.
+              href={'href' in item ? item.href : '#'}
               aria-current={'active' in item && item.active ? 'page' : undefined}
               onClick={onClose}
               className={

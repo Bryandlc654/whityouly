@@ -140,6 +140,7 @@ export const NAV_MAIN = [
   { label: 'Mi Mapa Emocional', icon: 'insights', locked: true },
   { label: 'Círculos de Apoyo', icon: 'groups_2' },
   { label: 'Estudio Creativo', icon: 'auto_awesome' },
+  { label: 'Configuración', icon: 'settings', href: '/cuenta' },
 ] as const;
 
 export const EMOTIONAL_TONES = [

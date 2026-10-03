@@ -49,6 +49,9 @@ export const env = {
   jwtAccessExpiresIn: duration(process.env.JWT_ACCESS_EXPIRES_IN, '15m'),
   jwtRefreshExpiresIn: duration(process.env.JWT_REFRESH_EXPIRES_IN, '7d'),
   jwtEmailVerificationExpiresIn: duration(process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN, '24h'),
+  // El cambio de correo tiene una ventana corta: el enlace solo sirve para
+  // confirmar que la persona controla la dirección nueva.
+  jwtEmailChangeExpiresIn: duration(process.env.JWT_EMAIL_CHANGE_EXPIRES_IN, '1h'),
   jwtPasswordResetExpiresIn: duration(process.env.JWT_PASSWORD_RESET_EXPIRES_IN, '15m'),
   frontendUrl: (process.env.FRONTEND_URL ?? 'http://localhost:3001').replace(/\/$/, ''),
   corsOrigins: parseList(process.env.CORS_ORIGINS, 'http://localhost:3001'),
@@ -104,5 +107,15 @@ export const env = {
     mediaCleanupIntervalMs: parseNumber(process.env.MEDIA_CLEANUP_INTERVAL_MS, 60 * 60_000),
     // Antigüedad mínima de un avatar huérfano antes de purgarlo.
     orphanTtlMs: parseNumber(process.env.MEDIA_ORPHAN_TTL_MS, 24 * 60 * 60_000),
+  },
+  files: {
+    maxBytes: parseNumber(process.env.FILES_MAX_BYTES, 8 * 1024 * 1024),
+    maxPixels: parseNumber(process.env.FILES_MAX_PIXELS, 40_000_000),
+    // Lado mayor de la imagen guardada. No se amplía una imagen pequeña.
+    maxDimension: parseNumber(process.env.FILES_MAX_DIMENSION, 2048),
+    quality: parseNumber(process.env.FILES_QUALITY, 82),
+    uploadsPerHour: parseNumber(process.env.FILES_UPLOADS_PER_HOUR, 30),
+    // Cupo total por usuario. Es lo que evita que la biblioteca crezca sin fin.
+    maxTotalBytes: parseNumber(process.env.FILES_MAX_TOTAL_BYTES, 100 * 1024 * 1024),
   },
 };

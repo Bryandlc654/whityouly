@@ -160,20 +160,29 @@ enum EntityType {
 }
 
 model MediaAsset {
-  id         String     @id @default(uuid())
-  userId     String
-  fileUrl    String
-  mimeType   String?
-  sizeBytes  BigInt?
-  entityType EntityType @default(NONE)
-  entityId   String?
-  createdAt  DateTime   @default(now())
+  id     String  @id @default(uuid())
+  userId String
+  fileUrl String
+  // Clave del objeto en el bucket. Es opcional para no tener que reescribir las
+  // filas existentes de golpe; cuando falta se deduce de `fileUrl`.
+  key          String?
+  originalName String?
+  mimeType     String?
+  sizeBytes    BigInt?
+  width        Int?
+  height       Int?
+  entityType   EntityType @default(NONE)
+  entityId     String?
+  createdAt    DateTime   @default(now())
 
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   storyUpdates   StoryUpdate[]
   creations      Creation[]
   musicTracks    MusicTrack[]
 
+  // Listados por propietario: sin este índice, la biblioteca de cada usuario
+  // obliga a recorrer todos los archivos al paginar.
+  @@index([userId, createdAt])
   @@map("media_assets")
 }
 

@@ -5,12 +5,14 @@ const normalizeEmail = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim().toLowerCase() : value;
 
 // Fuerza una política de contraseña: mínimo 8, con mayúscula, minúscula y número.
-const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
-const PASSWORD_PATTERN_MESSAGE =
+// Se exporta para que el cambio de contraseña desde la configuración de cuenta
+// aplique exactamente la misma política que el registro y el restablecimiento.
+export const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+export const PASSWORD_PATTERN_MESSAGE =
   'La contraseña debe incluir al menos una mayúscula, una minúscula y un número';
 
 // bcrypt solo procesa los primeros 72 bytes: limitamos para evitar truncamientos y DoS.
-const MAX_PASSWORD_LENGTH = 72;
+export const MAX_PASSWORD_LENGTH = 72;
 
 export class RegisterDto {
   @Transform(normalizeEmail)

@@ -17,6 +17,7 @@ import {
 import { AppThrottlerStorage } from './common/throttler/app-throttler.storage';
 import { MediaStorageModule } from './common/storage/storage.module';
 import { QuotaModule } from './common/quota/quota.module';
+import { FilesModule } from './modules/files/files.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { QuotaModule } from './common/quota/quota.module';
     AuthModule,
     CharactersModule,
     InterestsModule,
+    FilesModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

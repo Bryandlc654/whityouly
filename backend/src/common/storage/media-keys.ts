@@ -38,6 +38,15 @@ export function avatarKey(characterId: string, randomToken: string): string {
 }
 
 /**
+ * Clave de un archivo de la biblioteca personal. El id de usuario va en la ruta
+ * para que un bucket compartido siga siendo ordenable y para que las políticas
+ * del bucket puedan razonar sobre quién es el dueño.
+ */
+export function mediaKey(userId: string, randomToken: string): string {
+  return `media/${userId}/${randomToken}.webp`;
+}
+
+/**
  * Extrae la clave de almacenamiento de una URL pública propia.
  * Devuelve `null` si la URL no pertenece a nuestro espacio de nombres, lo que
  * impide borrar o exponer objetos ajenos.
