@@ -1,8 +1,22 @@
 node_modules/
+dist/
+build/
+.next/
+
+# Medios subidos en desarrollo (driver de almacenamiento local)
+uploads/
+
+# Logs de ejecución: pueden incluir datos de peticiones y no son fuente.
+*.log
+logs/
+
+# Artefactos de compilación incremental de TypeScript
+*.tsbuildinfo
 
 .env
 .env.*
 *.env
+!*.example
 
 *.md
 *.txt

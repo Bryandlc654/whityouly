@@ -5,6 +5,13 @@ import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { SessionsService } from './sessions.service';
+import { SessionCleanupService } from './session-cleanup.service';
+import { PasswordBreachService } from './password-breach.service';
+import { LoginAttemptsService } from './login-attempts.service';
+import { AuthAuditService } from './auth-audit.service';
+import { CooldownService } from '../../common/cooldown/cooldown.service';
+import { env } from '../../config/env';
 
 @Module({
   imports: [
@@ -12,10 +19,21 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     PassportModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'super-secret-whityouly-key-change-me',
+      secret: env.jwtSecret,
+      // Restringimos el algoritmo de firma para evitar confusión de algoritmos.
+      signOptions: { algorithm: 'HS256' },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [
+    AuthService,
+    SessionsService,
+    SessionCleanupService,
+    PasswordBreachService,
+    LoginAttemptsService,
+    AuthAuditService,
+    CooldownService,
+    JwtStrategy,
+  ],
 })
 export class AuthModule {}

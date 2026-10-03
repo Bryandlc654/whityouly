@@ -7,5 +7,9 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    env: {
+      JWT_SECRET: 'test-secret-not-for-production',
+      PASSWORD_BREACH_CHECK_ENABLED: 'false',
+    },
   },
 });

@@ -76,6 +76,7 @@ model Session {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("sessions")
 }
 
@@ -93,10 +94,17 @@ model UserPreference {
   @@map("user_preferences")
 }
 
+// Los seudónimos son únicos sin distinguir mayúsculas. Prisma no permite
+// declarar índices funcionales, por eso la unicidad real la garantiza la base
+// con `CREATE UNIQUE INDEX characters_name_lower_key ON characters (lower(name))`
+// (aplicada en Neon). Sin ella, dos registros concurrentes "Ana"/"ana" pasarían
+// el chequeo de la aplicación. El mismo índice acelera las consultas por
+// seudónimo, que son case-insensitive.
 model Character {
   id              String   @id @default(uuid())
   userId          String   @unique
   name            String   @unique
+  tagline         String?
   avatarUrl       String?
   bio             String?
   privacySettings Json?
@@ -106,12 +114,38 @@ model Character {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   stories         Story[]
   comments        Comment[]
+  interests       CharacterInterest[]
   companionshipsGiven  Companionship[] @relation("CharacterGivesCompanionship")
   companionshipsReceived Companionship[] @relation("CharacterReceivesCompanionship")
   followers       Follower[] @relation("CharacterFollowers")
   following       Follower[] @relation("CharacterFollowing")
 
   @@map("characters")
+}
+
+// Catálogo cerrado de intereses. No es texto libre: las etiquetas se curan para
+// que nadie pueda inventar nombres sin moderar, y para poder buscar y agrupar
+// por interés con índice.
+model Interest {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  characters CharacterInterest[]
+
+  @@map("interests")
+}
+
+model CharacterInterest {
+  characterId String
+  interestId  String
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  interest  Interest  @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([characterId, interestId])
+  @@index([interestId])
+  @@map("character_interests")
 }
 
 // ----------------------------------------------------------------------------

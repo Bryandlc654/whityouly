@@ -1,33 +1,73 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CharactersModule } from './modules/characters/characters.module';
+import { InterestsModule } from './modules/interests/interests.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { env } from './config/env';
+import { RedisModule } from './common/redis/redis.module';
+import {
+  ThrottlerStorageModule,
+} from './common/throttler/throttler-storage.module';
+import { AppThrottlerStorage } from './common/throttler/app-throttler.storage';
+import { MediaStorageModule } from './common/storage/storage.module';
+import { QuotaModule } from './common/quota/quota.module';
 
 @Module({
   imports: [
-    PrismaModule, 
-    UsersModule, 
-    AuthModule, 
+    PrismaModule,
+    RedisModule,
+    MediaStorageModule,
+    QuotaModule,
+    UsersModule,
+    AuthModule,
     CharactersModule,
+    InterestsModule,
+    ThrottlerStorageModule,
+    ThrottlerModule.forRootAsync({
+      imports: [ThrottlerStorageModule],
+      inject: [AppThrottlerStorage],
+      useFactory: (storage: AppThrottlerStorage) => ({
+        throttlers: [
+          {
+            ttl: 60_000,
+            limit: 100,
+          },
+        ],
+        storage,
+      }),
+    }),
     MailerModule.forRoot({
-      transport: {
-        host: 'smtp.ethereal.email',
-        port: 587,
-        auth: {
-          user: 'antonia.stamm@ethereal.email',
-          pass: 'y9jYxHQ17n8d1M4K24'
-        }
-      },
+      transport: env.mail.host
+        ? {
+            host: env.mail.host,
+            port: env.mail.port,
+            secure: env.mail.secure,
+            auth: {
+              user: env.mail.user,
+              pass: env.mail.pass,
+            },
+          }
+        : {
+            jsonTransport: true,
+          },
       defaults: {
-        from: '"No Reply Whityouly" <noreply@whityouly.com>',
+        from: env.mail.from,
       },
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
