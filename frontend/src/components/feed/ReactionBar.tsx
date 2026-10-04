@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { StoryReaction } from '@/lib/dashboard-data';
+import { StoryReaction } from '@/lib/feed-data';
 
 const TONE_TEXT: Record<StoryReaction['tone'], string> = {
   primary: 'text-primary',

@@ -1,4 +1,4 @@
-import { SUGGESTED_CHARACTERS } from '@/lib/dashboard-data';
+import { SUGGESTED_CHARACTERS } from '@/lib/feed-data';
 
 const BIO_TONE: Record<(typeof SUGGESTED_CHARACTERS)[number]['bioTone'], string> = {
   primary: 'text-primary',

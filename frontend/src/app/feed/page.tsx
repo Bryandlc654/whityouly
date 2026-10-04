@@ -4,20 +4,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
-import { FEED_STORIES, ONLINE_COUNT } from '@/lib/dashboard-data';
-import CharacterDialog from '@/components/dashboard/CharacterDialog';
-import Composer from '@/components/dashboard/Composer';
-import FeedFilters from '@/components/dashboard/FeedFilters';
-import IdentityCard from '@/components/dashboard/IdentityCard';
-import MoodSelector from '@/components/dashboard/MoodSelector';
-import QuestionOfTheDay from '@/components/dashboard/QuestionOfTheDay';
-import RightColumn from '@/components/dashboard/RightColumn';
-import SideNav from '@/components/dashboard/SideNav';
-import StoryCard from '@/components/dashboard/StoryCard';
-import TopBar from '@/components/dashboard/TopBar';
-import { CharacterSummary, SessionInfo } from '@/components/dashboard/types';
+import { FEED_STORIES, ONLINE_COUNT } from '@/lib/feed-data';
+import CharacterDialog from '@/components/feed/CharacterDialog';
+import Composer from '@/components/feed/Composer';
+import FeedFilters from '@/components/feed/FeedFilters';
+import IdentityCard from '@/components/feed/IdentityCard';
+import MoodSelector from '@/components/feed/MoodSelector';
+import QuestionOfTheDay from '@/components/feed/QuestionOfTheDay';
+import RightColumn from '@/components/feed/RightColumn';
+import SideNav from '@/components/feed/SideNav';
+import StoryCard from '@/components/feed/StoryCard';
+import TopBar from '@/components/feed/TopBar';
+import { CharacterSummary, SessionInfo } from '@/components/feed/types';
 
-export default function DashboardPage() {
+export default function FeedPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);

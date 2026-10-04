@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MOODS } from '@/lib/dashboard-data';
+import { MOODS } from '@/lib/feed-data';
 
 export default function MoodSelector() {
   const [selected, setSelected] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import { EMOTIONAL_TONES, NAV_MAIN } from '@/lib/dashboard-data';
+import { EMOTIONAL_TONES, NAV_MAIN } from '@/lib/feed-data';
 
 interface SideNavProps {
   open: boolean;
@@ -18,8 +18,8 @@ export default function SideNav({ open, onClose }: SideNavProps) {
           {NAV_MAIN.map((item) => (
             <a
               key={item.label}
-              // Las secciones que aún no existen apuntan a "#"; la configuración
-              // sí es una página real y debe navegar de verdad.
+              // Las secciones que aún no existen apuntan a "#"; el Feed y la
+              // configuración sí son páginas reales y deben navegar de verdad.
               href={'href' in item ? item.href : '#'}
               aria-current={'active' in item && item.active ? 'page' : undefined}
               onClick={onClose}

@@ -134,7 +134,7 @@ export const MOODS = [
 ] as const;
 
 export const NAV_MAIN = [
-  { label: 'Inicio (Feed)', icon: 'home', active: true },
+  { label: 'Feed', icon: 'home', active: true, href: '/feed' },
   { label: 'Siguiendo', icon: 'diversity_1' },
   { label: 'Guardados con cariño', icon: 'bookmark_heart' },
   { label: 'Mi Mapa Emocional', icon: 'insights', locked: true },

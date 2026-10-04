@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { QUESTION_RESPONSES } from '@/lib/dashboard-data';
+import { QUESTION_RESPONSES } from '@/lib/feed-data';
 
 export default function QuestionOfTheDay() {
   const [answered, setAnswered] = useState(false);

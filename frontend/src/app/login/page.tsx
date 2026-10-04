@@ -39,7 +39,7 @@ export default function LoginPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/feed');
       }, 1500);
 
     } catch (err) {

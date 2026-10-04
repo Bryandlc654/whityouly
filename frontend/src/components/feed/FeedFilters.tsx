@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FEED_FILTERS } from '@/lib/dashboard-data';
+import { FEED_FILTERS } from '@/lib/feed-data';
 
 export default function FeedFilters() {
   const [active, setActive] = useState<(typeof FEED_FILTERS)[number]>(FEED_FILTERS[0]);

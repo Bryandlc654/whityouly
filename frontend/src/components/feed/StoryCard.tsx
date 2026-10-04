@@ -1,4 +1,4 @@
-import { Story } from '@/lib/dashboard-data';
+import { Story } from '@/lib/feed-data';
 import ReactionBar from './ReactionBar';
 
 const TAG_TONE: Record<Story['tags'][number]['tone'], string> = {
