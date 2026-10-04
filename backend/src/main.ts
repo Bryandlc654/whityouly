@@ -68,6 +68,22 @@ async function bootstrap() {
     }
   }
 
+  // El refresh token viaja en una cookie httpOnly. Si el navegador no la
+  // devuelve, el síntoma es desconectado: el access token caduca y todo lo
+  // autenticado responde 401 sin que nada del frontend lo explique.
+  if (env.isProduction) {
+    if (env.cookie.sameSite !== 'none') {
+      console.warn(
+        '⚠️  COOKIE_SAMESITE no es "none" y el frontend está en otro dominio: el navegador no enviará la cookie de refresco y las peticiones autenticadas fallarán con 401 al caducar el access token.',
+      );
+    }
+    if (env.cookie.sameSite === 'none' && !env.cookie.secure) {
+      console.warn(
+        '⚠️  SameSite=None sin Secure: los navegadores descartan la cookie y el refresh de token no funcionará.',
+      );
+    }
+  }
+
   // Pipes globales (Validación de DTOs automatizada)
   app.useGlobalPipes(
     new ValidationPipe({

@@ -73,7 +73,13 @@ export const env = {
     secure: process.env.COOKIE_SECURE
       ? process.env.COOKIE_SECURE === 'true'
       : process.env.NODE_ENV === 'production',
-    sameSite: (process.env.COOKIE_SAMESITE ?? 'lax') as 'lax' | 'strict' | 'none',
+    // El frontend y la API se despliegan en dominios distintos (Vercel y
+    // Render), de modo que la cookie de refresco solo vuelve si es
+    // SameSite=None. Con 'lax' el navegador no la envía en las peticiones
+    // cross-site, el refresh falla y toda llamada autenticada responde 401 en
+    // cuanto caduca el access token.
+    sameSite: (process.env.COOKIE_SAMESITE ??
+      (process.env.NODE_ENV === 'production' ? 'none' : 'lax')) as 'lax' | 'strict' | 'none',
     domain: process.env.COOKIE_DOMAIN ?? '',
   },
   mail: {
