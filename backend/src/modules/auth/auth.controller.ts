@@ -23,9 +23,9 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ResendVerificationDto,
-  OptionalRefreshTokenDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CsrfOriginGuard } from './guards/csrf-origin.guard';
 import { env } from '../../config/env';
 
 type AuthenticatedRequest = Request & { user: { userId: string; sessionId?: string } };
@@ -81,16 +81,16 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(CsrfOriginGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: 'Renovar el access token usando el refresh token (rotación)' })
   @ApiResponse({ status: 200, description: 'Nuevo access token y cookie de refresco rotada.' })
   @ApiResponse({ status: 401, description: 'Refresh token inválido o reutilizado.' })
-  async refresh(
-    @Body() dto: OptionalRefreshTokenDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE] ?? dto?.refreshToken;
+  @ApiResponse({ status: 403, description: 'Origen no permitido.' })
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // Solo la cookie. Aceptar el token en el cuerpo haría esta ruta alcanzable
+    // desde cualquier web con una petición simple, sin que CORS la detenga.
+    const refreshToken = req.cookies?.[REFRESH_COOKIE];
     if (!refreshToken) {
       throw new UnauthorizedException('No hay una sesión activa');
     }
@@ -102,16 +102,13 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(CsrfOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Cerrar la sesión actual (revoca el refresh token)' })
-  async logout(
-    @Body() dto: OptionalRefreshTokenDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE] ?? dto?.refreshToken;
+  @ApiResponse({ status: 403, description: 'Origen no permitido.' })
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.clearRefreshCookie(res);
-    return this.authService.logout(refreshToken ?? '');
+    return this.authService.logout(req.cookies?.[REFRESH_COOKIE] ?? '');
   }
 
   @Post('logout-all')

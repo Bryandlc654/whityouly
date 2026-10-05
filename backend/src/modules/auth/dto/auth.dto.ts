@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsNotEmpty, IsOptional, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsNotEmpty, Matches } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 const normalizeEmail = ({ value }: { value: unknown }) =>
@@ -63,16 +63,4 @@ export class ResendVerificationDto {
   @IsEmail({}, { message: 'El correo no es válido' })
   @MaxLength(254, { message: 'El correo es demasiado largo' })
   email!: string;
-}
-
-export class RefreshTokenDto {
-  @IsString()
-  @IsNotEmpty({ message: 'El refresh token es requerido' })
-  refreshToken!: string;
-}
-
-export class OptionalRefreshTokenDto {
-  @IsOptional()
-  @IsString()
-  refreshToken?: string;
 }

@@ -94,9 +94,18 @@ async function bootstrap() {
     }
     if (!env.database.connectionLimit) {
       console.warn(
-        '⚠️  La DATABASE_URL no fija "connection_limit": el pool crece con los nucleos de la instancia y cada conexion abierta ocupa una ranura de Neon. Anade connection_limit=5.',
+        '⚠️  La DATABASE_URL no fija "connection_limit": el pool crece con los nucleos de la instancia y cada conexion abierta ocupa una ranura de Neon. Anade connection_limit=3 si solo hay una instancia.',
       );
     }
+  }
+
+  // Sin Redis, los contadores de seguridad viven en la memoria del proceso: el
+  // bloqueo por intentos fallidos y los enfriamientos se reinician en cada
+  // despliegue y no se comparten entre instancias.
+  if (env.isProduction && !env.redisUrl) {
+    console.warn(
+      '⚠️  REDIS_URL no esta definida: el bloqueo de intentos, los enfriamientos y las cuotas por hora se guardan en memoria del proceso. Se pierden al reiniciar y no se comparten entre instancias.',
+    );
   }
 
   // Pipes globales (Validación de DTOs automatizada)
@@ -115,20 +124,24 @@ async function bootstrap() {
   // Apagado ordenado (relevante para entornos con múltiples instancias)
   app.enableShutdownHooks();
 
-  // Configuración de Swagger (Documentación OpenAPI)
-  const config = new DocumentBuilder()
-    .setTitle('Whityouly API')
-    .setDescription('Documentación de los endpoints del backend de Whityouly')
-    .setVersion('1.0')
-    .addBearerAuth() // Soporte para JWT en la UI de Swagger
-    .build();
+  // Documentación OpenAPI. En producción no se publica: Swagger expone el mapa
+  // completo de la API (incluidos endpoints de moderación) a cualquiera que la
+  // visite. Para consultarla en un entorno desplegado, ejecuciónala en local.
+  if (!env.isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle('Whityouly API')
+      .setDescription('Documentación de los endpoints del backend de Whityouly')
+      .setVersion('1.0')
+      .addBearerAuth() // Soporte para JWT en la UI de Swagger
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document); // Ruta: /api/docs
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document); // Ruta: /api/docs
+    console.log(`📚 Swagger disponible en: http://localhost:${env.port}/api/docs`);
+  }
 
   // Iniciar el servidor
   await app.listen(env.port);
   console.log(`🚀 Servidor corriendo en: http://localhost:${env.port}`);
-  console.log(`📚 Swagger disponible en: http://localhost:${env.port}/api/docs`);
 }
 bootstrap();
