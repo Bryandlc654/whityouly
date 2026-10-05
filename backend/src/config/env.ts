@@ -42,6 +42,17 @@ const publicMediaBaseUrl = (
   'http://localhost:3000/media'
 ).replace(/\/$/, '');
 
+/**
+ * Diagnóstico del pool de conexiones, que es lo que hace que un backend se quede
+ * sin conexiones antes de que las consultas sean lentas. Con el endpoint
+ * agrupado de Neon (host "-pooler"), Prisma necesita `pgbouncer=true` para no
+ * usar sentencias preparadas y `connection_limit` acotado: cada conexión abierta
+ * consume una ranura de Neon y, sin tope, el propio tráfico puede agotarlas.
+ */
+const databaseUrl = process.env.DATABASE_URL ?? '';
+const databaseParams = databaseUrl.includes('?') ? databaseUrl.slice(databaseUrl.indexOf('?') + 1) : '';
+const usesNeonPooler = /-pooler\./.test(databaseUrl) || /pooler=true/.test(databaseParams);
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   isProduction: process.env.NODE_ENV === 'production',
@@ -89,6 +100,11 @@ export const env = {
     user: process.env.MAIL_USER ?? '',
     pass: process.env.MAIL_PASS ?? '',
     from: process.env.MAIL_FROM ?? '"No Reply Whityouly" <noreply@whityouly.com>',
+  },
+  database: {
+    usesPooler: usesNeonPooler,
+    pgbouncer: /pgbouncer=true/.test(databaseParams),
+    connectionLimit: /connection_limit=(\d+)/.exec(databaseParams)?.[1] ?? null,
   },
   storage: {
     driver: storageDriver,

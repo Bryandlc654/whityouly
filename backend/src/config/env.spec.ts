@@ -54,3 +54,46 @@ describe('configuración de la cookie de refresco', () => {
     expect(env.cookie.secure).toBe(false);
   });
 });
+
+describe('diagnóstico del pool de conexiones', () => {
+  const previous = process.env.DATABASE_URL;
+
+  afterEach(() => {
+    if (previous === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = previous;
+    vi.resetModules();
+  });
+
+  async function loadWith(url: string) {
+    process.env.DATABASE_URL = url;
+    vi.resetModules();
+    const { env } = await import('./env');
+    return env;
+  }
+
+  it('detecta el pooler de Neon y la ausencia de pgbouncer y connection_limit', async () => {
+    const env = await loadWith(
+      'postgresql://u:p@ep-xyz-pooler.us-east-2.aws.neon.tech/db?sslmode=require',
+    );
+
+    expect(env.database.usesPooler).toBe(true);
+    expect(env.database.pgbouncer).toBe(false);
+    expect(env.database.connectionLimit).toBeNull();
+  });
+
+  it('reconoce una configuración agrupada correcta', async () => {
+    const env = await loadWith(
+      'postgresql://u:p@ep-xyz-pooler.us-east-2.aws.neon.tech/db?pgbouncer=true&connection_limit=5',
+    );
+
+    expect(env.database.usesPooler).toBe(true);
+    expect(env.database.pgbouncer).toBe(true);
+    expect(env.database.connectionLimit).toBe('5');
+  });
+
+  it('no marca el pooler cuando la conexión es directa', async () => {
+    const env = await loadWith('postgresql://u:p@ep-xyz.us-east-2.aws.neon.tech/db?sslmode=require');
+
+    expect(env.database.usesPooler).toBe(false);
+  });
+});

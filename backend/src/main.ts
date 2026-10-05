@@ -84,6 +84,21 @@ async function bootstrap() {
     }
   }
 
+  // Avisos de configuración que no romven nada al arrancar pero que hacen que el
+  // backend se quede sin conexiones cuando sube el tráfico.
+  if (env.database.usesPooler) {
+    if (!env.database.pgbouncer) {
+      console.warn(
+        '⚠️  La DATABASE_URL usa el pooler sin "pgbouncer=true": Prisma sigue usando sentencias preparadas que PgBouncer no admite y falla de forma intermitente bajo carga.',
+      );
+    }
+    if (!env.database.connectionLimit) {
+      console.warn(
+        '⚠️  La DATABASE_URL no fija "connection_limit": el pool crece con los nucleos de la instancia y cada conexion abierta ocupa una ranura de Neon. Anade connection_limit=5.',
+      );
+    }
+  }
+
   // Pipes globales (Validación de DTOs automatizada)
   app.useGlobalPipes(
     new ValidationPipe({

@@ -77,6 +77,10 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  // La purga de sesiones caducadas borra por `expiresAt` de forma periódica.
+  // Es la tabla que más crece (una fila por inicio de sesión) y sin este índice
+  // cada pasada recorre todas las filas.
+  @@index([expiresAt])
   @@map("sessions")
 }
 
@@ -120,6 +124,9 @@ model Character {
   followers       Follower[] @relation("CharacterFollowers")
   following       Follower[] @relation("CharacterFollowing")
 
+  // El barrido de avatares huérfanos busca por `avatarUrl`. Sin índice, esa
+  // comprobación recorre la tabla de personajes entera en cada pasada.
+  @@index([avatarUrl])
   @@map("characters")
 }
 
@@ -183,6 +190,9 @@ model MediaAsset {
   // Listados por propietario: sin este índice, la biblioteca de cada usuario
   // obliga a recorrer todos los archivos al paginar.
   @@index([userId, createdAt])
+  // El barrido de huérfanos filtra por tipo y antigüedad. El índice de arriba
+  // empieza por `userId`, así que no le sirve para esa consulta.
+  @@index([entityType, createdAt])
   @@map("media_assets")
 }
 
@@ -240,6 +250,9 @@ model StoryUpdate {
   story      Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
   mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
 
+  // Postgres no indexa las claves foráneas por su cuenta, y al borrar un
+  // archivo se cuenta cuántas veces lo referencia cada tabla.
+  @@index([mediaAssetId])
   @@map("story_updates")
 }
 
@@ -442,6 +455,7 @@ model Creation {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
 
+  @@index([mediaAssetId])
   @@map("creations")
 }
 
@@ -510,6 +524,7 @@ model MusicTrack {
   storyMusic StoryMusic[]
   playlistTracks PlaylistTrack[]
 
+  @@index([mediaAssetId])
   @@map("music_tracks")
 }
 
