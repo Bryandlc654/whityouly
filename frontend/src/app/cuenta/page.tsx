@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_URL } from '@/lib/api';
 import { fetchAccount, type Account } from '@/lib/account';
-import { tokenStorage } from '@/lib/auth';
+import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import type { CharacterSummary } from '@/components/feed/types';
+import AppShell from '@/components/layout/AppShell';
 import PreferencesSection from '@/components/account/PreferencesSection';
 import SecuritySection from '@/components/account/SecuritySection';
 import FilesSection from '@/components/account/FilesSection';
@@ -21,6 +24,7 @@ const TABS: { id: Tab; label: string }[] = [
 export default function AccountPage() {
   const router = useRouter();
   const [account, setAccount] = useState<Account | null>(null);
+  const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [tab, setTab] = useState<Tab>('preferencias');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -44,9 +48,39 @@ export default function AccountPage() {
     void load();
   }, [load, router]);
 
+  // La barra superior muestra la identidad seudónima, que vive en /characters.
+  // Si no hay personaje todavía, el avatar cae al marcador y el perfil abre el
+  // Feed, que es donde se crea.
+  useEffect(() => {
+    const loadCharacter = async () => {
+      try {
+        const res = await authFetch(`${API_URL}/characters/me`);
+
+        if (res.status === 401) {
+          tokenStorage.clear();
+          router.replace('/login');
+          return;
+        }
+
+        if (res.ok) {
+          setCharacter(await res.json());
+        }
+      } catch (error) {
+        console.error('Error cargando personaje', error);
+      }
+    };
+
+    void loadCharacter();
+  }, [router]);
+
+  const logout = async () => {
+    await endSession();
+    router.push('/login');
+  };
+
   return (
-    <main className="min-h-screen bg-surface text-on-surface">
-      <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+    <AppShell character={character} onLogout={logout}>
+      <div className="mx-auto w-full max-w-3xl pt-space-md">
         <header className="mb-6">
           <h1 className="text-headline-sm font-semibold">Configuración de la cuenta</h1>
           <p className="mt-1 text-body-sm text-on-surface-variant">
@@ -105,6 +139,6 @@ export default function AccountPage() {
           </>
         )}
       </div>
-    </main>
+    </AppShell>
   );
 }

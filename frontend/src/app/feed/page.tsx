@@ -12,17 +12,15 @@ import IdentityCard from '@/components/feed/IdentityCard';
 import MoodSelector from '@/components/feed/MoodSelector';
 import QuestionOfTheDay from '@/components/feed/QuestionOfTheDay';
 import RightColumn from '@/components/feed/RightColumn';
-import SideNav from '@/components/feed/SideNav';
 import StoryCard from '@/components/feed/StoryCard';
-import TopBar from '@/components/feed/TopBar';
 import { CharacterSummary, SessionInfo } from '@/components/feed/types';
+import AppShell from '@/components/layout/AppShell';
 
 export default function FeedPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
-  const [navOpen, setNavOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -119,116 +117,79 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface font-body-md text-on-surface antialiased">
-      <TopBar
-        character={character}
-        onOpenSettings={() => setDialogOpen(true)}
-        onToggleNav={() => setNavOpen((value) => !value)}
-        onLogout={logout}
-      />
-
-      <SideNav open={navOpen} onClose={() => setNavOpen(false)} />
-
-      <div className="lg:pl-64">
-        <main className="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter-mobile sm:px-gutter pb-space-xl">
-          <div className="flex flex-col w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg max-w-7xl mx-auto w-full">
-              {/* Feed principal */}
-              <div className="lg:col-span-8 flex flex-col gap-space-md">
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-space-xs pb-space-xs">
-                  <div>
-                    <h1 className="text-display-lg text-on-surface tracking-tight">Historias para ti</h1>
-                    <p className="text-body-md text-on-surface-variant mt-0.5">
-                      Lee sin juzgar. Responde desde el corazón y la propia vivencia.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-space-xs self-start sm:self-auto bg-surface-container text-on-surface-variant px-space-sm py-1 rounded-full shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                    <span className="text-label-sm">{ONLINE_COUNT} almas conectadas en calma</span>
-                  </div>
-                </div>
-
-                {!character && <IdentityCard onEdit={() => setDialogOpen(true)} />}
-
-                <MoodSelector />
-
-                <Composer character={character} onNeedCharacter={() => setDialogOpen(true)} />
-
-                <FeedFilters />
-
-                {FEED_STORIES.map((story) => (
-                  <StoryCard key={story.id} story={story} />
-                ))}
-
-                <QuestionOfTheDay />
-
-                <div className="py-space-md flex flex-col items-center justify-center gap-space-xs text-center">
-                  <button
-                    type="button"
-                    className="bg-surface-container-low hover:bg-surface-container text-on-surface text-label-lg px-space-xl py-2.5 rounded-full shadow-sm transition-all hover:scale-[1.01] flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-base text-primary">
-                      filter_drama
-                    </span>
-                    <span>Desplegar más historias con calma</span>
-                  </button>
-                  <span className="text-body-sm text-outline">
-                    Sin algoritmos de aceleración ni desplazamiento infinito compulsivo.
-                  </span>
-                </div>
+    <AppShell
+      character={character}
+      onLogout={logout}
+      onOpenProfile={() => setDialogOpen(true)}
+      toast={toast}
+      overlays={
+        dialogOpen && (
+          <CharacterDialog
+            character={character}
+            sessions={sessions}
+            onClose={() => setDialogOpen(false)}
+            onCharacterChange={setCharacter}
+            onLoadSessions={loadSessions}
+            onRevokeSession={revokeSession}
+            onRevokeOthers={revokeOtherSessions}
+            onLogout={logout}
+          />
+        )
+      }
+    >
+      <div className="flex flex-col w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg max-w-7xl mx-auto w-full">
+          {/* Feed principal */}
+          <div className="lg:col-span-8 flex flex-col gap-space-md">
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-space-xs pb-space-xs">
+              <div>
+                <h1 className="text-display-lg text-on-surface tracking-tight">Historias para ti</h1>
+                <p className="text-body-md text-on-surface-variant mt-0.5">
+                  Lee sin juzgar. Responde desde el corazón y la propia vivencia.
+                </p>
               </div>
+              <div className="flex items-center gap-space-xs self-start sm:self-auto bg-surface-container text-on-surface-variant px-space-sm py-1 rounded-full shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+                <span className="text-label-sm">{ONLINE_COUNT} almas conectadas en calma</span>
+              </div>
+            </div>
 
-              {/* Columna lateral */}
-              <RightColumn
-                onFollow={(name) => setToast(`Acompañar a ${name} llega con el módulo de comunidad.`)}
-              />
+            {!character && <IdentityCard onEdit={() => setDialogOpen(true)} />}
+
+            <MoodSelector />
+
+            <Composer character={character} onNeedCharacter={() => setDialogOpen(true)} />
+
+            <FeedFilters />
+
+            {FEED_STORIES.map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+
+            <QuestionOfTheDay />
+
+            <div className="py-space-md flex flex-col items-center justify-center gap-space-xs text-center">
+              <button
+                type="button"
+                className="bg-surface-container-low hover:bg-surface-container text-on-surface text-label-lg px-space-xl py-2.5 rounded-full shadow-sm transition-all hover:scale-[1.01] flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base text-primary">
+                  filter_drama
+                </span>
+                <span>Desplegar más historias con calma</span>
+              </button>
+              <span className="text-body-sm text-outline">
+                Sin algoritmos de aceleración ni desplazamiento infinito compulsivo.
+              </span>
             </div>
           </div>
-        </main>
 
-        <footer className="w-full bg-surface-container-lowest/80 backdrop-blur-sm py-space-md px-gutter-mobile sm:px-gutter flex flex-col sm:flex-row items-center justify-between gap-space-sm">
-          <div className="flex items-center gap-space-sm text-on-surface-variant text-body-sm">
-            <span className="material-symbols-outlined text-secondary text-sm">favorite</span>
-            <span className="text-center sm:text-left">
-              Withyouly • Comunidad de acompañamiento humano y respeto incondicional.
-            </span>
-          </div>
-          <div className="flex items-center gap-space-md">
-            <a href="#" className="text-label-sm text-outline hover:text-on-surface transition-colors">
-              Protocolos éticos
-            </a>
-            <a
-              href="#"
-              className="text-label-sm text-primary hover:underline transition-all"
-            >
-              Recursos de Salud Mental
-            </a>
-          </div>
-        </footer>
-      </div>
-
-      {toast && (
-        <div
-          role="status"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[70] bg-inverse-surface text-inverse-on-surface text-body-sm px-space-md py-2.5 rounded-full shadow-xl flex items-center gap-2 max-w-[92vw]"
-        >
-          <span className="material-symbols-outlined text-base">info</span>
-          {toast}
+          {/* Columna lateral */}
+          <RightColumn
+            onFollow={(name) => setToast(`Acompañar a ${name} llega con el módulo de comunidad.`)}
+          />
         </div>
-      )}
-
-      {dialogOpen && (
-        <CharacterDialog
-          character={character}
-          sessions={sessions}
-          onClose={() => setDialogOpen(false)}
-          onCharacterChange={setCharacter}
-          onLoadSessions={loadSessions}
-          onRevokeSession={revokeSession}
-          onRevokeOthers={revokeOtherSessions}
-          onLogout={logout}
-        />
-      )}
-    </div>
+      </div>
+    </AppShell>
   );
 }

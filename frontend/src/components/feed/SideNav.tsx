@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { EMOTIONAL_TONES, NAV_MAIN } from '@/lib/feed-data';
 
 interface SideNavProps {
@@ -8,6 +9,10 @@ interface SideNavProps {
 }
 
 export default function SideNav({ open, onClose }: SideNavProps) {
+  // La entrada activa se deduce de la ruta: el menú vive en varias páginas y
+  // fija "Feed" en los datos marcaría la sección equivocada fuera del Feed.
+  const pathname = usePathname();
+
   const content = (
     <>
       <div className="flex flex-col gap-space-md overflow-y-auto px-space-sm">
@@ -15,27 +20,32 @@ export default function SideNav({ open, onClose }: SideNavProps) {
           <div className="px-space-sm py-1 text-label-sm text-outline uppercase tracking-wider">
             Navegación
           </div>
-          {NAV_MAIN.map((item) => (
-            <a
-              key={item.label}
-              // Las secciones que aún no existen apuntan a "#"; el Feed y la
-              // configuración sí son páginas reales y deben navegar de verdad.
-              href={'href' in item ? item.href : '#'}
-              aria-current={'active' in item && item.active ? 'page' : undefined}
-              onClick={onClose}
-              className={
-                'active' in item && item.active
-                  ? 'flex items-center gap-space-sm px-space-md py-2.5 transition-all bg-primary-container text-on-primary-container font-semibold rounded-xl shadow-sm'
-                  : 'flex items-center gap-space-sm px-space-md py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all'
-              }
-            >
-              <span className="material-symbols-outlined text-lg">{item.icon}</span>
-              <span className="text-label-lg">{item.label}</span>
-              {'locked' in item && item.locked && (
-                <span className="material-symbols-outlined text-xs text-outline ml-auto">lock</span>
-              )}
-            </a>
-          ))}
+          {NAV_MAIN.map((item) => {
+            const active = 'href' in item && item.href === pathname;
+
+            return (
+              <a
+                key={item.label}
+                // Las secciones que aún no existen apuntan a "#"; el Feed y la
+                // configuración sí son páginas reales y deben navegar de verdad.
+                href={'href' in item ? item.href : '#'}
+                aria-current={active ? 'page' : undefined}
+                aria-disabled={!('href' in item) || undefined}
+                onClick={onClose}
+                className={
+                  active
+                    ? 'flex items-center gap-space-sm px-space-md py-2.5 transition-all bg-primary-container text-on-primary-container font-semibold rounded-xl shadow-sm'
+                    : 'flex items-center gap-space-sm px-space-md py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all'
+                }
+              >
+                <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                <span className="text-label-lg">{item.label}</span>
+                {'locked' in item && item.locked && (
+                  <span className="material-symbols-outlined text-xs text-outline ml-auto">lock</span>
+                )}
+              </a>
+            );
+          })}
         </nav>
 
         <nav className="flex flex-col gap-1" aria-label="Sintonías emocionales">
