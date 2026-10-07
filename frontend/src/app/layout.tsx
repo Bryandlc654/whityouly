@@ -18,6 +18,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com" rel="preconnect"/>
         <link crossOrigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect"/>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       </head>
       <body className={`antialiased font-body-md`}>
         {children}

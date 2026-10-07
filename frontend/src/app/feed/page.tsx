@@ -1,52 +1,68 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
-import { FEED_STORIES, ONLINE_COUNT } from '@/lib/feed-data';
-import CharacterDialog from '@/components/feed/CharacterDialog';
-import Composer from '@/components/feed/Composer';
-import FeedFilters from '@/components/feed/FeedFilters';
-import IdentityCard from '@/components/feed/IdentityCard';
-import MoodSelector from '@/components/feed/MoodSelector';
-import QuestionOfTheDay from '@/components/feed/QuestionOfTheDay';
-import RightColumn from '@/components/feed/RightColumn';
-import StoryCard from '@/components/feed/StoryCard';
-import { CharacterSummary, SessionInfo } from '@/components/feed/types';
-import AppShell from '@/components/layout/AppShell';
+import type { CharacterSummary } from '@/components/feed/types';
+import Avatar from '@/components/wy/Avatar';
+import Icon from '@/components/wy/Icon';
+import PostCard from '@/components/wy/PostCard';
+import RightRail from '@/components/wy/RightRail';
+import MoodModal, { MOODS } from '@/components/wy/MoodModal';
+import WyFrame, { type WyRoute } from '@/components/wy/Shell';
+import { Sheet, type SheetRow } from '@/components/wy/Overlays';
+import { DEMO_STORIES } from '@/components/wy/feedData';
+
+type FeedTab = 'for-you' | 'following';
+
+function initialsOf(name?: string | null) {
+  if (!name) return '?';
+  return name.trim().slice(0, 2).toUpperCase();
+}
 
 export default function FeedPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
-  const [sessions, setSessions] = useState<SessionInfo[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [toast, setToast] = useState('');
 
-  const loadSessions = useCallback(async () => {
-    try {
-      const res = await authFetch(`${API_URL}/auth/sessions`);
-      if (res.ok) {
-        setSessions(await res.json());
-      }
-    } catch (error) {
-      console.error('Error cargando sesiones', error);
-    }
+  const [feedTab, setFeedTab] = useState<FeedTab>('for-you');
+  const [supported, setSupported] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [followAuthors, setFollowAuthors] = useState<Set<string>>(new Set());
+  const [followStories, setFollowStories] = useState<Set<string>>(new Set());
+
+  const [moodOpen, setMoodOpen] = useState(false);
+  const [moodName, setMoodName] = useState('Esperanza');
+  const [moodValue, setMoodValue] = useState(7);
+  const [moodDaypart, setMoodDaypart] = useState('Todo el día');
+
+  const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
+  const [toast, setToast] = useState('');
+  const [summaryHidden, setSummaryHidden] = useState(false);
+
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const notify = useCallback((message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 2400);
+  }, []);
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
   useEffect(() => {
     const verifySession = async () => {
       const token = tokenStorage.getAccess();
 
-      // Sin token ni siquiera lo intentamos: directo al login.
       if (!token) {
-        router.push('/login');
+        router.replace('/login');
         return;
       }
 
       try {
-        // authFetch renueva el access token automáticamente si expiró.
         const res = await authFetch(`${API_URL}/characters/me`);
 
         if (res.status === 401) {
@@ -57,11 +73,7 @@ export default function FeedPage() {
 
         if (res.ok) {
           const data = await res.json();
-          if (data) {
-            setCharacter(data);
-            // Sin personaje no hay seudónimo: la identidad es lo primero.
-            setDialogOpen(!data);
-          }
+          if (data) setCharacter(data);
         }
       } catch (error) {
         console.error('Error verificando sesión', error);
@@ -73,123 +85,247 @@ export default function FeedPage() {
     verifySession();
   }, [router]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(''), 5000);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await endSession();
     router.push('/login');
+  }, [router]);
+
+  const toggle = (
+    setter: Dispatch<SetStateAction<Set<string>>>,
+    id: string,
+    onMessage: string,
+    offMessage: string,
+  ) => {
+    setter((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        notify(offMessage);
+      } else {
+        next.add(id);
+        notify(onMessage);
+      }
+      return next;
+    });
   };
 
-  const revokeSession = async (session: SessionInfo) => {
-    const res = await authFetch(`${API_URL}/auth/sessions/${session.id}`, { method: 'DELETE' });
+  const openAccount = () => {
+    setSheet({
+      title: 'Tu cuenta',
+      rows: [
+        { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
+        { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
+      ],
+    });
+  };
 
-    if (res.ok && session.current) {
-      // El usuario acaba de cerrar su propia sesión actual.
-      tokenStorage.clear();
-      router.push('/login');
-      return;
+  const openMood = (name = 'Esperanza') => {
+    setMoodName(name);
+    setMoodOpen(true);
+  };
+
+  const openPostMenu = (storyId: string) => {
+    setSheet({
+      title: 'Opciones del relato',
+      rows: [
+        { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => toggle(setFollowStories, storyId, 'Seguirás las actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones') },
+        { label: 'Guardar relato', icon: 'bookmark', onClick: () => toggle(setSaved, storyId, 'Relato guardado', 'Relato eliminado de guardados') },
+        { label: 'Compartir enlace', icon: 'share', onClick: () => notify('Enlace copiado') },
+        { label: 'Reportar contenido', icon: 'flag', danger: true, onClick: () => notify('Reporte enviado a revisión prioritaria') },
+      ],
+    });
+  };
+
+  const navigate = (route: WyRoute) => {
+    switch (route) {
+      case 'home':
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'mood':
+        openMood();
+        break;
+      case 'profile':
+        router.push('/cuenta');
+        break;
+      case 'my-stories':
+        notify('Compartir relatos llega con el módulo de historias.');
+        break;
+      default:
+        notify('Esta sección llega con los próximos módulos.');
     }
-
-    await loadSessions();
-  };
-
-  const revokeOtherSessions = async () => {
-    await authFetch(`${API_URL}/auth/sessions/revoke-others`, { method: 'POST' });
-    await loadSessions();
-    setToast('Se cerraron todas las demás sesiones.');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="flex flex-col items-center gap-2">
-          <span className="material-symbols-outlined animate-spin text-primary text-4xl">
-            progress_activity
-          </span>
-          <p className="text-on-surface-variant font-medium">Verificando acceso seguro...</p>
-        </div>
+      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
+        <p className="muted">Verificando acceso…</p>
       </div>
     );
   }
 
+  const name = character?.name ?? '';
+  const initials = initialsOf(character?.name);
+  const stories =
+    feedTab === 'following'
+      ? DEMO_STORIES.filter((story) => followAuthors.has(story.author) || story.id === 'pausa')
+      : DEMO_STORIES;
+
   return (
-    <AppShell
-      character={character}
-      onLogout={logout}
-      onOpenProfile={() => setDialogOpen(true)}
+    <WyFrame
+      characterInitials={initials}
+      avatarUrl={character?.avatarUrl}
+      activeRoute="home"
+      onNavigate={navigate}
+      onOpenAccount={openAccount}
+      onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
       toast={toast}
-      overlays={
-        dialogOpen && (
-          <CharacterDialog
-            character={character}
-            sessions={sessions}
-            onClose={() => setDialogOpen(false)}
-            onCharacterChange={setCharacter}
-            onLoadSessions={loadSessions}
-            onRevokeSession={revokeSession}
-            onRevokeOthers={revokeOtherSessions}
-            onLogout={logout}
+      overlay={
+        moodOpen ? (
+          <MoodModal
+            name={moodName}
+            value={moodValue}
+            daypart={moodDaypart}
+            onChangeName={setMoodName}
+            onChangeValue={setMoodValue}
+            onChangeDaypart={setMoodDaypart}
+            onClose={() => setMoodOpen(false)}
+            onSave={() => {
+              setMoodOpen(false);
+              notify(`${moodName} ${moodValue}/10 guardado de forma privada`);
+            }}
           />
-        )
+        ) : null
+      }
+      sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
+      rightRail={
+        <RightRail
+          summaryHidden={summaryHidden}
+          onToggleSummary={() => setSummaryHidden((value) => !value)}
+          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
+          onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
+          onMood={openMood}
+        />
       }
     >
-      <div className="flex flex-col w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg max-w-7xl mx-auto w-full">
-          {/* Feed principal */}
-          <div className="lg:col-span-8 flex flex-col gap-space-md">
-            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-space-xs pb-space-xs">
-              <div>
-                <h1 className="text-display-lg text-on-surface tracking-tight">Historias para ti</h1>
-                <p className="text-body-md text-on-surface-variant mt-0.5">
-                  Lee sin juzgar. Responde desde el corazón y la propia vivencia.
-                </p>
-              </div>
-              <div className="flex items-center gap-space-xs self-start sm:self-auto bg-surface-container text-on-surface-variant px-space-sm py-1 rounded-full shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                <span className="text-label-sm">{ONLINE_COUNT} almas conectadas en calma</span>
-              </div>
-            </div>
-
-            {!character && <IdentityCard onEdit={() => setDialogOpen(true)} />}
-
-            <MoodSelector />
-
-            <Composer character={character} onNeedCharacter={() => setDialogOpen(true)} />
-
-            <FeedFilters />
-
-            {FEED_STORIES.map((story) => (
-              <StoryCard key={story.id} story={story} />
-            ))}
-
-            <QuestionOfTheDay />
-
-            <div className="py-space-md flex flex-col items-center justify-center gap-space-xs text-center">
-              <button
-                type="button"
-                className="bg-surface-container-low hover:bg-surface-container text-on-surface text-label-lg px-space-xl py-2.5 rounded-full shadow-sm transition-all hover:scale-[1.01] flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base text-primary">
-                  filter_drama
-                </span>
-                <span>Desplegar más historias con calma</span>
-              </button>
-              <span className="text-body-sm text-outline">
-                Sin algoritmos de aceleración ni desplazamiento infinito compulsivo.
-              </span>
-            </div>
+      <section className="screen">
+        <div className="welcome-row">
+          <div>
+            <h1>Hola, {name || 'invitado'}</h1>
+            <p className="muted small">Este es un espacio para sentirte acompañado.</p>
           </div>
-
-          {/* Columna lateral */}
-          <RightColumn
-            onFollow={(name) => setToast(`Acompañar a ${name} llega con el módulo de comunidad.`)}
-          />
+          <button className="secondary" type="button" onClick={() => openMood()}>
+            <Icon name="pulse" /> Registrar estado
+          </button>
         </div>
-      </div>
-    </AppShell>
+
+        <section className="quick-mood card">
+          <div className="quick-title">
+            <div>
+              <h2>¿Cómo estás ahora?</h2>
+              <p>Regístralo en menos de 10 segundos</p>
+            </div>
+            <span className="small">Privado</span>
+          </div>
+          <div className="mood-choices">
+            {MOODS.map((mood) => (
+              <button
+                key={mood.name}
+                className="mood-choice"
+                type="button"
+                onClick={() => openMood(mood.name)}
+              >
+                <span>{mood.glyph}</span>
+                <small>{mood.name}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="composer card">
+          <div className="composer-top">
+            <Avatar initials={initials} avatarUrl={character?.avatarUrl} />
+            <button
+              className="composer-trigger"
+              type="button"
+              onClick={() => notify('El módulo de historias aún no está disponible.')}
+            >
+              ¿Qué necesitas sacar de tu pecho hoy?
+            </button>
+          </div>
+          <div className="composer-meta">
+            <span>
+              <Icon name="lock" /> Publicarás como <strong>{name || 'tu seudónimo'}</strong>
+            </span>
+            <button
+              className="text-link"
+              type="button"
+              onClick={() => notify('La consigna diaria llega con el módulo de historias.')}
+            >
+              Responder consigna diaria
+            </button>
+          </div>
+        </section>
+
+        <div className="feed-tabs">
+          <button
+            type="button"
+            className={feedTab === 'for-you' ? 'active' : undefined}
+            onClick={() => setFeedTab('for-you')}
+          >
+            Para ti
+          </button>
+          <button
+            type="button"
+            className={feedTab === 'following' ? 'active' : undefined}
+            onClick={() => setFeedTab('following')}
+          >
+            Siguiendo
+          </button>
+        </div>
+
+        <div id="feedList">
+          {stories.length ? (
+            stories.map((story) => (
+              <PostCard
+                key={story.id}
+                story={story}
+                supported={supported.has(story.id)}
+                saved={saved.has(story.id)}
+                followingAuthor={followAuthors.has(story.author)}
+                followingStory={followStories.has(story.id)}
+                onSupport={() => toggle(setSupported, story.id, 'Tu apoyo fue enviado', 'Quitaste tu apoyo')}
+                onSave={() => toggle(setSaved, story.id, 'Relato guardado', 'Relato eliminado de guardados')}
+                onFollowAuthor={() =>
+                  toggle(setFollowAuthors, story.author, `Ahora sigues a ${story.author}`, `Dejaste de seguir a ${story.author}`)
+                }
+                onFollowStory={() =>
+                  toggle(setFollowStories, story.id, 'Recibirás futuras actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones')
+                }
+                onOpenMenu={() => openPostMenu(story.id)}
+                onPlay={() => notify('Reproduciendo vista previa')}
+                onAuthor={() => notify(`El perfil de ${story.author} llega con el módulo de comunidad.`)}
+                onComment={() => notify('Los comentarios llegan con el módulo de acompañamiento.')}
+              />
+            ))
+          ) : (
+            <div className="empty card">
+              <div className="empty-icon">
+                <Icon name="users" />
+              </div>
+              <h2>Aún no sigues a nadie</h2>
+              <p>Explora autores con los que conectes. Aquí aparecerán sus nuevos relatos.</p>
+              <button
+                className="primary"
+                type="button"
+                style={{ padding: '12px 18px' }}
+                onClick={() => notify('La exploración de comunidad llega pronto.')}
+              >
+                Explorar comunidad
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    </WyFrame>
   );
 }
