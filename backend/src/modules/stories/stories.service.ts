@@ -866,25 +866,30 @@ export class StoriesService {
 
     let score = 0;
 
-    // Afinidad directa con los intereses declarados del personaje.
+    // 1) Intereses declarados del personaje frente a las etiquetas del relato.
     for (const tag of tags) {
-      if (profile.interests.has(tag)) score += 50;
-      // Afinidad con la temática que el usuario ya publica (hasta 30).
-      score += Math.min(profile.authoredTags.get(tag) ?? 0, 5) * 6;
+      if (profile.interests.has(tag)) score += 55;
     }
-    // Categorías y emociones parecidas a las de sus propios relatos.
+
+    // 2) Temática propia: etiquetas, categorías y emociones que el usuario ya
+    //    usa en sus relatos. La categoría pesa más (agrupa el tema), luego la
+    //    emoción (es el tono) y luego la etiqueta (el detalle).
+    for (const tag of tags) {
+      score += Math.min(profile.authoredTags.get(tag) ?? 0, 5) * 7;
+    }
     for (const category of categories) {
-      score += Math.min(profile.authoredCategories.get(category) ?? 0, 5) * 6;
+      score += Math.min(profile.authoredCategories.get(category) ?? 0, 5) * 9;
     }
     for (const emotion of emotions) {
-      score += Math.min(profile.authoredEmotions.get(emotion) ?? 0, 5) * 4;
+      score += Math.min(profile.authoredEmotions.get(emotion) ?? 0, 5) * 8;
     }
-    // Autor seguido: refuerzo para cerrar el circuito de comunidad.
-    if (profile.followedIds.has(row.characterId)) score += 25;
 
-    // Base de popularidad y frescura, acotada para no dominar el ranking.
-    score += this.popularity(row) * 30;
-    score += this.recency(row) * 10;
+    // 3) Autor seguido: refuerzo para cerrar el circuito de comunidad.
+    if (profile.followedIds.has(row.characterId)) score += 30;
+
+    // 4) Base de popularidad y frescura, acotada para no dominar el ranking.
+    score += this.popularity(row) * 25;
+    score += this.recency(row) * 12;
 
     return score;
   }

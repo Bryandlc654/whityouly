@@ -492,4 +492,71 @@ describe('StoriesService', () => {
     expect(feed.recommended).toHaveLength(2);
     expect(feed.recommended[0].id).toBe('match');
   });
+
+  const taxoRow = (id: string, overrides: Record<string, unknown>) => ({
+    id,
+    title: 'T',
+    visibility: 'PUBLIC',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    characterId: 'char-a',
+    character: { name: 'A', avatarUrl: null },
+    categories: [],
+    emotions: [],
+    tags: [],
+    updates: [],
+    _count: { updates: 1, comments: 0, companionships: 0 },
+    ...overrides,
+  });
+
+  it('las categorias que el autor ya usa influyen en la recomendacion', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
+    prisma.follower.findMany.mockResolvedValue([]);
+    prisma.story.findMany
+      .mockResolvedValueOnce([])                                    // recientes
+      .mockResolvedValueOnce([])                                    // populares
+      .mockResolvedValueOnce([                                       // piscina
+        taxoRow('c1', { categories: [{ category: { name: 'Trabajo' } }] }),
+        taxoRow('c2', { categories: [{ category: { name: 'Esperanza' } }] }),
+      ])
+      .mockResolvedValueOnce([{ categories: [{ category: { name: 'Esperanza' } }], emotions: [], tags: [] }]) // propios
+      .mockResolvedValue([]);
+
+    const feed = await service.getFeed('user-1');
+    expect(feed.recommended[0].id).toBe('c2');
+  });
+
+  it('las emociones que el autor ya usa influyen en la recomendacion', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
+    prisma.follower.findMany.mockResolvedValue([]);
+    prisma.story.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        taxoRow('e1', { emotions: [{ emotion: { name: 'Calma', colorHex: null } }] }),
+        taxoRow('e2', { emotions: [{ emotion: { name: 'Tristeza', colorHex: null } }] }),
+      ])
+      .mockResolvedValueOnce([{ categories: [], emotions: [{ emotion: { name: 'Tristeza' } }], tags: [] }])
+      .mockResolvedValue([]);
+
+    const feed = await service.getFeed('user-1');
+    expect(feed.recommended[0].id).toBe('e2');
+  });
+
+  it('las etiquetas que el autor ya usa influyen en la recomendacion', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
+    prisma.follower.findMany.mockResolvedValue([]);
+    prisma.story.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        taxoRow('t1', { tags: [{ tag: { name: 'Trabajo' } }] }),
+        taxoRow('t2', { tags: [{ tag: { name: 'Autoestima' } }] }),
+      ])
+      .mockResolvedValueOnce([{ categories: [], emotions: [], tags: [{ tag: { name: 'Autoestima' } }] }])
+      .mockResolvedValue([]);
+
+    const feed = await service.getFeed('user-1');
+    expect(feed.recommended[0].id).toBe('t2');
+  });
 });
