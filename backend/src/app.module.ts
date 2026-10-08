@@ -21,6 +21,7 @@ import { FilesModule } from './modules/files/files.module';
 import { TaxonomyModule } from './modules/taxonomy/taxonomy.module';
 import { StoriesModule } from './modules/stories/stories.module';
 import { FollowsModule } from './modules/follows/follows.module';
+import { CommentsModule } from './modules/comments/comments.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FollowsModule } from './modules/follows/follows.module';
     TaxonomyModule,
     StoriesModule,
     FollowsModule,
+    CommentsModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

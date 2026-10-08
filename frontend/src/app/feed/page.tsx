@@ -12,6 +12,7 @@ import RightRail from '@/components/wy/RightRail';
 import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
+import CommentSection from '@/components/wy/CommentSection';
 import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
 import { getFeed, type FeedSections, type FollowingStory } from '@/lib/stories';
@@ -90,6 +91,7 @@ export default function FeedPage() {
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
   const [composerOpen, setComposerOpen] = useState(false);
+  const [commentsStory, setCommentsStory] = useState<FollowingStory | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
   const [moodValue, setMoodValue] = useState(7);
@@ -294,7 +296,7 @@ export default function FeedPage() {
           onOpenMenu={() => openPostMenu(entry.id)}
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
-          onComment={() => notify('Los comentarios llegan con el módulo de acompañamiento.')}
+          onComment={() => setCommentsStory(story)}
         />
       </div>
     );
@@ -336,7 +338,20 @@ export default function FeedPage() {
       onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
       toast={toast}
       overlay={
-        moodOpen ? (
+        commentsStory ? (
+          <div className="modal" role="dialog" aria-modal="true" aria-label="Comentarios">
+            <div className="modal-head">
+              <div>
+                <h2>Comentarios</h2>
+                <p>{commentsStory.title}</p>
+              </div>
+              <button className="close" type="button" onClick={() => setCommentsStory(null)} aria-label="Cerrar">
+                <Icon name="x" />
+              </button>
+            </div>
+            <CommentSection storyId={commentsStory.id} onNotify={notify} />
+          </div>
+        ) : moodOpen ? (
           <MoodModal
             name={moodName}
             value={moodValue}

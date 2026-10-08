@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Icon from './Icon';
+import CommentSection from './CommentSection';
 import { uploadAudio, uploadFile } from '@/lib/files';
 import {
   addStoryStage,
@@ -376,7 +377,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
         aria-label="Cambiar audio de la etapa"
       />
 
-      <div className="modal-actions">
+<div className="modal-actions">
         <button className="ghost" type="button" onClick={onClose}>
           Cerrar
         </button>
@@ -387,9 +388,11 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
           onClick={() => void submitAdd()}
           disabled={busy || (!addText.trim() && !addImage && !addAudio)}
         >
-          {busy ? 'Guardandoâ€¦' : 'AÃ±adir etapa'}
+          {busy ? 'Guardando…' : 'Añadir etapa'}
         </button>
       </div>
+
+      <CommentSection storyId={story.id} />
     </div>
   );
 }

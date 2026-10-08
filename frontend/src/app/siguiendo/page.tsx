@@ -10,6 +10,7 @@ import Icon from '@/components/wy/Icon';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
+import CommentSection from '@/components/wy/CommentSection';
 import { followCharacter, listFollowing, unfollowCharacter, type FollowedCharacter } from '@/lib/follows';
 import { listFollowingStories, viewStory, type FollowingStory, type MyStory } from '@/lib/stories';
 
@@ -205,6 +206,8 @@ export default function FollowingPage() {
                 </div>
               ))}
             </div>
+
+            <CommentSection storyId={view.id} />
 
             <div className="modal-actions">
               <button className="ghost" type="button" onClick={() => setView(null)}>

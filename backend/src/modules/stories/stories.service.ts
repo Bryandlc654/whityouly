@@ -591,6 +591,29 @@ export class StoriesService {
    * uno inexistente, para no revelar que existe.
    */
   async getViewable(userId: string, storyId: string) {
+    await this.assertStoryVisible(userId, storyId);
+
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: STORY_DETAIL_SELECT,
+    });
+    if (!story) {
+      throw new NotFoundException('Ese relato no existe o no es visible para ti.');
+    }
+
+    return this.toOwnerView(story);
+  }
+
+  /**
+   * Verifica que el usuario puede ver un relato (propietario, seguidor o
+   * público) y devuelve lo necesario para interactuar con él (por ejemplo, sus
+   * comentarios). Cualquier relato no visible responde 404 para no revelar que
+   * existe.
+   */
+  async assertStoryVisible(
+    userId: string,
+    storyId: string,
+  ): Promise<{ id: string; characterId: string; isOwner: boolean }> {
     const scope = await this.prisma.story.findFirst({
       where: { id: storyId, status: { not: StoryStatus.DELETED } },
       select: {
@@ -628,15 +651,7 @@ export class StoriesService {
       }
     }
 
-    const story = await this.prisma.story.findUnique({
-      where: { id: storyId },
-      select: STORY_DETAIL_SELECT,
-    });
-    if (!story) {
-      throw new NotFoundException('Ese relato no existe o no es visible para ti.');
-    }
-
-    return isOwner ? this.toOwnerView(story) : this.toPublicView(story);
+    return { id: scope.id, characterId: scope.characterId, isOwner };
   }
 
   /**

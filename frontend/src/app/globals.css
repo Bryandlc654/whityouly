@@ -224,6 +224,105 @@ body {
   margin-top: 10px;
 }
 
+/* Comentarios. */
+.wy .comments {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.wy .comments-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--ink);
+}
+
+.wy .comment-composer {
+  display: grid;
+  gap: 8px;
+}
+
+.wy .comment-composer .primary.sm {
+  justify-self: start;
+}
+
+.wy .comment-list {
+  display: grid;
+  gap: 16px;
+}
+
+.wy .comment-item {
+  display: grid;
+  gap: 6px;
+}
+
+.wy .comment-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wy .comment-head .hint {
+  margin-left: 6px;
+}
+
+.wy .comment-head .tag {
+  margin-left: 6px;
+}
+
+.wy .comment-body {
+  margin: 2px 0;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #474d5e;
+}
+
+.wy .comment-deleted {
+  margin: 2px 0;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.wy .comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.wy .comment-actions .action-link {
+  font-size: 12px;
+}
+
+.wy .comment-reply {
+  margin-left: 20px;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 6px;
+}
+
+.wy .reply-composer,
+.wy .comment-edit {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.wy .report-reasons {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfafd;
+}
+
 /* Confirmación animada al guardar un relato. */
 .wy .modal {
   position: relative;
