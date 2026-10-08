@@ -41,6 +41,18 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
+function visibilityLabel(visibility: MyStoryListItem['visibility']): string {
+  if (visibility === 'PUBLIC') return 'Público';
+  if (visibility === 'FOLLOWERS') return 'Seguidores';
+  return 'Privado';
+}
+
+function visibilityIcon(visibility: MyStoryListItem['visibility']): 'globe' | 'users' | 'lock' {
+  if (visibility === 'PUBLIC') return 'globe';
+  if (visibility === 'FOLLOWERS') return 'users';
+  return 'lock';
+}
+
 export default function MyStoriesPage() {
   const router = useRouter();
 
@@ -308,45 +320,47 @@ export default function MyStoriesPage() {
           </div>
         ) : null}
 
-        <div className="stack">
-          {stories.map((story) => (
-            <article key={story.id} className="post card story-card">
-              <div className="post-tags" style={{ margin: 0 }}>
-                <span className="tag update">{story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}</span>
-                <span className="tag">
-                  {story.visibility === 'PUBLIC'
-                    ? 'Público'
-                    : story.visibility === 'FOLLOWERS'
-                      ? 'Seguidores'
-                      : 'Privado'}
-                </span>
-                {story.categories.slice(0, 2).map((category) => (
-                  <span key={category} className="tag">
-                    {category}
+        {stories.length > 0 ? (
+          <div className="story-list">
+            {stories.map((story) => (
+              <article key={story.id} className="card story-row">
+                <div className="story-row-head">
+                  <h2>{story.title}</h2>
+                  <span className={`status-pill ${story.status === 'PUBLISHED' ? 'published' : 'draft'}`}>
+                    {story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}
                   </span>
-                ))}
-              </div>
+                </div>
 
-              <h2 style={{ margin: 0 }}>{story.title}</h2>
-              {story.opening ? <p className="post-text clamp">{story.opening.content}</p> : null}
+                <p className="story-row-meta">
+                  <Icon name={visibilityIcon(story.visibility)} />
+                  <span>{visibilityLabel(story.visibility)}</span>
+                  <span className="dot" aria-hidden />
+                  <span>
+                    {story.stageCount} {story.stageCount === 1 ? 'etapa' : 'etapas'}
+                  </span>
+                  <span className="dot" aria-hidden />
+                  <span>{formatDate(story.updatedAt)}</span>
+                  {story.categories[0] ? (
+                    <>
+                      <span className="dot" aria-hidden />
+                      <span>{story.categories[0]}</span>
+                    </>
+                  ) : null}
+                </p>
 
-              <p className="hint" style={{ margin: 0 }}>
-                {story.stageCount} {story.stageCount === 1 ? 'etapa' : 'etapas'} · Actualizado{' '}
-                {formatDate(story.updatedAt)}
-              </p>
+                {story.opening ? <p className="post-text clamp">{story.opening.content}</p> : null}
 
-              <div className="row-between">
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="story-row-actions">
                   <button
-                    className="secondary"
+                    className="action-link"
                     type="button"
                     disabled={busyId === story.id || detailBusy}
                     onClick={() => void openDetail(story)}
                   >
-                    Ver etapas
+                    <Icon name="book" /> Etapas
                   </button>
                   <button
-                    className="secondary"
+                    className="action-link"
                     type="button"
                     disabled={busyId === story.id}
                     onClick={() =>
@@ -360,33 +374,30 @@ export default function MyStoriesPage() {
                       })
                     }
                   >
-                    Editar
+                    <Icon name="edit" /> Editar
                   </button>
                   <button
-                    className="secondary"
+                    className="action-link"
                     type="button"
                     disabled={busyId === story.id}
                     onClick={() => void toggleStatus(story)}
                   >
-                    {busyId === story.id
-                      ? '…'
-                      : story.status === 'PUBLISHED'
-                        ? 'Volver a borrador'
-                        : 'Publicar'}
+                    <Icon name={story.status === 'PUBLISHED' ? 'lock' : 'globe'} />
+                    {story.status === 'PUBLISHED' ? 'Volver a borrador' : 'Publicar'}
+                  </button>
+                  <button
+                    className="action-link danger"
+                    type="button"
+                    disabled={busyId === story.id}
+                    onClick={() => void remove(story)}
+                  >
+                    <Icon name="trash" /> Dar de baja
                   </button>
                 </div>
-                <button
-                  className="link-danger"
-                  type="button"
-                  disabled={busyId === story.id}
-                  onClick={() => void remove(story)}
-                >
-                  Dar de baja
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
 
         {nextCursor ? (
           <div>

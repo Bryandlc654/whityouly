@@ -85,6 +85,115 @@ body {
   gap: 12px;
 }
 
+/* Listado limpio de "Mis relatos". */
+.wy .story-list {
+  display: grid;
+  gap: 14px;
+}
+
+.wy .story-row {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.wy .story-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wy .story-row-head h2 {
+  font-size: 19px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.wy .status-pill {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.wy .status-pill.published {
+  background: #ebf8ef;
+  color: #2c855b;
+}
+
+.wy .status-pill.draft {
+  background: #fff3dc;
+  color: #936317;
+}
+
+.wy .story-row-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.wy .story-row-meta svg {
+  width: 15px;
+  height: 15px;
+}
+
+.wy .story-row-meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted-2);
+}
+
+.wy .story-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.wy .action-link {
+  border: 0;
+  background: transparent;
+  color: var(--purple);
+  font-weight: 750;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wy .action-link:hover {
+  text-decoration: underline;
+}
+
+.wy .action-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wy .action-link.danger {
+  color: var(--red);
+  margin-left: auto;
+}
+
+.wy .action-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+  text-decoration: none;
+}
+
 /* Confirmación animada al guardar un relato. */
 .wy .modal {
   position: relative;
