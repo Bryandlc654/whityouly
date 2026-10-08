@@ -20,16 +20,19 @@ const VISIBILITY_OPTIONS: { value: StoryVisibility; label: string }[] = [
 interface Props {
   onCreated: (story: MyStory, published: boolean) => void;
   onCancel: () => void;
-  /** Texto de cabecera; si falta, no se muestra. */
+  /** `minimal` se usa en el feed: título y cuerpo sin bordes, herramientas discretas. */
+  variant?: 'default' | 'minimal';
   heading?: string;
   headingHint?: string;
 }
 
 /**
- * Formulario de publicación de un relato. Se usa tanto dentro del bloque del
- * feed (en línea) como dentro del modal de «Mis relatos».
+ * Formulario de publicación de un relato. `minimal` se incrusta en el bloque del
+ * feed (sin modal ni campos con borde); el estilo por defecto se usa en el modal.
  */
-export default function StoryForm({ onCreated, onCancel, heading, headingHint }: Props) {
+export default function StoryForm({ onCreated, onCancel, variant = 'default', heading, headingHint }: Props) {
+  const minimal = variant === 'minimal';
+
   const [catalog, setCatalog] = useState<TaxonomyCatalog | null>(null);
   const [catalogError, setCatalogError] = useState('');
 
@@ -138,7 +141,6 @@ export default function StoryForm({ onCreated, onCancel, heading, headingHint }:
     setSaving(null);
 
     if (result.status === 'ok') {
-      // Se deja ver la confirmación animada antes de cerrar y refrescar el feed.
       setDone(true);
       window.setTimeout(() => onCreated(result.data, publish), 1000);
       return;
@@ -148,8 +150,87 @@ export default function StoryForm({ onCreated, onCancel, heading, headingHint }:
     setDone(false);
   }
 
+  const options = (
+    <>
+      <label className="field-label">Visibilidad</label>
+      <div className="segmented">
+        {VISIBILITY_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={visibility === option.value ? 'active' : undefined}
+            aria-pressed={visibility === option.value}
+            onClick={() => setVisibility(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {catalogError ? <p className="hint" style={{ marginTop: 10 }}>{catalogError}</p> : null}
+
+      {catalog && catalog.categories.length > 0 ? (
+        <>
+          <label className="field-label">Categoría (una)</label>
+          <div className="chip-row">
+            {catalog.categories.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`chip ${category === item.name ? 'on' : ''}`}
+                aria-pressed={category === item.name}
+                onClick={() => setCategory(category === item.name ? null : item.name)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {catalog && catalog.emotions.length > 0 ? (
+        <>
+          <label className="field-label">Emociones (hasta {MAX_EMOTIONS})</label>
+          <div className="chip-row">
+            {catalog.emotions.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`chip ${emotions.includes(item.name) ? 'on' : ''}`}
+                style={item.colorHex ? { borderColor: item.colorHex } : undefined}
+                aria-pressed={emotions.includes(item.name)}
+                onClick={() => toggle(emotions, setEmotions, item.name, MAX_EMOTIONS)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {catalog && catalog.tags.length > 0 ? (
+        <>
+          <label className="field-label">Etiquetas (hasta {MAX_TAGS})</label>
+          <div className="chip-row">
+            {catalog.tags.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`chip ${tags.includes(item.name) ? 'on' : ''}`}
+                aria-pressed={tags.includes(item.name)}
+                onClick={() => toggle(tags, setTags, item.name, MAX_TAGS)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+
   return (
-    <div className="story-form">
+    <div className={`story-form ${minimal ? 'minimal' : ''}`}>
       {saving !== null || done ? (
         <div className="composer-overlay" role="status" aria-live="polite">
           <div className="composer-progress">
@@ -187,59 +268,59 @@ export default function StoryForm({ onCreated, onCancel, heading, headingHint }:
         </p>
       ) : null}
 
-      <label className="field-label" style={{ marginTop: 10 }}>
-        Título
-        <input
-          className="field"
-          type="text"
-          value={title}
-          maxLength={TITLE_MAX}
-          placeholder="Una frase que resuma lo que quieres contar"
-          onChange={(event) => setTitle(event.target.value)}
-        />
-      </label>
+      {minimal ? (
+        <>
+          <input
+            className="composer-title"
+            type="text"
+            value={title}
+            maxLength={TITLE_MAX}
+            placeholder="Título"
+            onChange={(event) => setTitle(event.target.value)}
+          />
+          <textarea
+            className="composer-body"
+            value={content}
+            maxLength={CONTENT_MAX}
+            placeholder="¿Qué quieres contar hoy?"
+            onChange={(event) => setContent(event.target.value)}
+          />
+        </>
+      ) : (
+        <>
+          <label className="field-label" style={{ marginTop: 10 }}>
+            Título
+            <input
+              className="field"
+              type="text"
+              value={title}
+              maxLength={TITLE_MAX}
+              placeholder="Una frase que resuma lo que quieres contar"
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </label>
 
-      <label className="field-label">
-        Tu relato
-        <textarea
-          className="field"
-          value={content}
-          maxLength={CONTENT_MAX}
-          style={{ minHeight: 130 }}
-          placeholder="No tienes que explicarlo todo. Escribe a tu ritmo."
-          onChange={(event) => setContent(event.target.value)}
-        />
-      </label>
-      <p className="hint" style={{ textAlign: 'right', margin: 0 }}>
-        {content.trim().length}/{CONTENT_MAX}
-      </p>
+          <label className="field-label">
+            Tu relato
+            <textarea
+              className="field"
+              value={content}
+              maxLength={CONTENT_MAX}
+              style={{ minHeight: 130 }}
+              placeholder="No tienes que explicarlo todo. Escribe a tu ritmo."
+              onChange={(event) => setContent(event.target.value)}
+            />
+          </label>
+          <p className="hint" style={{ textAlign: 'right', margin: 0 }}>
+            {content.trim().length}/{CONTENT_MAX}
+          </p>
+        </>
+      )}
 
-      <div className="row-between" style={{ marginTop: 8 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => fileInput.current?.click()}
-            disabled={uploading}
-          >
-            <Icon name="sparkle" /> {mediaName ? 'Imagen ✓' : 'Imagen'}
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => audioInput.current?.click()}
-            disabled={uploading}
-          >
-            <Icon name="music" /> {audioName ? 'Audio ✓' : 'Audio'}
-          </button>
-          <button type="button" className="secondary" onClick={() => setShowOptions((value) => !value)}>
-            <Icon name="settings" /> {showOptions ? 'Menos opciones' : 'Categoría y más'}
-          </button>
-        </div>
-        <span className="hint" style={{ margin: 0 }}>
-          {visibility === 'PUBLIC' ? 'Público' : visibility === 'FOLLOWERS' ? 'Seguidores' : 'Privado'}
-        </span>
-      </div>
+      {audioUrl ? (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <audio controls src={audioUrl} style={{ width: '100%', marginTop: 8 }} />
+      ) : null}
 
       <input
         ref={fileInput}
@@ -258,112 +339,92 @@ export default function StoryForm({ onCreated, onCancel, heading, headingHint }:
         aria-label="Elegir audio"
       />
 
-      {audioUrl ? (
-        // eslint-disable-next-line jsx-a11y/media-has-caption
-        <audio controls src={audioUrl} style={{ width: '100%', marginTop: 8 }} />
-      ) : null}
-
-      {showOptions ? (
-        <div className="story-options">
-          <label className="field-label">Visibilidad</label>
-          <div className="segmented">
-            {VISIBILITY_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={visibility === option.value ? 'active' : undefined}
-                aria-pressed={visibility === option.value}
-                onClick={() => setVisibility(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+      {minimal ? (
+        <div className="composer-toolbar">
+          <div className="toolbar-tools">
+            <button
+              type="button"
+              className={`tool ${mediaName ? 'on' : ''}`}
+              onClick={() => fileInput.current?.click()}
+              disabled={uploading}
+              title={mediaName ? 'Cambiar imagen' : 'Añadir imagen'}
+              aria-label="Añadir imagen"
+            >
+              <Icon name="sparkle" />
+            </button>
+            <button
+              type="button"
+              className={`tool ${audioName ? 'on' : ''}`}
+              onClick={() => audioInput.current?.click()}
+              disabled={uploading}
+              title={audioName ? 'Cambiar audio' : 'Añadir audio'}
+              aria-label="Añadir audio"
+            >
+              <Icon name="music" />
+            </button>
+            <button
+              type="button"
+              className={`tool ${showOptions ? 'on' : ''}`}
+              onClick={() => setShowOptions((value) => !value)}
+              title="Categoría, emoción y visibilidad"
+              aria-label="Más opciones"
+            >
+              <Icon name="settings" />
+            </button>
           </div>
 
-          {catalogError ? <p className="hint" style={{ marginTop: 10 }}>{catalogError}</p> : null}
+          <div className="toolbar-actions">
+            <button className="ghost sm" type="button" onClick={() => void submit(false)} disabled={!canSubmit}>
+              {saving === 'draft' ? '…' : 'Borrador'}
+            </button>
+            <button className="primary sm" type="button" onClick={() => void submit(true)} disabled={!canSubmit}>
+              {saving === 'publish' ? '…' : 'Publicar'}
+            </button>
+            <button className="tool" type="button" onClick={onCancel} title="Cancelar" aria-label="Cancelar">
+              <Icon name="x" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="row-between" style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="secondary" onClick={() => fileInput.current?.click()} disabled={uploading}>
+              <Icon name="sparkle" /> {mediaName ? 'Imagen ✓' : 'Imagen'}
+            </button>
+            <button type="button" className="secondary" onClick={() => audioInput.current?.click()} disabled={uploading}>
+              <Icon name="music" /> {audioName ? 'Audio ✓' : 'Audio'}
+            </button>
+            <button type="button" className="secondary" onClick={() => setShowOptions((value) => !value)}>
+              <Icon name="settings" /> {showOptions ? 'Menos opciones' : 'Categoría y más'}
+            </button>
+          </div>
+          <span className="hint" style={{ margin: 0 }}>
+            {visibility === 'PUBLIC' ? 'Público' : visibility === 'FOLLOWERS' ? 'Seguidores' : 'Privado'}
+          </span>
+        </div>
+      )}
 
-          {catalog && catalog.categories.length > 0 ? (
-            <>
-              <label className="field-label">Categoría (una)</label>
-              <div className="chip-row">
-                {catalog.categories.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`chip ${category === item.name ? 'on' : ''}`}
-                    aria-pressed={category === item.name}
-                    onClick={() => setCategory(category === item.name ? null : item.name)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : null}
+      {showOptions ? <div className="story-options">{options}</div> : null}
 
-          {catalog && catalog.emotions.length > 0 ? (
-            <>
-              <label className="field-label">Emociones (hasta {MAX_EMOTIONS})</label>
-              <div className="chip-row">
-                {catalog.emotions.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`chip ${emotions.includes(item.name) ? 'on' : ''}`}
-                    style={item.colorHex ? { borderColor: item.colorHex } : undefined}
-                    aria-pressed={emotions.includes(item.name)}
-                    onClick={() => toggle(emotions, setEmotions, item.name, MAX_EMOTIONS)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          {catalog && catalog.tags.length > 0 ? (
-            <>
-              <label className="field-label">Etiquetas (hasta {MAX_TAGS})</label>
-              <div className="chip-row">
-                {catalog.tags.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`chip ${tags.includes(item.name) ? 'on' : ''}`}
-                    aria-pressed={tags.includes(item.name)}
-                    onClick={() => toggle(tags, setTags, item.name, MAX_TAGS)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : null}
+      {!minimal ? (
+        <div className="modal-actions">
+          <button className="ghost" type="button" onClick={onCancel} disabled={saving !== null || done}>
+            Cancelar
+          </button>
+          <button className="secondary" type="button" onClick={() => void submit(false)} disabled={!canSubmit}>
+            {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
+          </button>
+          <button
+            className="primary"
+            type="button"
+            style={{ padding: '11px 17px' }}
+            onClick={() => void submit(true)}
+            disabled={!canSubmit}
+          >
+            {saving === 'publish' ? 'Publicando…' : 'Publicar'}
+          </button>
         </div>
       ) : null}
-
-      <div className="modal-actions">
-        <button className="ghost" type="button" onClick={onCancel} disabled={saving !== null || done}>
-          Cancelar
-        </button>
-        <button
-          className="secondary"
-          type="button"
-          onClick={() => void submit(false)}
-          disabled={!canSubmit}
-        >
-          {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
-        </button>
-        <button
-          className="primary"
-          type="button"
-          style={{ padding: '11px 17px' }}
-          onClick={() => void submit(true)}
-          disabled={!canSubmit}
-        >
-          {saving === 'publish' ? 'Publicando…' : 'Publicar'}
-        </button>
-      </div>
     </div>
   );
 }

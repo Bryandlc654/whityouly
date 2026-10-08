@@ -409,6 +409,7 @@ export default function FeedPage() {
 
           {composerOpen ? (
             <StoryForm
+              variant="minimal"
               onCreated={() => {
                 setComposerOpen(false);
                 notify('Tu relato se guardó.');
