@@ -11,6 +11,9 @@ interface PostCardProps {
   saved: boolean;
   followingAuthor: boolean;
   followingStory: boolean;
+  /** Relato propio: no se ofrece "seguir autor" y se marca su estado. */
+  isOwn?: boolean;
+  statusLabel?: 'DRAFT' | 'PUBLISHED';
   onSupport: () => void;
   onSave: () => void;
   onFollowAuthor: () => void;
@@ -27,6 +30,8 @@ export default function PostCard({
   saved,
   followingAuthor,
   followingStory,
+  isOwn = false,
+  statusLabel,
   onSupport,
   onSave,
   onFollowAuthor,
@@ -57,9 +62,15 @@ export default function PostCard({
             >
               {story.author}
             </span>
-            <button type="button" onClick={onFollowAuthor}>
-              {followingAuthor ? 'Siguiendo' : '+ Seguir autor'}
-            </button>
+            {isOwn ? (
+              <span className="tag update" style={{ marginLeft: 8 }}>
+                {statusLabel === 'PUBLISHED' ? 'Tu relato · Publicado' : 'Tu relato · Borrador'}
+              </span>
+            ) : (
+              <button type="button" onClick={onFollowAuthor}>
+                {followingAuthor ? 'Siguiendo' : '+ Seguir autor'}
+              </button>
+            )}
           </div>
           <div className="post-time">{story.time} · Seudónimo único</div>
         </div>

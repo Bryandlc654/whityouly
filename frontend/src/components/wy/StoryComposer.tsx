@@ -40,6 +40,8 @@ export default function StoryComposer({ onClose, onCreated }: Props) {
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState<'draft' | 'publish' | null>(null);
+  const [done, setDone] = useState(false);
+  const [action, setAction] = useState<'draft' | 'publish'>('publish');
   const [error, setError] = useState('');
 
   const fileInput = useRef<HTMLInputElement>(null);
@@ -110,11 +112,12 @@ export default function StoryComposer({ onClose, onCreated }: Props) {
 
   const titleReady = title.trim().length >= 3;
   const contentReady = content.trim().length > 0;
-  const canSubmit = titleReady && contentReady && !saving && !uploading;
+  const canSubmit = titleReady && contentReady && !saving && !uploading && !done;
 
   async function submit(publish: boolean) {
     if (!canSubmit) return;
     setSaving(publish ? 'publish' : 'draft');
+    setAction(publish ? 'publish' : 'draft');
     setError('');
 
     const result = await createStory({
@@ -132,11 +135,14 @@ export default function StoryComposer({ onClose, onCreated }: Props) {
     setSaving(null);
 
     if (result.status === 'ok') {
-      onCreated(result.data, publish);
+      // Se deja ver la confirmación animada antes de cerrar y refrescar el feed.
+      setDone(true);
+      window.setTimeout(() => onCreated(result.data, publish), 1000);
       return;
     }
 
     setError(result.message);
+    setDone(false);
   }
 
   return (
@@ -146,10 +152,40 @@ export default function StoryComposer({ onClose, onCreated }: Props) {
           <h2>Compartir un relato</h2>
           <p>Escribes bajo tu seudónimo. Puedes guardarlo como borrador y publicarlo cuando quieras.</p>
         </div>
-        <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
+        <button
+          className="close"
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          disabled={saving !== null || done}
+        >
           <Icon name="x" />
         </button>
       </div>
+
+      {saving !== null || done ? (
+        <div className="composer-overlay" role="status" aria-live="polite">
+          <div className="composer-progress">
+            {done ? (
+              <div className="pop-check">
+                <Icon name="check" />
+              </div>
+            ) : (
+              <div className="spinner" />
+            )}
+            <b>
+              {done
+                ? action === 'publish'
+                  ? '¡Publicado!'
+                  : '¡Borrador guardado!'
+                : 'Guardando tu relato…'}
+            </b>
+            <span className="hint" style={{ margin: 0 }}>
+              {done ? 'Ya está en «Mis relatos».' : 'Un momento, por favor.'}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="auth-error" role="alert" style={{ marginTop: 14 }}>

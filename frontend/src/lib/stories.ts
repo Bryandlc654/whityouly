@@ -411,6 +411,19 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
   };
 }
 
+function parseFollowingPage(body: unknown): FollowingPage {
+  const record = (body ?? {}) as Record<string, unknown>;
+  const items = Array.isArray(record.items)
+    ? record.items
+        .map(parseFollowingStory)
+        .filter((item: FollowingStory | null): item is FollowingStory => item !== null)
+    : [];
+  return {
+    items,
+    nextCursor: typeof record.nextCursor === 'string' ? record.nextCursor : null,
+  };
+}
+
 /** Relatos publicados por los personajes que sigues (públicos y para seguidores). */
 export function listFollowingStories(
   params: { cursor?: string } = {},
@@ -422,17 +435,24 @@ export function listFollowingStories(
     `/stories/following?${query.toString()}`,
     { method: 'GET' },
     'No se pudo cargar tu feed de seguidos.',
-    (body) => {
-      const record = (body ?? {}) as Record<string, unknown>;
-      const items = Array.isArray(record.items)
-        ? record.items
-            .map(parseFollowingStory)
-            .filter((item: FollowingStory | null): item is FollowingStory => item !== null)
-        : [];
-      return {
-        items,
-        nextCursor: typeof record.nextCursor === 'string' ? record.nextCursor : null,
-      };
-    },
+    parseFollowingPage,
+  );
+}
+
+/** Feed público (relatos publicados con visibilidad pública). */
+export function listPublicStories(
+  params: { cursor?: string; category?: string; emotion?: string; tag?: string } = {},
+): Promise<LoadResult<FollowingPage>> {
+  const query = new URLSearchParams();
+  if (params.cursor) query.set('cursor', params.cursor);
+  if (params.category) query.set('category', params.category);
+  if (params.emotion) query.set('emotion', params.emotion);
+  if (params.tag) query.set('tag', params.tag);
+
+  return authedRequest(
+    `/stories?${query.toString()}`,
+    { method: 'GET' },
+    'No se pudo cargar el feed.',
+    parseFollowingPage,
   );
 }

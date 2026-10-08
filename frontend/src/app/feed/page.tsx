@@ -13,13 +13,77 @@ import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryComposer from '@/components/wy/StoryComposer';
-import { DEMO_STORIES } from '@/components/wy/feedData';
+import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
+import {
+  listFollowingStories,
+  listMyStories,
+  listPublicStories,
+  type FollowingStory,
+  type MyStoryListItem,
+} from '@/lib/stories';
+import type { DemoStory } from '@/components/wy/feedData';
 
 type FeedTab = 'for-you' | 'following';
+
+interface FeedEntry extends DemoStory {
+  isOwn: boolean;
+  status?: 'DRAFT' | 'PUBLISHED';
+}
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
   return name.trim().slice(0, 2).toUpperCase();
+}
+
+function relativeTime(value: string): string {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return '';
+  const diff = Date.now() - time;
+  const minutes = Math.round(diff / 60_000);
+  if (minutes < 1) return 'Ahora mismo';
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `Hace ${hours} h`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `Hace ${days} d`;
+  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
+}
+
+function fromPublic(story: FollowingStory): FeedEntry {
+  return {
+    id: story.id,
+    author: story.author.name,
+    initials: initialsOf(story.author.name),
+    time: relativeTime(story.createdAt),
+    category: story.categories[0] ?? 'Relato',
+    updateKind: story.stageCount > 1 ? `Evolución · ${story.stageCount} etapas` : 'Relato',
+    updateDate: relativeTime(story.updatedAt),
+    updateText: '',
+    title: story.title,
+    text: story.opening?.content ?? '',
+    support: story.supportCount,
+    comments: story.commentCount,
+    isOwn: false,
+  };
+}
+
+function fromMine(story: MyStoryListItem, authorName: string): FeedEntry {
+  return {
+    id: story.id,
+    author: authorName,
+    initials: initialsOf(authorName),
+    time: relativeTime(story.createdAt),
+    category: story.categories[0] ?? 'Relato',
+    updateKind: story.stageCount > 1 ? `Evolución · ${story.stageCount} etapas` : 'Relato',
+    updateDate: relativeTime(story.updatedAt),
+    updateText: '',
+    title: story.title,
+    text: story.opening?.content ?? '',
+    support: story.supportCount,
+    comments: story.commentCount,
+    isOwn: true,
+    status: story.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
+  };
 }
 
 export default function FeedPage() {
@@ -28,9 +92,13 @@ export default function FeedPage() {
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
 
   const [feedTab, setFeedTab] = useState<FeedTab>('for-you');
+  const [entries, setEntries] = useState<FeedEntry[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedError, setFeedError] = useState('');
+
+  const [followedAuthors, setFollowedAuthors] = useState<Set<string>>(new Set());
   const [supported, setSupported] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
-  const [followAuthors, setFollowAuthors] = useState<Set<string>>(new Set());
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
   const [composerOpen, setComposerOpen] = useState(false);
@@ -87,6 +155,59 @@ export default function FeedPage() {
     verifySession();
   }, [router]);
 
+  const loadFeed = useCallback(
+    async (tab: FeedTab, authorName: string) => {
+      setFeedLoading(true);
+      setFeedError('');
+
+      const [mine, published, following, follows] = await Promise.all([
+        listMyStories(),
+        listPublicStories(),
+        tab === 'following' ? listFollowingStories() : Promise.resolve({ status: 'ok' as const, data: { items: [], nextCursor: null } }),
+        listFollowing(),
+      ]);
+
+      if (follows.status === 'ok') {
+        setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
+      }
+
+      if (mine.status !== 'ok' || published.status !== 'ok') {
+        setFeedError('No se pudo cargar el feed.');
+        setEntries([]);
+        setFeedLoading(false);
+        return;
+      }
+
+      if (tab === 'following') {
+        if (following.status !== 'ok') {
+          setFeedError('No se pudo cargar tu feed de seguidos.');
+          setEntries([]);
+          setFeedLoading(false);
+          return;
+        }
+        setEntries(following.data.items.map(fromPublic));
+        setFeedLoading(false);
+        return;
+      }
+
+      const own = mine.data.items.map((story) => fromMine(story, authorName));
+      const ownIds = new Set(own.map((entry) => entry.id));
+      const others = published.data.items
+        .filter((story) => !ownIds.has(story.id))
+        .map(fromPublic);
+
+      // Mis relatos primero, luego el feed público.
+      setEntries([...own, ...others]);
+      setFeedLoading(false);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (loading) return;
+    void loadFeed(feedTab, character?.name ?? '');
+  }, [feedTab, loading, character?.name, loadFeed]);
+
   const logout = useCallback(async () => {
     await endSession();
     router.push('/login');
@@ -115,6 +236,7 @@ export default function FeedPage() {
     setSheet({
       title: 'Tu cuenta',
       rows: [
+        { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
@@ -124,6 +246,24 @@ export default function FeedPage() {
   const openMood = (name = 'Esperanza') => {
     setMoodName(name);
     setMoodOpen(true);
+  };
+
+  const toggleFollowAuthor = async (authorName: string) => {
+    const isFollowing = followedAuthors.has(authorName);
+    const result = isFollowing ? await unfollowCharacter(authorName) : await followCharacter(authorName);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
+      return;
+    }
+
+    setFollowedAuthors((prev) => {
+      const next = new Set(prev);
+      if (isFollowing) next.delete(authorName);
+      else next.add(authorName);
+      return next;
+    });
+    notify(isFollowing ? `Dejaste de seguir a ${authorName}.` : `Ahora sigues a ${authorName}.`);
   };
 
   const openPostMenu = (storyId: string) => {
@@ -153,7 +293,7 @@ export default function FeedPage() {
         setComposerOpen(true);
         break;
       case 'following':
-        router.push('/siguiendo');
+        setFeedTab('following');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');
@@ -170,10 +310,6 @@ export default function FeedPage() {
 
   const name = character?.name ?? '';
   const initials = initialsOf(character?.name);
-  const stories =
-    feedTab === 'following'
-      ? DEMO_STORIES.filter((story) => followAuthors.has(story.author) || story.id === 'pausa')
-      : DEMO_STORIES;
 
   return (
     <WyFrame
@@ -190,7 +326,8 @@ export default function FeedPage() {
             onClose={() => setComposerOpen(false)}
             onCreated={() => {
               setComposerOpen(false);
-              notify('Tu relato se guardó. Estará en «Mis relatos».');
+              notify('Tu relato se guardó.');
+              void loadFeed(feedTab, name);
             }}
           />
         ) : moodOpen ? (
@@ -272,7 +409,7 @@ export default function FeedPage() {
             <button
               className="text-link"
               type="button"
-              onClick={() => notify('La consigna diaria llega con el módulo de historias.')}
+              onClick={() => setComposerOpen(true)}
             >
               Responder consigna diaria
             </button>
@@ -296,47 +433,70 @@ export default function FeedPage() {
           </button>
         </div>
 
+        {feedError ? (
+          <div className="auth-error" role="alert">
+            {feedError}
+            <button
+              className="text-link"
+              type="button"
+              onClick={() => void loadFeed(feedTab, name)}
+              style={{ marginLeft: 8 }}
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : null}
+
+        {feedLoading ? <p className="muted small">Cargando relatos…</p> : null}
+
         <div id="feedList">
-          {stories.length ? (
-            stories.map((story) => (
-              <PostCard
-                key={story.id}
-                story={story}
-                supported={supported.has(story.id)}
-                saved={saved.has(story.id)}
-                followingAuthor={followAuthors.has(story.author)}
-                followingStory={followStories.has(story.id)}
-                onSupport={() => toggle(setSupported, story.id, 'Tu apoyo fue enviado', 'Quitaste tu apoyo')}
-                onSave={() => toggle(setSaved, story.id, 'Relato guardado', 'Relato eliminado de guardados')}
-                onFollowAuthor={() =>
-                  toggle(setFollowAuthors, story.author, `Ahora sigues a ${story.author}`, `Dejaste de seguir a ${story.author}`)
-                }
-                onFollowStory={() =>
-                  toggle(setFollowStories, story.id, 'Recibirás futuras actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones')
-                }
-                onOpenMenu={() => openPostMenu(story.id)}
-                onPlay={() => notify('Reproduciendo vista previa')}
-                onAuthor={() => notify(`El perfil de ${story.author} llega con el módulo de comunidad.`)}
-                onComment={() => notify('Los comentarios llegan con el módulo de acompañamiento.')}
-              />
+          {!feedLoading && entries.length ? (
+            entries.map((entry, index) => (
+              <div key={entry.id} className="story-enter" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
+                <PostCard
+                  story={entry}
+                  isOwn={entry.isOwn}
+                  statusLabel={entry.status}
+                  supported={supported.has(entry.id)}
+                  saved={saved.has(entry.id)}
+                  followingAuthor={followedAuthors.has(entry.author)}
+                  followingStory={followStories.has(entry.id)}
+                  onSupport={() => toggle(setSupported, entry.id, 'Tu apoyo fue enviado', 'Quitaste tu apoyo')}
+                  onSave={() => toggle(setSaved, entry.id, 'Relato guardado', 'Relato eliminado de guardados')}
+                  onFollowAuthor={() => void toggleFollowAuthor(entry.author)}
+                  onFollowStory={() =>
+                    toggle(setFollowStories, entry.id, 'Recibirás futuras actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones')
+                  }
+                  onOpenMenu={() => openPostMenu(entry.id)}
+                  onPlay={() => notify('Reproduciendo vista previa')}
+                  onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
+                  onComment={() => notify('Los comentarios llegan con el módulo de acompañamiento.')}
+                />
+              </div>
             ))
-          ) : (
+          ) : null}
+
+          {!feedLoading && !feedError && entries.length === 0 ? (
             <div className="empty card">
               <div className="empty-icon">
-                <Icon name="users" />
+                <Icon name="book" />
               </div>
-              <h2>Aún no sigues a nadie</h2>
-              <p>Explora autores con los que conectes. Aquí aparecerán sus nuevos relatos.</p>
+              <h2>{feedTab === 'following' ? 'Aún no sigues a nadie' : 'Todavía no hay relatos'}</h2>
+              <p>
+                {feedTab === 'following'
+                  ? 'Explora autores con los que conectes. Aquí aparecerán sus nuevos relatos.'
+                  : 'Sé la primera persona en compartir. Tu relato aparecerá aquí.'}
+              </p>
               <button
                 className="primary"
                 type="button"
                 style={{ padding: '12px 18px' }}
-                onClick={() => notify('La exploración de comunidad llega pronto.')}
+                onClick={() => (feedTab === 'following' ? setFeedTab('for-you') : setComposerOpen(true))}
               >
-                Explorar comunidad
+                {feedTab === 'following' ? 'Explorar el feed' : 'Compartir un relato'}
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       </section>
     </WyFrame>
