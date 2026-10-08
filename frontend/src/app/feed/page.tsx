@@ -14,13 +14,7 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
-import {
-  listFollowingStories,
-  listMyStories,
-  listPublicStories,
-  type FollowingStory,
-  type MyStoryListItem,
-} from '@/lib/stories';
+import { getFeed, listFollowingStories, type FeedSections, type FollowingStory } from '@/lib/stories';
 import type { DemoStory } from '@/components/wy/feedData';
 
 type FeedTab = 'for-you' | 'following';
@@ -49,7 +43,8 @@ function relativeTime(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
 }
 
-function fromPublic(story: FollowingStory): FeedEntry {
+function toEntry(story: FollowingStory, authorName: string): FeedEntry {
+  const isOwn = story.author.name === authorName;
   return {
     id: story.id,
     author: story.author.name,
@@ -63,27 +58,19 @@ function fromPublic(story: FollowingStory): FeedEntry {
     text: story.opening?.content ?? '',
     support: story.supportCount,
     comments: story.commentCount,
-    isOwn: false,
+    isOwn,
+    ...(isOwn ? { status: 'PUBLISHED' as const } : {}),
   };
 }
 
-function fromMine(story: MyStoryListItem, authorName: string): FeedEntry {
-  return {
-    id: story.id,
-    author: authorName,
-    initials: initialsOf(authorName),
-    time: relativeTime(story.createdAt),
-    category: story.categories[0] ?? 'Relato',
-    updateKind: story.stageCount > 1 ? `Evolución · ${story.stageCount} etapas` : 'Relato',
-    updateDate: relativeTime(story.updatedAt),
-    updateText: '',
-    title: story.title,
-    text: story.opening?.content ?? '',
-    support: story.supportCount,
-    comments: story.commentCount,
-    isOwn: true,
-    status: story.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
-  };
+function allEmpty(sections: FeedSections | null): boolean {
+  if (!sections) return true;
+  return (
+    sections.recent.length === 0 &&
+    sections.recommended.length === 0 &&
+    sections.popular.length === 0 &&
+    sections.following.length === 0
+  );
 }
 
 export default function FeedPage() {
@@ -92,6 +79,7 @@ export default function FeedPage() {
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
 
   const [feedTab, setFeedTab] = useState<FeedTab>('for-you');
+  const [sections, setSections] = useState<FeedSections | null>(null);
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState('');
@@ -161,62 +149,51 @@ export default function FeedPage() {
     verifySession();
   }, [router]);
 
-  const loadFeed = useCallback(
-    async (tab: FeedTab, authorName: string) => {
-      setFeedLoading(true);
-      setFeedError('');
+  const loadFeed = useCallback(async (tab: FeedTab) => {
+    setFeedLoading(true);
+    setFeedError('');
 
-      const [mine, published, following, follows] = await Promise.all([
-        listMyStories(),
-        listPublicStories(),
-        tab === 'following' ? listFollowingStories() : Promise.resolve({ status: 'ok' as const, data: { items: [], nextCursor: null } }),
-        listFollowing(),
-      ]);
+    if (tab === 'following') {
+      const [following, follows] = await Promise.all([listFollowingStories(), listFollowing()]);
 
       if (follows.status === 'ok') {
         setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
       }
 
-      if (mine.status !== 'ok' || published.status !== 'ok') {
-        setFeedError('No se pudo cargar el feed.');
+      if (following.status !== 'ok') {
+        setFeedError('No se pudo cargar tu feed de seguidos.');
         setEntries([]);
         setFeedLoading(false);
         return;
       }
 
-      if (tab === 'following') {
-        if (following.status !== 'ok') {
-          setFeedError('No se pudo cargar tu feed de seguidos.');
-          setEntries([]);
-          setFeedLoading(false);
-          return;
-        }
-        setEntries(following.data.items.map(fromPublic));
-        setFeedLoading(false);
-        return;
-      }
-
-      // En el feed solo aparecen mis relatos publicados y no privados: los
-      // borradores y los relatos privados viven solo en «Mis relatos».
-      const own = mine.data.items
-        .filter((story) => story.status === 'PUBLISHED' && story.visibility !== 'PRIVATE')
-        .map((story) => fromMine(story, authorName));
-      const ownIds = new Set(own.map((entry) => entry.id));
-      const others = published.data.items
-        .filter((story) => !ownIds.has(story.id))
-        .map(fromPublic);
-
-      // Mis relatos primero, luego el feed público.
-      setEntries([...own, ...others]);
+      setEntries(following.data.items.map((story) => toEntry(story, '')));
+      setSections(null);
       setFeedLoading(false);
-    },
-    [],
-  );
+      return;
+    }
+
+    const [feed, follows] = await Promise.all([getFeed(), listFollowing()]);
+
+    if (follows.status === 'ok') {
+      setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
+    }
+
+    if (feed.status !== 'ok') {
+      setFeedError('No se pudo cargar el feed.');
+      setSections(null);
+      setFeedLoading(false);
+      return;
+    }
+
+    setSections(feed.data);
+    setFeedLoading(false);
+  }, []);
 
   useEffect(() => {
     if (loading) return;
-    void loadFeed(feedTab, character?.name ?? '');
-  }, [feedTab, loading, character?.name, loadFeed]);
+    void loadFeed(feedTab);
+  }, [feedTab, loading, loadFeed]);
 
   const logout = useCallback(async () => {
     await endSession();
@@ -308,6 +285,47 @@ export default function FeedPage() {
       default:
         notify('Esta sección llega con los próximos módulos.');
     }
+  };
+
+  const renderCard = (story: FollowingStory, index: number, authorName: string) => {
+    const entry = toEntry(story, authorName);
+    return (
+      <div
+        key={story.id}
+        className="story-enter"
+        style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+      >
+        <PostCard
+          story={entry}
+          isOwn={entry.isOwn}
+          statusLabel={entry.status}
+          supported={supported.has(entry.id)}
+          saved={saved.has(entry.id)}
+          followingAuthor={followedAuthors.has(entry.author)}
+          followingStory={followStories.has(entry.id)}
+          onSupport={() => toggle(setSupported, entry.id, 'Tu apoyo fue enviado', 'Quitaste tu apoyo')}
+          onSave={() => toggle(setSaved, entry.id, 'Relato guardado', 'Relato eliminado de guardados')}
+          onFollowAuthor={() => void toggleFollowAuthor(entry.author)}
+          onFollowStory={() =>
+            toggle(setFollowStories, entry.id, 'Recibirás futuras actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones')
+          }
+          onOpenMenu={() => openPostMenu(entry.id)}
+          onPlay={() => notify('Reproduciendo vista previa')}
+          onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
+          onComment={() => notify('Los comentarios llegan con el módulo de acompañamiento.')}
+        />
+      </div>
+    );
+  };
+
+  const renderSection = (title: string, items: FollowingStory[], authorName: string) => {
+    if (items.length === 0) return null;
+    return (
+      <section className="feed-group">
+        <h2 className="feed-group-title">{title}</h2>
+        {items.map((story, index) => renderCard(story, index, authorName))}
+      </section>
+    );
   };
 
   if (loading) {
@@ -417,7 +435,7 @@ export default function FeedPage() {
               onCreated={() => {
                 setComposerOpen(false);
                 notify('Tu relato se guardó.');
-                void loadFeed(feedTab, name);
+                void loadFeed(feedTab);
               }}
               onCancel={() => setComposerOpen(false)}
             />
@@ -456,7 +474,7 @@ export default function FeedPage() {
             <button
               className="text-link"
               type="button"
-              onClick={() => void loadFeed(feedTab, name)}
+              onClick={() => void loadFeed(feedTab)}
               style={{ marginLeft: 8 }}
             >
               Reintentar
@@ -464,16 +482,14 @@ export default function FeedPage() {
           </div>
         ) : null}
 
-        {feedLoading ? <p className="muted small">Cargando relatos…</p> : null}
+        {feedLoading ? <p className="muted small">Preparando tu feed…</p> : null}
 
-        <div id="feedList">
-          {!feedLoading && entries.length ? (
-            entries.map((entry, index) => (
-              <div key={entry.id} className="story-enter" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
+        {feedTab === 'following' ? (
+          <div id="feedList" className="stack">
+            {entries.map((entry) => (
+              <article key={entry.id} className="story-enter">
                 <PostCard
                   story={entry}
-                  isOwn={entry.isOwn}
-                  statusLabel={entry.status}
                   supported={supported.has(entry.id)}
                   saved={saved.has(entry.id)}
                   followingAuthor={followedAuthors.has(entry.author)}
@@ -489,32 +505,35 @@ export default function FeedPage() {
                   onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
                   onComment={() => notify('Los comentarios llegan con el módulo de acompañamiento.')}
                 />
-              </div>
-            ))
-          ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div id="feedList" className="stack">
+            {renderSection('Historias recientes', sections?.recent ?? [], name)}
+            {renderSection('Recomendadas para ti', sections?.recommended ?? [], name)}
+            {renderSection('Historias populares', sections?.popular ?? [], name)}
+            {renderSection('De personas que sigues', sections?.following ?? [], name)}
 
-          {!feedLoading && !feedError && entries.length === 0 ? (
-            <div className="empty card">
-              <div className="empty-icon">
-                <Icon name="book" />
+            {!feedLoading && !feedError && allEmpty(sections) ? (
+              <div className="empty card">
+                <div className="empty-icon">
+                  <Icon name="book" />
+                </div>
+                <h2>Todavía no hay relatos</h2>
+                <p>Sé la primera persona en compartir. Tu relato aparecerá aquí.</p>
+                <button
+                  className="primary"
+                  type="button"
+                  style={{ padding: '12px 18px' }}
+                  onClick={() => setComposerOpen(true)}
+                >
+                  Compartir un relato
+                </button>
               </div>
-              <h2>{feedTab === 'following' ? 'Aún no sigues a nadie' : 'Todavía no hay relatos'}</h2>
-              <p>
-                {feedTab === 'following'
-                  ? 'Explora autores con los que conectes. Aquí aparecerán sus nuevos relatos.'
-                  : 'Sé la primera persona en compartir. Tu relato aparecerá aquí.'}
-              </p>
-              <button
-                className="primary"
-                type="button"
-                style={{ padding: '12px 18px' }}
-                onClick={() => (feedTab === 'following' ? setFeedTab('for-you') : setComposerOpen(true))}
-              >
-                {feedTab === 'following' ? 'Explorar el feed' : 'Compartir un relato'}
-              </button>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        )}
       </section>
     </WyFrame>
   );

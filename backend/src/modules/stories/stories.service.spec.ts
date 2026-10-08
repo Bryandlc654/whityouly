@@ -407,4 +407,50 @@ describe('StoriesService', () => {
       }),
     );
   });
+
+  it('devuelve las cuatro secciones del feed', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
+    prisma.story.findMany.mockResolvedValue([]);
+
+    await expect(service.getFeed('user-1')).resolves.toEqual({
+      recent: [],
+      recommended: [],
+      popular: [],
+      following: [],
+    });
+  });
+
+  it('las recomendadas priorizan los relatos afines a los intereses', async () => {
+    const base = {
+      title: 'T',
+      visibility: 'PUBLIC',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      characterId: 'char-a',
+      character: { name: 'A', avatarUrl: null },
+      categories: [],
+      emotions: [],
+      updates: [],
+      _count: { updates: 1, comments: 0, companionships: 0 },
+    };
+    const match = { ...base, id: 'match', tags: [{ tag: { name: 'Esperanza' } }] };
+    const other = { ...base, id: 'other', tags: [] };
+
+    prisma.character.findUnique.mockResolvedValue({
+      id: 'char-1',
+      interests: [{ interest: { name: 'Esperanza' } }],
+    });
+    prisma.follower.findMany.mockResolvedValue([]);
+    // recent, popular, piscina de candidatos y el resto.
+    prisma.story.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([other, match])
+      .mockResolvedValue([]);
+
+    const feed = await service.getFeed('user-1');
+
+    expect(feed.recommended).toHaveLength(2);
+    expect(feed.recommended[0].id).toBe('match');
+  });
 });

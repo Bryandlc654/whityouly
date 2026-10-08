@@ -91,6 +91,21 @@ body {
   gap: 14px;
 }
 
+/* Secciones del feed principal. */
+.wy .feed-group {
+  display: grid;
+  gap: 14px;
+}
+
+.wy .feed-group-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 6px 2px 0;
+}
+
 .wy .story-row {
   display: grid;
   gap: 12px;

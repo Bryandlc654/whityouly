@@ -439,6 +439,38 @@ export function listFollowingStories(
   );
 }
 
+export interface FeedSections {
+  recent: FollowingStory[];
+  recommended: FollowingStory[];
+  popular: FollowingStory[];
+  following: FollowingStory[];
+}
+
+function parseFeedSection(value: unknown): FollowingStory[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(parseFollowingStory)
+    .filter((item: FollowingStory | null): item is FollowingStory => item !== null);
+}
+
+/** Feed principal con las cuatro secciones (requiere sesión para personalizar). */
+export function getFeed(): Promise<LoadResult<FeedSections>> {
+  return authedRequest(
+    '/feed',
+    { method: 'GET' },
+    'No se pudo cargar el feed.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      return {
+        recent: parseFeedSection(record.recent),
+        recommended: parseFeedSection(record.recommended),
+        popular: parseFeedSection(record.popular),
+        following: parseFeedSection(record.following),
+      };
+    },
+  );
+}
+
 /** Feed público (relatos publicados con visibilidad pública). */
 export function listPublicStories(
   params: { cursor?: string; category?: string; emotion?: string; tag?: string } = {},
