@@ -196,7 +196,11 @@ export default function FeedPage() {
         return;
       }
 
-      const own = mine.data.items.map((story) => fromMine(story, authorName));
+      // En el feed solo aparecen mis relatos publicados y no privados: los
+      // borradores y los relatos privados viven solo en «Mis relatos».
+      const own = mine.data.items
+        .filter((story) => story.status === 'PUBLISHED' && story.visibility !== 'PRIVATE')
+        .map((story) => fromMine(story, authorName));
       const ownIds = new Set(own.map((entry) => entry.id));
       const others = published.data.items
         .filter((story) => !ownIds.has(story.id))
