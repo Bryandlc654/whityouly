@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { savePreferences, type Account, type AccountPreferences } from '@/lib/account';
+import Icon from '@/components/wy/Icon';
 
 interface Props {
   account: Account;
@@ -49,87 +50,86 @@ export default function PreferencesSection({ account, onSaved }: Props) {
   }
 
   return (
-    <section aria-labelledby="preferencias-title" className="space-y-6">
-      <h2 id="preferencias-title" className="text-title-lg font-semibold">
-        Preferencias
-      </h2>
+    <section aria-labelledby="preferencias-title" className="card pad stack">
+      <div>
+        <h2 id="preferencias-title" className="h-section">
+          Preferencias
+        </h2>
 
-      <fieldset className="rounded-2xl bg-surface-container-low p-4 space-y-3">
-        <legend className="px-2 text-label-md font-medium text-on-surface-variant">Apariencia</legend>
-        {THEMES.map((theme) => (
-          <label key={theme.value} className="flex items-center gap-3 text-body-md">
-            <input
-              type="radio"
-              name="theme"
-              value={theme.value}
-              checked={preferences.theme === theme.value}
-              onChange={() => setPreferences((prev) => ({ ...prev, theme: theme.value }))}
-              className="accent-primary"
-            />
-            {theme.label}
+        <label className="field-label">Apariencia</label>
+        <div className="segmented">
+          {THEMES.map((theme) => (
+            <button
+              key={theme.value}
+              type="button"
+              className={preferences.theme === theme.value ? 'active' : undefined}
+              aria-pressed={preferences.theme === theme.value}
+              onClick={() => setPreferences((prev) => ({ ...prev, theme: theme.value }))}
+            >
+              {theme.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="field-label">Avisos</label>
+        <div className="settings-list">
+          <label className="settings-row">
+            <span>
+              <Icon name="mail" />
+            </span>
+            <span>
+              <b>Avisarme por correo</b>
+              <small>Nuevos seguidores, reacciones y comentarios.</small>
+            </span>
+            <span>
+              <input
+                type="checkbox"
+                checked={preferences.emailNotifications}
+                onChange={(event) =>
+                  setPreferences((prev) => ({ ...prev, emailNotifications: event.target.checked }))
+                }
+              />
+            </span>
           </label>
-        ))}
-      </fieldset>
 
-      <fieldset className="rounded-2xl bg-surface-container-low p-4 space-y-3">
-        <legend className="px-2 text-label-md font-medium text-on-surface-variant">Avisos</legend>
-
-        <label className="flex items-start gap-3 text-body-md">
-          <input
-            type="checkbox"
-            checked={preferences.emailNotifications}
-            onChange={(event) =>
-              setPreferences((prev) => ({ ...prev, emailNotifications: event.target.checked }))
-            }
-            className="mt-1 accent-primary"
-          />
-          <span>
-            Avisarme por correo
-            <span className="block text-body-sm text-on-surface-variant">
-              Nuevos seguidores, reacciones y comentarios.
+          <label className="settings-row">
+            <span>
+              <Icon name="bell" />
             </span>
-          </span>
-        </label>
-
-        <label className="flex items-start gap-3 text-body-md">
-          <input
-            type="checkbox"
-            checked={preferences.pushNotifications}
-            onChange={(event) =>
-              setPreferences((prev) => ({ ...prev, pushNotifications: event.target.checked }))
-            }
-            className="mt-1 accent-primary"
-          />
-          <span>
-            Notificaciones en el navegador
-            <span className="block text-body-sm text-on-surface-variant">
-              Requiere que las tengas permitidas en el navegador.
+            <span>
+              <b>Notificaciones en el navegador</b>
+              <small>Requiere que las tengas permitidas en el navegador.</small>
             </span>
-          </span>
-        </label>
-      </fieldset>
+            <span>
+              <input
+                type="checkbox"
+                checked={preferences.pushNotifications}
+                onChange={(event) =>
+                  setPreferences((prev) => ({ ...prev, pushNotifications: event.target.checked }))
+                }
+              />
+            </span>
+          </label>
+        </div>
+      </div>
 
-      {status && (
+      {status ? (
         <p
           role="status"
-          className={
-            status.kind === 'ok'
-              ? 'text-body-sm text-on-surface-variant'
-              : 'text-body-sm text-error'
-          }
+          className={status.kind === 'ok' ? 'auth-success' : 'auth-error'}
+          style={{ margin: 0 }}
         >
           {status.text}
         </p>
-      )}
+      ) : null}
 
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={!dirty || saving}
-        className="px-space-md py-2 rounded-full bg-primary text-on-primary text-label-md font-medium disabled:opacity-50"
-      >
-        {saving ? 'Guardando…' : 'Guardar cambios'}
-      </button>
+      <div>
+        <button type="button" className="primary" onClick={() => void save()} disabled={!dirty || saving}>
+          {saving ? 'Guardando…' : 'Guardar cambios'}
+        </button>
+      </div>
     </section>
   );
 }

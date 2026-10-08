@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// Sistema visual del prototipo Withyouly v7: las reglas viven bajo .wy, así que
+// solo afectan a las pantallas que envuelven su contenido en esa clase.
+import "./withyouly.css";
 
 export const metadata: Metadata = {
   title: "Whityouly",

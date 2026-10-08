@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteAccount } from '@/lib/account';
 import { tokenStorage } from '@/lib/auth';
+import Icon from '@/components/wy/Icon';
 
 const CONFIRMATION_WORD = 'ELIMINAR';
 
@@ -36,55 +37,56 @@ export default function DeleteAccountSection() {
   }
 
   return (
-    <section aria-labelledby="baja-title" className="space-y-4 max-w-md">
-      <h2 id="baja-title" className="text-title-lg font-semibold text-error">
-        Dar de baja la cuenta
-      </h2>
+    <section aria-labelledby="baja-title" className="card pad stack">
+      <div>
+        <h2 id="baja-title" className="h-section" style={{ color: 'var(--red)' }}>
+          Dar de baja la cuenta
+        </h2>
+        <p className="hint" style={{ margin: 0 }}>
+          Tu cuenta dejará de permitir el inicio de sesión y se cerrarán todas tus sesiones. Tus
+          relatos, comentarios y música se conservan para que no se rompa lo que han publicado otras
+          personas.
+        </p>
+      </div>
 
-      <p className="text-body-md text-on-surface-variant">
-        Tu cuenta dejará de permitir el inicio de sesión y se cerrarán todas tus sesiones. Tus
-        relatos, comentarios y música se conservan para que no se rompa lo que han publicado otras
-        personas.
-      </p>
+      <div className="tip">
+        <Icon name="lock" /> Esta acción es irreversible una vez confirmada.
+      </div>
 
-      <form onSubmit={submit} className="space-y-3">
-        <label htmlFor="delete-password" className="block text-body-sm text-on-surface-variant">
+      <form onSubmit={submit} className="stack">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Tu contraseña
           <input
-            id="delete-password"
+            className="field"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full px-space-md py-3 rounded-xl bg-surface-container-low text-on-surface border border-outline-variant focus:ring-2 focus:ring-primary/40 outline-none mt-1"
             required
           />
         </label>
 
-        <label htmlFor="delete-confirmation" className="block text-body-sm text-on-surface-variant">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Escribe {CONFIRMATION_WORD} para confirmar
           <input
-            id="delete-confirmation"
+            className="field"
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
-            className="w-full px-space-md py-3 rounded-xl bg-surface-container-low text-on-surface border border-outline-variant focus:ring-2 focus:ring-primary/40 outline-none mt-1"
             required
           />
         </label>
 
-        {error && (
-          <p role="alert" className="text-body-sm text-error">
+        {error ? (
+          <p role="alert" className="auth-error" style={{ margin: 0 }}>
             {error}
           </p>
-        )}
+        ) : null}
 
-        <button
-          type="submit"
-          disabled={!ready || deleting}
-          className="px-space-md py-2 rounded-full bg-error text-on-error text-label-md font-medium disabled:opacity-50"
-        >
-          {deleting ? 'Dando de baja…' : 'Dar de baja mi cuenta'}
-        </button>
+        <div>
+          <button type="submit" className="btn-danger" disabled={!ready || deleting}>
+            {deleting ? 'Dando de baja…' : 'Dar de baja mi cuenta'}
+          </button>
+        </div>
       </form>
     </section>
   );

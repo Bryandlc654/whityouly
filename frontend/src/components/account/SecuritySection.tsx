@@ -2,11 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  changePassword,
-  requestEmailChange,
-  type Account,
-} from '@/lib/account';
+import { changePassword, requestEmailChange, type Account } from '@/lib/account';
 import { tokenStorage } from '@/lib/auth';
 
 type Status = { kind: 'ok' | 'error'; text: string } | null;
@@ -15,12 +11,6 @@ const PASSWORD_RULES = [
   'Al menos 8 caracteres',
   'Una mayúscula, una minúscula y un número',
 ];
-
-function inputClass(invalid: boolean) {
-  return `w-full px-space-md py-3 rounded-xl bg-surface-container-low text-on-surface border outline-none ${
-    invalid ? 'border-error' : 'border-outline-variant focus:ring-2 focus:ring-primary/40'
-  }`;
-}
 
 export default function SecuritySection({ account }: { account: Account }) {
   const router = useRouter();
@@ -83,136 +73,132 @@ export default function SecuritySection({ account }: { account: Account }) {
   }
 
   return (
-    <section aria-labelledby="seguridad-title" className="space-y-8">
-      <h2 id="seguridad-title" className="text-title-lg font-semibold">
-        Seguridad
-      </h2>
+    <section aria-labelledby="seguridad-title" className="stack">
+      <form onSubmit={submitPassword} className="card pad stack">
+        <div>
+          <h2 id="seguridad-title" className="h-section">
+            Seguridad
+          </h2>
+          <label className="field-label">Contraseña</label>
+        </div>
 
-      <form onSubmit={submitPassword} className="space-y-3 max-w-md">
-        <h3 className="text-title-md font-medium">Contraseña</h3>
-
-        <label htmlFor="current-password" className="block text-body-sm text-on-surface-variant">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Contraseña actual
           <input
-            id="current-password"
+            className="field"
             type="password"
             autoComplete="current-password"
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
-            className={`${inputClass(false)} mt-1`}
             required
           />
         </label>
 
-        <label htmlFor="new-password" className="block text-body-sm text-on-surface-variant">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Nueva contraseña
           <input
-            id="new-password"
+            className="field"
             type="password"
             autoComplete="new-password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            className={`${inputClass(false)} mt-1`}
             required
           />
         </label>
 
-        <label htmlFor="repeat-password" className="block text-body-sm text-on-surface-variant">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Repite la nueva contraseña
           <input
-            id="repeat-password"
+            className={`field ${repeatMismatch ? 'field-error' : ''}`}
             type="password"
             autoComplete="new-password"
             value={repeatPassword}
             onChange={(event) => setRepeatPassword(event.target.value)}
-            className={`${inputClass(repeatMismatch)} mt-1`}
             aria-invalid={repeatMismatch}
             required
           />
         </label>
 
-        {repeatMismatch && (
-          <p role="alert" className="text-body-sm text-error">
+        {repeatMismatch ? (
+          <p role="alert" className="auth-error" style={{ margin: 0 }}>
             Las contraseñas no coinciden.
           </p>
-        )}
+        ) : null}
 
-        <ul className="text-body-sm text-on-surface-variant list-disc pl-5">
-          {PASSWORD_RULES.map((rule) => (
-            <li key={rule}>{rule}</li>
-          ))}
-        </ul>
+        <div className="tip">
+          <b>Requisitos:</b> {PASSWORD_RULES.join(' · ')}.
+        </div>
 
-        {passwordStatus && (
-          <p role="alert" className="text-body-sm text-error">
+        {passwordStatus ? (
+          <p role="alert" className="auth-error" style={{ margin: 0 }}>
             {passwordStatus.text}
           </p>
-        )}
+        ) : null}
 
-        <p className="text-body-sm text-on-surface-variant">
+        <p className="hint" style={{ margin: 0 }}>
           Al cambiarla se cerrarán todas tus sesiones, incluido este dispositivo.
         </p>
 
-        <button
-          type="submit"
-          disabled={!passwordReady || savingPassword}
-          className="px-space-md py-2 rounded-full bg-primary text-on-primary text-label-md font-medium disabled:opacity-50"
-        >
-          {savingPassword ? 'Cambiando…' : 'Cambiar contraseña'}
-        </button>
+        <div>
+          <button type="submit" className="primary" disabled={!passwordReady || savingPassword}>
+            {savingPassword ? 'Cambiando…' : 'Cambiar contraseña'}
+          </button>
+        </div>
       </form>
 
-      <form onSubmit={submitEmail} className="space-y-3 max-w-md border-t border-outline-variant pt-6">
-        <h3 className="text-title-md font-medium">Correo electrónico</h3>
+      <form onSubmit={submitEmail} className="card pad stack">
+        <div>
+          <h2 className="h-section">Correo electrónico</h2>
+          <p className="hint" style={{ margin: 0 }}>
+            Ahora usas <strong>{account.email}</strong>
+            {account.isEmailVerified ? ' (verificado)' : ' (sin verificar)'}. Te enviaremos un enlace
+            al correo nuevo: el cambio no se aplica hasta que lo confirmes.
+          </p>
+        </div>
 
-        <p className="text-body-sm text-on-surface-variant">
-          Ahora usas <strong>{account.email}</strong>
-          {account.isEmailVerified ? ' (verificado)' : ' (sin verificar)'}. Te enviaremos un enlace al
-          correo nuevo: el cambio no se aplica hasta que lo confirmes.
-        </p>
-
-        <label htmlFor="new-email" className="block text-body-sm text-on-surface-variant">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Correo nuevo
           <input
-            id="new-email"
+            className="field"
             type="email"
             autoComplete="email"
             value={newEmail}
             onChange={(event) => setNewEmail(event.target.value)}
-            className={`${inputClass(false)} mt-1`}
             required
           />
         </label>
 
-        <label htmlFor="email-password" className="block text-body-sm text-on-surface-variant">
+        <label className="field-label" style={{ marginTop: 0 }}>
           Tu contraseña actual
           <input
-            id="email-password"
+            className="field"
             type="password"
             autoComplete="current-password"
             value={emailPassword}
             onChange={(event) => setEmailPassword(event.target.value)}
-            className={`${inputClass(false)} mt-1`}
             required
           />
         </label>
 
-        {emailStatus && (
+        {emailStatus ? (
           <p
             role="status"
-            className={`text-body-sm ${emailStatus.kind === 'ok' ? 'text-on-surface-variant' : 'text-error'}`}
+            className={emailStatus.kind === 'ok' ? 'auth-success' : 'auth-error'}
+            style={{ margin: 0 }}
           >
             {emailStatus.text}
           </p>
-        )}
+        ) : null}
 
-        <button
-          type="submit"
-          disabled={savingEmail || newEmail.length === 0 || emailPassword.length === 0}
-          className="px-space-md py-2 rounded-full border border-outline-variant text-label-md font-medium hover:bg-surface-container disabled:opacity-50"
-        >
-          {savingEmail ? 'Enviando…' : 'Cambiar correo'}
-        </button>
+        <div>
+          <button
+            type="submit"
+            className="btn-outline"
+            disabled={savingEmail || newEmail.length === 0 || emailPassword.length === 0}
+          >
+            {savingEmail ? 'Enviando…' : 'Cambiar correo'}
+          </button>
+        </div>
       </form>
     </section>
   );

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteFile, formatBytes, listFiles, uploadFile, type MediaFile } from '@/lib/files';
+import Icon from '@/components/wy/Icon';
 
 type Status = { kind: 'ok' | 'error'; text: string } | null;
 
@@ -87,16 +88,16 @@ export default function FilesSection({ usage }: { usage: { characters: number; m
   }
 
   return (
-    <section aria-labelledby="archivos-title" className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="archivos-title" className="text-title-lg font-semibold">
+    <section aria-labelledby="archivos-title" className="card pad stack">
+      <div className="row-between">
+        <h2 id="archivos-title" className="h-section" style={{ margin: 0 }}>
           Archivos
         </h2>
         <button
           type="button"
+          className="primary"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="px-space-md py-2 rounded-full bg-primary text-on-primary text-label-md font-medium disabled:opacity-50"
         >
           {uploading ? 'Subiendo…' : 'Subir imagen'}
         </button>
@@ -105,61 +106,61 @@ export default function FilesSection({ usage }: { usage: { characters: number; m
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={(event) => void upload(event)}
-          className="sr-only"
+          className="hidden"
           aria-label="Subir imagen"
         />
       </div>
 
-      <p className="text-body-sm text-on-surface-variant">
-        Tienes {items.length} {items.length === 1 ? 'archivo' : 'archivos'} en la biblioteca (
+      <p className="hint" style={{ margin: 0 }}>
+        Tienes {items.length} {items.length === 1 ? 'archivo' : 'archivos'} en la biblioteca ({' '}
         {usage.media} en total). Imágenes JPEG, PNG o WebP; se guardan como WebP.
       </p>
 
-      {status && (
+      {status ? (
         <p
           role="status"
-          className={`text-body-sm ${status.kind === 'ok' ? 'text-on-surface-variant' : 'text-error'}`}
+          className={status.kind === 'ok' ? 'auth-success' : 'auth-error'}
+          style={{ margin: 0 }}
         >
           {status.text}
         </p>
-      )}
+      ) : null}
 
-      {loading && <p className="text-body-md text-on-surface-variant">Cargando tu biblioteca…</p>}
+      {loading ? <p className="hint">Cargando tu biblioteca…</p> : null}
 
-      {!loading && items.length === 0 && !status && (
-        <p className="rounded-2xl bg-surface-container-low p-6 text-center text-body-md text-on-surface-variant">
-          Todavía no has subido nada.
-        </p>
-      )}
+      {!loading && items.length === 0 && !status ? (
+        <div className="empty card">
+          <div className="empty-icon">
+            <Icon name="book" />
+          </div>
+          <h2>Todavía no has subido nada</h2>
+          <p>Tu biblioteca guarda las imágenes que uses en tus relatos.</p>
+        </div>
+      ) : null}
 
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <ul className="file-grid" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {items.map((file) => (
-          <li key={file.id} className="rounded-2xl bg-surface-container-low overflow-hidden">
+          <li key={file.id} className="file-tile">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={file.fileUrl}
               alt={file.originalName ?? 'Archivo de la biblioteca'}
               loading="lazy"
-              className="aspect-square w-full object-cover"
             />
-            <div className="p-3 space-y-1">
-              <p className="text-body-sm truncate" title={file.originalName ?? undefined}>
+            <div className="file-meta">
+              <span className="name" title={file.originalName ?? undefined}>
                 {file.originalName ?? 'Sin nombre'}
-              </p>
-              <p className="text-body-sm text-on-surface-variant">
+              </span>
+              <span className="sz">
                 {formatBytes(file.sizeBytes)}
                 {file.width && file.height ? ` · ${file.width}×${file.height}` : ''}
-              </p>
-              {file.entityType !== 'NONE' && (
-                <p className="text-[10px] uppercase tracking-wider font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full inline-block">
-                  En uso
-                </p>
-              )}
+              </span>
+              {file.entityType !== 'NONE' ? <span className="badge-use">En uso</span> : null}
               <button
                 type="button"
+                className="link-danger"
                 onClick={() => void remove(file.id)}
                 disabled={pendingDelete === file.id}
-                className="text-label-md font-semibold text-error hover:bg-error-container px-space-md rounded-full transition-colors disabled:opacity-50"
               >
                 {pendingDelete === file.id ? 'Borrando…' : 'Borrar'}
               </button>
@@ -168,16 +169,18 @@ export default function FilesSection({ usage }: { usage: { characters: number; m
         ))}
       </ul>
 
-      {cursor && (
-        <button
-          type="button"
-          onClick={() => void loadMore()}
-          disabled={loadingMore}
-          className="px-space-md py-2 rounded-full border border-outline-variant text-label-md font-medium hover:bg-surface-container disabled:opacity-50"
-        >
-          {loadingMore ? 'Cargando…' : 'Ver más'}
-        </button>
-      )}
+      {cursor ? (
+        <div>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Cargando…' : 'Ver más'}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
