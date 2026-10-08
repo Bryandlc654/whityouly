@@ -47,7 +47,9 @@ export default function StoryForm({ onCreated, onCancel, variant = 'default', he
   const [audioId, setAudioId] = useState<string | null>(null);
   const [audioName, setAudioName] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [showOptions, setShowOptions] = useState(false);
+  // Las categorías, emociones y etiquetas se muestran al abrir el compositor,
+  // no detrás de un botón. El botón permite plegarlas si se prefiere.
+  const [showOptions, setShowOptions] = useState(true);
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState<'draft' | 'publish' | null>(null);
@@ -367,8 +369,8 @@ export default function StoryForm({ onCreated, onCancel, variant = 'default', he
               type="button"
               className={`tool ${showOptions ? 'on' : ''}`}
               onClick={() => setShowOptions((value) => !value)}
-              title="Categoría, emoción y visibilidad"
-              aria-label="Más opciones"
+              title={showOptions ? 'Ocultar opciones' : 'Categoría, emoción y visibilidad'}
+              aria-label={showOptions ? 'Ocultar opciones' : 'Mostrar opciones'}
             >
               <Icon name="settings" />
             </button>
