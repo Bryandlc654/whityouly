@@ -12,7 +12,7 @@ import RightRail from '@/components/wy/RightRail';
 import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import StoryComposer from '@/components/wy/StoryComposer';
+import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
 import {
   listFollowingStories,
@@ -112,6 +112,7 @@ export default function FeedPage() {
   const [summaryHidden, setSummaryHidden] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const composerRef = useRef<HTMLElement>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -122,6 +123,11 @@ export default function FeedPage() {
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
+
+  // Al abrir el compositor en línea, se lleva a la vista (puede estar arriba).
+  useEffect(() => {
+    if (composerOpen) composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [composerOpen]);
 
   useEffect(() => {
     const verifySession = async () => {
@@ -321,16 +327,7 @@ export default function FeedPage() {
       onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
       toast={toast}
       overlay={
-        composerOpen ? (
-          <StoryComposer
-            onClose={() => setComposerOpen(false)}
-            onCreated={() => {
-              setComposerOpen(false);
-              notify('Tu relato se guardó.');
-              void loadFeed(feedTab, name);
-            }}
-          />
-        ) : moodOpen ? (
+        moodOpen ? (
           <MoodModal
             name={moodName}
             value={moodValue}
@@ -391,29 +388,44 @@ export default function FeedPage() {
           </div>
         </section>
 
-        <section className="composer card">
+        <section className="composer card" ref={composerRef}>
           <div className="composer-top">
             <Avatar initials={initials} avatarUrl={character?.avatarUrl} />
-            <button
-              className="composer-trigger"
-              type="button"
-              onClick={() => setComposerOpen(true)}
-            >
-              ¿Qué necesitas sacar de tu pecho hoy?
-            </button>
+            {composerOpen ? (
+              <div>
+                <b>{name || 'tu seudónimo'}</b>
+                <div className="post-time">Publicarás con este seudónimo</div>
+              </div>
+            ) : (
+              <button
+                className="composer-trigger"
+                type="button"
+                onClick={() => setComposerOpen(true)}
+              >
+                ¿Qué necesitas sacar de tu pecho hoy?
+              </button>
+            )}
           </div>
-          <div className="composer-meta">
-            <span>
-              <Icon name="lock" /> Publicarás como <strong>{name || 'tu seudónimo'}</strong>
-            </span>
-            <button
-              className="text-link"
-              type="button"
-              onClick={() => setComposerOpen(true)}
-            >
-              Responder consigna diaria
-            </button>
-          </div>
+
+          {composerOpen ? (
+            <StoryForm
+              onCreated={() => {
+                setComposerOpen(false);
+                notify('Tu relato se guardó.');
+                void loadFeed(feedTab, name);
+              }}
+              onCancel={() => setComposerOpen(false)}
+            />
+          ) : (
+            <div className="composer-meta">
+              <span>
+                <Icon name="lock" /> Publicarás como <strong>{name || 'tu seudónimo'}</strong>
+              </span>
+              <button className="text-link" type="button" onClick={() => setComposerOpen(true)}>
+                Responder consigna diaria
+              </button>
+            </div>
+          )}
         </section>
 
         <div className="feed-tabs">

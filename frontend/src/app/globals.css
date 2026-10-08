@@ -90,6 +90,16 @@ body {
   position: relative;
 }
 
+.wy .story-form {
+  position: relative;
+}
+
+.wy .story-options {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
 .wy .composer-overlay {
   position: absolute;
   inset: 0;
