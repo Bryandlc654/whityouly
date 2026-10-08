@@ -16,8 +16,9 @@ import {
   processImage,
   type ImageInput,
 } from '../../common/media/process-image';
+import { assertAudioLooksValid, type AudioInput } from '../../common/media/process-audio';
 import { MEDIA_STORAGE, type MediaStorage } from '../../common/storage/media-storage';
-import { keyFromPublicUrl, mediaKey } from '../../common/storage/media-keys';
+import { audioKey, keyFromPublicUrl, mediaKey } from '../../common/storage/media-keys';
 
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MAX_PAGE_SIZE = 50;
@@ -110,6 +111,62 @@ export class FilesService {
       await this.storage.delete(key).catch(() => undefined);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         this.logger.error(`Fallo de BD al guardar el archivo: ${error.code}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Sube un audio a la biblioteca personal. No se re-codifica (haría falta
+   * ffmpeg): se valida la firma de los bytes y el tamaño, y se guarda tal cual.
+   */
+  async uploadAudio(userId: string, file: AudioInput): Promise<MediaFile> {
+    const { extension } = assertAudioLooksValid(file, env.audio.maxBytes);
+
+    const quota = await this.quota.consume(
+      `audio-upload:${userId}`,
+      env.audio.uploadsPerHour,
+      60 * 60_000,
+    );
+
+    if (!quota.allowed) {
+      throw new HttpException(
+        `Has alcanzado el límite de ${quota.limit} audios por hora. Inténtalo en ${quota.retryAfterSeconds} s.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    await this.assertWithinStorageQuota(userId);
+
+    const key = audioKey(userId, randomUUID(), extension);
+    const mimeType = file.mimetype ?? 'application/octet-stream';
+
+    await this.storage.put({
+      key,
+      body: file.buffer,
+      contentType: mimeType,
+      cacheControl: CACHE_CONTROL,
+    });
+
+    try {
+      const asset = await this.prisma.mediaAsset.create({
+        data: {
+          userId,
+          fileUrl: this.storage.publicUrl(key),
+          key,
+          originalName: this.sanitizeOriginalName(file.originalname),
+          mimeType,
+          sizeBytes: BigInt(file.buffer.byteLength),
+          entityType: 'NONE',
+        },
+        select: ASSET_SELECT,
+      });
+
+      return this.toFile(asset);
+    } catch (error) {
+      await this.storage.delete(key).catch(() => undefined);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        this.logger.error(`Fallo de BD al guardar el audio: ${error.code}`);
       }
       throw error;
     }

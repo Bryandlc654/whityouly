@@ -183,7 +183,10 @@ model MediaAsset {
   createdAt    DateTime   @default(now())
 
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  storyUpdates   StoryUpdate[]
+  // Dos adjuntos posibles por etapa (imagen y audio), por eso las relaciones van
+  // nombradas: con dos claves foráneas a la misma tabla Prisma exige el nombre.
+  storyUpdates   StoryUpdate[] @relation("StoryUpdateMedia")
+  storyUpdatesAudio StoryUpdate[] @relation("StoryUpdateAudio")
   creations      Creation[]
   musicTracks    MusicTrack[]
 
@@ -236,6 +239,11 @@ model Story {
   music          StoryMusic[]
 
   @@index([createdAt])
+  // Listado del propietario ("mis relatos"): filtra por personaje y ordena por
+  // fecha. Sin el índice, cada carga recorre toda la tabla de relatos.
+  @@index([characterId, createdAt])
+  // Feed público: filtra por estado y visibilidad antes de ordenar por fecha.
+  @@index([status, visibility, createdAt])
   @@map("stories")
 }
 
@@ -243,16 +251,25 @@ model StoryUpdate {
   id           String   @id @default(uuid())
   storyId      String
   content      String
+  // Imagen que ilustra la etapa.
   mediaAssetId String?
+  // Audio que acompaña la etapa (voz, ambiente...). Es independiente de la
+  // imagen: una etapa puede llevar texto, imagen y audio a la vez.
+  audioAssetId String?
   stageOrder   Int      @default(1)
   createdAt    DateTime @default(now())
 
   story      Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  mediaAsset MediaAsset? @relation("StoryUpdateMedia", fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  audioAsset MediaAsset? @relation("StoryUpdateAudio", fields: [audioAssetId], references: [id], onDelete: SetNull)
 
   // Postgres no indexa las claves foráneas por su cuenta, y al borrar un
   // archivo se cuenta cuántas veces lo referencia cada tabla.
   @@index([mediaAssetId])
+  @@index([audioAssetId])
+  // La lectura del detalle carga las etapas de un relato ordenadas por número.
+  // Postgres no indexa la FK, así que sin esto cada lectura recorre la tabla.
+  @@index([storyId, stageOrder])
   @@map("story_updates")
 }
 
@@ -374,6 +391,11 @@ model Follower {
   followingCharacter Character? @relation("CharacterFollowers", fields: [followingCharacterId], references: [id], onDelete: Cascade)
   followingStory     Story?     @relation("StoryFollowers", fields: [followingStoryId], references: [id], onDelete: Cascade)
 
+  // El feed de seguidos resuelve "a quién sigo" por `followerId`; el índice
+  // compuesto cubre esa consulta. El segundo acelera el recuento de seguidores
+  // y el filtro "quién me sigue".
+  @@index([followerId, followingCharacterId])
+  @@index([followingCharacterId])
   @@map("followers")
 }
 

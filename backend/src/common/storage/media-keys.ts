@@ -47,6 +47,31 @@ export function mediaKey(userId: string, randomToken: string): string {
 }
 
 /**
+ * Extensiones aceptadas para audio, por MIME. Se usa tanto para decidir la
+ * extensión del objeto guardado como para validar el tipo declarado. La lista
+ * es blanca: cualquier otro MIME se rechaza.
+ */
+export const AUDIO_EXTENSION_BY_MIME: Record<string, string> = {
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'm4a',
+  'audio/aac': 'aac',
+  'audio/ogg': 'ogg',
+  'audio/webm': 'webm',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+};
+
+export function audioExtensionForMime(mime: string | undefined): string | null {
+  if (!mime) return null;
+  return AUDIO_EXTENSION_BY_MIME[mime.toLowerCase()] ?? null;
+}
+
+/** Clave de un audio de la biblioteca personal. */
+export function audioKey(userId: string, randomToken: string, extension: string): string {
+  return `media/${userId}/${randomToken}.${extension}`;
+}
+
+/**
  * Extrae la clave de almacenamiento de una URL pública propia.
  * Devuelve `null` si la URL no pertenece a nuestro espacio de nombres, lo que
  * impide borrar o exponer objetos ajenos.

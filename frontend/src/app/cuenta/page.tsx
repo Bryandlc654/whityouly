@@ -115,6 +115,12 @@ export default function AccountPage() {
       case 'mood':
         notify('Mi estado emocional llega con el módulo del diario.');
         break;
+      case 'my-stories':
+        router.push('/mis-relatos');
+        break;
+      case 'following':
+        router.push('/siguiendo');
+        break;
       case 'profile':
         break;
       default:

@@ -147,4 +147,25 @@ export const env = {
     // Cupo total por usuario. Es lo que evita que la biblioteca crezca sin fin.
     maxTotalBytes: parseNumber(process.env.FILES_MAX_TOTAL_BYTES, 100 * 1024 * 1024),
   },
+  audio: {
+    // Tope por archivo de audio (10 MB por defecto). No se re-codifica (haría
+    // falta ffmpeg), así que el tope de bytes es la única contención real.
+    maxBytes: parseNumber(process.env.AUDIO_MAX_BYTES, 10 * 1024 * 1024),
+    uploadsPerHour: parseNumber(process.env.AUDIO_UPLOADS_PER_HOUR, 20),
+  },
+  stories: {
+    // Tope de relatos vivos (no borrados) por personaje. Evita que una sola
+    // cuenta llene la tabla y degrada el coste de las consultas de "mis relatos".
+    maxPerCharacter: parseNumber(process.env.STORY_MAX_PER_CHARACTER, 500),
+    // Tope de etapas por relato. La evolución es una lista ordenada que se lee
+    // entera en el detalle, así que sin tope una sola historia encarecería la
+    // lectura para todo el mundo.
+    maxUpdatesPerStory: parseNumber(process.env.STORY_MAX_UPDATES, 100),
+    // Cadencia de escritura por usuario y hora. Escribir es barato, pero publicar
+    // en bucle es la vía habitual de spam.
+    createsPerHour: parseNumber(process.env.STORY_CREATES_PER_HOUR, 20),
+    updatesPerHour: parseNumber(process.env.STORY_UPDATES_PER_HOUR, 120),
+    // Máximo de modificaciones de metadatos (título, visibilidad, taxonomía).
+    editsPerHour: parseNumber(process.env.STORY_EDITS_PER_HOUR, 60),
+  },
 };

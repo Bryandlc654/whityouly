@@ -12,6 +12,7 @@ import RightRail from '@/components/wy/RightRail';
 import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
+import StoryComposer from '@/components/wy/StoryComposer';
 import { DEMO_STORIES } from '@/components/wy/feedData';
 
 type FeedTab = 'for-you' | 'following';
@@ -32,6 +33,7 @@ export default function FeedPage() {
   const [followAuthors, setFollowAuthors] = useState<Set<string>>(new Set());
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
+  const [composerOpen, setComposerOpen] = useState(false);
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
   const [moodValue, setMoodValue] = useState(7);
@@ -148,7 +150,10 @@ export default function FeedPage() {
         router.push('/cuenta');
         break;
       case 'my-stories':
-        notify('Compartir relatos llega con el módulo de historias.');
+        setComposerOpen(true);
+        break;
+      case 'following':
+        router.push('/siguiendo');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');
@@ -180,7 +185,15 @@ export default function FeedPage() {
       onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
       toast={toast}
       overlay={
-        moodOpen ? (
+        composerOpen ? (
+          <StoryComposer
+            onClose={() => setComposerOpen(false)}
+            onCreated={() => {
+              setComposerOpen(false);
+              notify('Tu relato se guardó. Estará en «Mis relatos».');
+            }}
+          />
+        ) : moodOpen ? (
           <MoodModal
             name={moodName}
             value={moodValue}
@@ -247,7 +260,7 @@ export default function FeedPage() {
             <button
               className="composer-trigger"
               type="button"
-              onClick={() => notify('El módulo de historias aún no está disponible.')}
+              onClick={() => setComposerOpen(true)}
             >
               ¿Qué necesitas sacar de tu pecho hoy?
             </button>

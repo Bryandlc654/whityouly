@@ -18,3 +18,70 @@ body {
     text-wrap: balance;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Componentes nativos de Whityouly (no provienen del prototipo v7, que se
+   regenera aparte). Se acotan bajo `.wy` para no afectar al resto de la app.
+--------------------------------------------------------------------------- */
+.wy .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wy .chip {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #5c6172;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.wy .chip:hover {
+  background: var(--purple-3);
+}
+
+.wy .chip.on {
+  background: var(--purple-3);
+  border-color: #c9bcff;
+  color: var(--purple);
+}
+
+.wy .stage-list {
+  display: grid;
+  gap: 10px;
+}
+
+.wy .stage-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fbfafd;
+}
+
+.wy .stage-item .stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.wy .stage-item p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #474d5e;
+  white-space: pre-wrap;
+}
+
+.wy .story-card {
+  display: grid;
+  gap: 12px;
+}
+

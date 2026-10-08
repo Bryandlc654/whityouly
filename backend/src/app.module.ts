@@ -18,6 +18,9 @@ import { AppThrottlerStorage } from './common/throttler/app-throttler.storage';
 import { MediaStorageModule } from './common/storage/storage.module';
 import { QuotaModule } from './common/quota/quota.module';
 import { FilesModule } from './modules/files/files.module';
+import { TaxonomyModule } from './modules/taxonomy/taxonomy.module';
+import { StoriesModule } from './modules/stories/stories.module';
+import { FollowsModule } from './modules/follows/follows.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { FilesModule } from './modules/files/files.module';
     CharactersModule,
     InterestsModule,
     FilesModule,
+    TaxonomyModule,
+    StoriesModule,
+    FollowsModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

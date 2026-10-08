@@ -123,6 +123,51 @@ export async function uploadFile(file: File): Promise<LoadResult<MediaFile>> {
     : { status: 'error', message: 'La respuesta del servidor no se pudo leer.' };
 }
 
+/**
+ * Sube un audio a la biblioteca. Mismo patrón que la imagen: multipart por
+ * `authFetch` (que reintenta el 401 por token caducado) y mensaje de error del
+ * servidor si lo hay.
+ */
+export async function uploadAudio(file: File): Promise<LoadResult<MediaFile>> {
+  const form = new FormData();
+  form.append('file', file);
+
+  let response: Response;
+
+  try {
+    response = await authFetch(`${API_URL}/files/audio`, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+    });
+  } catch {
+    return {
+      status: 'error',
+      message:
+        file.size > 30_000_000
+          ? 'El audio es demasiado grande o la subida tardó demasiado.'
+          : 'No se pudo subir el audio.',
+    };
+  }
+
+  if (!response.ok) {
+    let message = 'No se pudo subir el audio.';
+    try {
+      const body = await response.json();
+      if (Array.isArray(body?.message)) message = body.message.join(' ');
+      else if (typeof body?.message === 'string') message = body.message;
+    } catch {
+      /* respuesta sin cuerpo: nos quedamos con el mensaje genérico */
+    }
+    return { status: 'error', message };
+  }
+
+  const parsed = parseFile(((await response.json()) ?? {}) as Record<string, unknown>);
+  return parsed
+    ? { status: 'ok', data: parsed }
+    : { status: 'error', message: 'La respuesta del servidor no se pudo leer.' };
+}
+
 export async function deleteFile(id: string): Promise<LoadResult<{ id: string }>> {
   try {
     const response = await authFetch(`${API_URL}/files/${encodeURIComponent(id)}`, {
