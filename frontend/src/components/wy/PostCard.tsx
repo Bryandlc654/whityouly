@@ -14,6 +14,9 @@ interface PostCardProps {
   /** Relato propio: no se ofrece "seguir autor" y se marca su estado. */
   isOwn?: boolean;
   statusLabel?: 'DRAFT' | 'PUBLISHED';
+  /** Imagen/audio de la apertura, para relatos sin texto. */
+  mediaUrl?: string | null;
+  audioUrl?: string | null;
   onSupport: () => void;
   onSave: () => void;
   onFollowAuthor: () => void;
@@ -40,6 +43,8 @@ export default function PostCard({
   onPlay,
   onAuthor,
   onComment,
+  mediaUrl,
+  audioUrl,
 }: PostCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -86,12 +91,24 @@ export default function PostCard({
       </div>
 
       <h2>{story.title}</h2>
-      <p className={`post-text ${expanded ? '' : 'clamp'}`}>{story.text}</p>
-      {!expanded && (
-        <button className="post-more" type="button" onClick={() => setExpanded(true)}>
-          Leer relato completo
-        </button>
-      )}
+      {story.text ? (
+        <>
+          <p className={`post-text ${expanded ? '' : 'clamp'}`}>{story.text}</p>
+          {!expanded && (
+            <button className="post-more" type="button" onClick={() => setExpanded(true)}>
+              Leer relato completo
+            </button>
+          )}
+        </>
+      ) : null}
+      {mediaUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={mediaUrl} alt={story.title} className="post-media" />
+      ) : null}
+      {audioUrl ? (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <audio controls src={audioUrl} className="post-audio" />
+      ) : null}
 
       {story.music ? (
         <div className="music-chip">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useState } from 'react';
 import Icon from './Icon';
@@ -42,7 +42,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
   const addImageInput = useRef<HTMLInputElement>(null);
   const addAudioInput = useRef<HTMLInputElement>(null);
 
-  // Edición de una etapa existente. `undefined` = no tocar; `null` = quitar.
+  // EdiciÃ³n de una etapa existente. `undefined` = no tocar; `null` = quitar.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [editImage, setEditImage] = useState<string | null | undefined>(undefined);
@@ -82,7 +82,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
   }
 
   async function submitAdd() {
-    if (!addText.trim()) return;
+    if (!addText.trim() && !addImage && !addAudio) return;
     setBusy(true);
     setError('');
 
@@ -114,7 +114,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
   }
 
   async function submitEdit() {
-    if (!editingId || !editText.trim()) return;
+    if (!editingId || (!editText.trim() && !editImageUrl && !editAudioUrl)) return;
     setBusy(true);
     setError('');
 
@@ -153,7 +153,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
         <div>
           <h2>{story.title}</h2>
           <p>
-            {stages.length} {stages.length === 1 ? 'etapa' : 'etapas'} ·{' '}
+            {stages.length} {stages.length === 1 ? 'etapa' : 'etapas'} Â·{' '}
             {story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
                 />
                 <div className="row-between">
                   <span className="hint" style={{ margin: 0 }}>
-                    {editImageUrl ? 'Con imagen' : 'Sin imagen'} · {editAudioUrl ? 'con audio' : 'sin audio'}
+                    {editImageUrl ? 'Con imagen' : 'Sin imagen'} Â· {editAudioUrl ? 'con audio' : 'sin audio'}
                   </span>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
@@ -271,9 +271,9 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
                     type="button"
                     style={{ padding: '10px 16px' }}
                     onClick={() => void submitEdit()}
-                    disabled={busy || editText.trim().length === 0}
+                    disabled={busy || (!editText.trim() && !editImageUrl && !editAudioUrl)}
                   >
-                    {busy ? 'Guardando…' : 'Guardar etapa'}
+                    {busy ? 'Guardandoâ€¦' : 'Guardar etapa'}
                   </button>
                 </div>
               </div>
@@ -294,18 +294,18 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
         ))}
       </div>
 
-      <label className="field-label">Añadir una nueva etapa</label>
+      <label className="field-label">AÃ±adir una nueva etapa</label>
       <textarea
         className="field"
         value={addText}
         maxLength={5000}
         style={{ minHeight: 100 }}
-        placeholder="¿Cómo sigue la historia?"
+        placeholder="Â¿CÃ³mo sigue la historia?"
         onChange={(event) => setAddText(event.target.value)}
       />
       <div className="row-between" style={{ marginTop: 8 }}>
         <span className="hint" style={{ margin: 0 }}>
-          {addImage ? 'Imagen lista' : 'Sin imagen'} · {addAudio ? 'audio listo' : 'sin audio'}
+          {addImage ? 'Imagen lista' : 'Sin imagen'} Â· {addAudio ? 'audio listo' : 'sin audio'}
         </span>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="secondary" type="button" disabled={busy} onClick={() => addImageInput.current?.click()}>
@@ -385,9 +385,9 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
           type="button"
           style={{ padding: '11px 17px' }}
           onClick={() => void submitAdd()}
-          disabled={busy || addText.trim().length === 0}
+          disabled={busy || (!addText.trim() && !addImage && !addAudio)}
         >
-          {busy ? 'Guardando…' : 'Añadir etapa'}
+          {busy ? 'Guardandoâ€¦' : 'AÃ±adir etapa'}
         </button>
       </div>
     </div>

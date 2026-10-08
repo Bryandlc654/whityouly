@@ -20,6 +20,8 @@ import type { DemoStory } from '@/components/wy/feedData';
 interface FeedEntry extends DemoStory {
   isOwn: boolean;
   status?: 'DRAFT' | 'PUBLISHED';
+  mediaUrl?: string | null;
+  audioUrl?: string | null;
 }
 
 function initialsOf(name?: string | null) {
@@ -56,6 +58,8 @@ function toEntry(story: FollowingStory, authorName: string): FeedEntry {
     text: story.opening?.content ?? '',
     support: story.supportCount,
     comments: story.commentCount,
+    mediaUrl: story.opening?.mediaUrl ?? null,
+    audioUrl: story.opening?.audioUrl ?? null,
     isOwn,
     ...(isOwn ? { status: 'PUBLISHED' as const } : {}),
   };
@@ -275,6 +279,8 @@ export default function FeedPage() {
           story={entry}
           isOwn={entry.isOwn}
           statusLabel={entry.status}
+          mediaUrl={entry.mediaUrl}
+          audioUrl={entry.audioUrl}
           supported={supported.has(entry.id)}
           saved={saved.has(entry.id)}
           followingAuthor={followedAuthors.has(entry.author)}

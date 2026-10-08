@@ -112,8 +112,9 @@ export class StoriesService {
     const characterId = await this.requireCharacterId(userId);
 
     const title = sanitizeStoryTitle(dto.title);
-    const content = sanitizeStoryContent(dto.content);
-    this.assertTitleAndContent(title, content);
+    const content = sanitizeStoryContent(dto.content ?? '');
+    this.assertTitle(title);
+    this.assertStoryHasContent(content, dto.mediaAssetId, dto.audioAssetId);
     this.assertTaxonomyLimits(dto);
 
     await this.consumeQuota(`story-create:${userId}`, env.stories.createsPerHour, 'publicar relatos');
@@ -242,10 +243,8 @@ export class StoriesService {
     const story = await this.findOwnedStory(userId, storyId);
     this.assertEditable(story.status);
 
-    const content = sanitizeStoryContent(dto.content);
-    if (!content) {
-      throw new BadRequestException('La etapa no puede estar vacía.');
-    }
+    const content = sanitizeStoryContent(dto.content ?? '');
+    this.assertStoryHasContent(content, dto.mediaAssetId, dto.audioAssetId);
 
     await this.consumeQuota(`story-update:${userId}`, env.stories.updatesPerHour, 'publicar etapas');
 
@@ -309,9 +308,6 @@ export class StoriesService {
     }
 
     const content = dto.content === undefined ? undefined : sanitizeStoryContent(dto.content);
-    if (content !== undefined && !content) {
-      throw new BadRequestException('La etapa no puede estar vacía.');
-    }
 
     let nextMediaId: string | null | undefined = undefined;
     if (dto.mediaAssetId !== undefined) {
@@ -320,6 +316,15 @@ export class StoriesService {
     let nextAudioId: string | null | undefined = undefined;
     if (dto.audioAssetId !== undefined) {
       nextAudioId = dto.audioAssetId === null ? null : await this.assertMediaUsable(userId, dto.audioAssetId);
+    }
+
+    // Una etapa puede quedar sin texto mientras conserve imagen o audio.
+    if (content !== undefined && content === '') {
+      const finalMedia = dto.mediaAssetId !== undefined ? nextMediaId : stage.mediaAssetId;
+      const finalAudio = dto.audioAssetId !== undefined ? nextAudioId : stage.audioAssetId;
+      if (!finalMedia && !finalAudio) {
+        throw new BadRequestException('La etapa necesita texto, imagen o audio.');
+      }
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -932,12 +937,20 @@ export class StoriesService {
     }
   }
 
-  private assertTitleAndContent(title: string, content: string): void {
+  private assertTitle(title: string): void {
     if (title.length < 3 || title.length > STORY_TITLE_MAX_LENGTH) {
       throw new BadRequestException('El título debe tener entre 3 y 120 caracteres.');
     }
-    if (!content) {
-      throw new BadRequestException('El relato no puede estar vacío.');
+  }
+
+  /** Un relato necesita al menos uno de: texto, imagen o audio. */
+  private assertStoryHasContent(
+    content: string,
+    mediaAssetId?: string | null,
+    audioAssetId?: string | null,
+  ): void {
+    if (content.trim() === '' && !mediaAssetId && !audioAssetId) {
+      throw new BadRequestException('El relato necesita texto, imagen o audio.');
     }
   }
 

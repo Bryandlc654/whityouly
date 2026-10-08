@@ -322,6 +322,45 @@ describe('StoriesService', () => {
     expect(prisma.mediaAsset.update).toHaveBeenCalledTimes(2);
   });
 
+  it('permite publicar solo con imagen (sin texto)', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.mediaAsset.findFirst.mockResolvedValue({ id: 'asset-1', entityType: 'NONE' });
+    prisma.story.create.mockResolvedValue(detailRow({ updates: [{ id: 'upd-1', content: '', mediaAssetId: 'asset-1', audioAssetId: null, stageOrder: 1, createdAt: new Date(), mediaAsset: { fileUrl: 'http://x/i.webp' }, audioAsset: null }] }));
+
+    const result = await service.create('user-1', {
+      title: 'Imagen del atardecer',
+      content: '',
+      mediaAssetId: '11111111-1111-4111-8111-111111111111',
+    } as any);
+
+    expect(result.id).toBe('story-1');
+    expect(result.updates[0].content).toBe('');
+  });
+
+  it('permite publicar solo con audio (sin texto ni imagen)', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.mediaAsset.findFirst.mockResolvedValue({ id: 'asset-2', entityType: 'NONE' });
+    prisma.story.create.mockResolvedValue(detailRow({ updates: [{ id: 'upd-1', content: '', mediaAssetId: null, audioAssetId: 'asset-2', stageOrder: 1, createdAt: new Date(), mediaAsset: null, audioAsset: { fileUrl: 'http://x/a.mp3' } }] }));
+
+    const result = await service.create('user-1', {
+      title: 'Audio de la mañana',
+      content: undefined,
+      audioAssetId: '22222222-2222-4222-8222-222222222222',
+    } as any);
+
+    expect(result.id).toBe('story-1');
+    expect(result.updates[0].audioUrl).toBe('http://x/a.mp3');
+  });
+
+  it('rechaza publicar sin texto, imagen ni audio', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+
+    await expect(
+      service.create('user-1', { title: 'Título', content: '' } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.story.create).not.toHaveBeenCalled();
+  });
+
   it('el propietario ve su propio borrador', async () => {
     prisma.story.findFirst.mockResolvedValue({
       id: 'story-1',

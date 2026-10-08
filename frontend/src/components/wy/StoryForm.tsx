@@ -117,7 +117,8 @@ export default function StoryForm({ onCreated, onCancel, variant = 'default', he
   }
 
   const titleReady = title.trim().length >= 3;
-  const contentReady = content.trim().length > 0;
+  // Se puede publicar solo texto, solo imagen o solo audio (o combinarlos).
+  const contentReady = content.trim().length > 0 || Boolean(mediaId || audioId);
   const canSubmit = titleReady && contentReady && !saving && !uploading && !done;
 
   async function submit(publish: boolean) {

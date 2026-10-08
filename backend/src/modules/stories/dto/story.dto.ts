@@ -66,15 +66,15 @@ export class CreateStoryDto {
 
   @ApiProperty({
     example: 'No pasó nada extraordinario. Solo me cansé de responder "todo bien".',
-    description: 'Primera etapa del relato.',
+    description: 'Texto de la primera etapa. Se puede dejar vacío si se adjunta imagen o audio.',
   })
   @Transform(trim)
+  @IsOptional()
   @IsString()
-  @MinLength(1, { message: 'El relato no puede estar vacío' })
   @MaxLength(STORY_CONTENT_MAX_LENGTH, {
     message: 'El relato no puede superar los 5000 caracteres',
   })
-  content!: string;
+  content?: string;
 
   @ApiPropertyOptional({ enum: VISIBILITIES, default: 'PUBLIC' })
   @IsOptional()
@@ -180,14 +180,17 @@ export class UpdateStoryDto {
 }
 
 export class CreateStoryUpdateDto {
-  @ApiProperty({ example: 'Han pasado tres semanas y quiero contar cómo me fue.' })
+  @ApiProperty({
+    example: 'Han pasado tres semanas y quiero contar cómo me fue.',
+    description: 'Texto de la etapa. Se puede dejar vacío si se adjunta imagen o audio.',
+  })
   @Transform(trim)
+  @IsOptional()
   @IsString()
-  @MinLength(1, { message: 'La etapa no puede estar vacía' })
   @MaxLength(STORY_CONTENT_MAX_LENGTH, {
     message: 'La etapa no puede superar los 5000 caracteres',
   })
-  content!: string;
+  content?: string;
 
   @ApiPropertyOptional({ description: 'Id de una imagen de tu biblioteca para esta etapa.' })
   @IsOptional()
