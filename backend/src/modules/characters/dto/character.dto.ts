@@ -5,6 +5,8 @@ import {
   IsIn,
   IsObject,
   IsArray,
+  IsInt,
+  Min,
   ArrayMaxSize,
   ArrayUnique,
   ValidateNested,
@@ -193,4 +195,20 @@ export class NameAvailabilityQueryDto {
   @MinLength(3, { message: 'El seudónimo debe tener al menos 3 caracteres' })
   @MaxLength(CHARACTER_NAME_MAX_LENGTH, { message: 'El seudónimo no puede superar los 30 caracteres' })
   name!: string;
+}
+
+export class SearchCharactersQueryDto {
+  @ApiProperty({ example: 'Luz', description: 'Prefijo del seudónimo a buscar.' })
+  @Transform(normalizeName)
+  @IsString()
+  @MinLength(1, { message: 'Escribe al menos un carácter' })
+  @MaxLength(CHARACTER_NAME_MAX_LENGTH, { message: 'La búsqueda no puede superar los 30 caracteres' })
+  q!: string;
+
+  @ApiPropertyOptional({ default: 20, description: 'Entre 1 y 30.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
 }

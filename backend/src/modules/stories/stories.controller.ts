@@ -133,6 +133,18 @@ export class StoriesController {
     return this.storiesService.unpublish(req.user.userId, id);
   }
 
+  @Post('me/:id/feature')
+  @ApiOperation({ summary: 'Destacar el relato en el perfil público' })
+  feature(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.storiesService.feature(req.user.userId, id);
+  }
+
+  @Delete('me/:id/feature')
+  @ApiOperation({ summary: 'Quitar el relato de las destacadas' })
+  unfeature(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.storiesService.unfeature(req.user.userId, id);
+  }
+
   @Delete('me/:id')
   @ApiOperation({ summary: 'Dar de baja un relato (baja lógica)' })
   remove(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {

@@ -149,6 +149,9 @@ export default function FollowingPage() {
       case 'following':
         void loadAll();
         break;
+      case 'explore':
+        router.push('/explorar');
+        break;
       case 'mood':
         notify('Mi estado emocional llega con el módulo del diario.');
         break;
@@ -214,7 +217,7 @@ export default function FollowingPage() {
       activeRoute="following"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
+      onSearch={() => router.push('/explorar')}
       toast={toast}
       overlay={
         view ? (

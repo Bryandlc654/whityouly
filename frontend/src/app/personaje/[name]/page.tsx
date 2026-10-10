@@ -116,6 +116,53 @@ export default async function PublicProfilePage({ params }: PageProps) {
           ) : null}
         </section>
 
+        {profile.stats ? (
+          <div className="profile-stats">
+            <div>
+              <b>{profile.stats.followers}</b>
+              <span>Seguidores</span>
+            </div>
+            <div>
+              <b>{profile.stats.following}</b>
+              <span>Siguiendo</span>
+            </div>
+            <div>
+              <b>{profile.stats.companionshipsReceived}</b>
+              <span>Estoy contigo</span>
+            </div>
+            <div>
+              <b>{profile.stats.stories}</b>
+              <span>Relatos</span>
+            </div>
+          </div>
+        ) : null}
+
+        {profile.featuredStories && profile.featuredStories.length > 0 ? (
+          <section className="card pad profile-stories">
+            <h2 className="h-section">Historias destacadas</h2>
+            {profile.featuredStories.map((story) => (
+              <div key={story.id} className="profile-story">
+                <h3>{story.title}</h3>
+                <p className="muted small">{story.category ?? 'Relato'}</p>
+                {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
+              </div>
+            ))}
+          </section>
+        ) : null}
+
+        {profile.recentStories && profile.recentStories.length > 0 ? (
+          <section className="card pad profile-stories">
+            <h2 className="h-section">Relatos recientes</h2>
+            {profile.recentStories.map((story) => (
+              <div key={story.id} className="profile-story">
+                <h3>{story.title}</h3>
+                <p className="muted small">{story.category ?? 'Relato'}</p>
+                {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
+              </div>
+            ))}
+          </section>
+        ) : null}
+
         <p className="muted" style={{ display: 'flex', gap: 6, marginTop: 14, fontSize: 12, lineHeight: 1.5 }}>
           <Icon name="lock" /> En Withyouly se escribe bajo un seudónimo. Nunca se muestra el correo
           ni ningún dato que vincule este perfil con una identidad real.

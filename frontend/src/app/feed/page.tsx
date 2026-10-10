@@ -307,6 +307,9 @@ export default function FeedPage() {
       case 'my-stories':
         setComposerOpen(true);
         break;
+      case 'explore':
+        router.push('/explorar');
+        break;
       default:
         notify('Esta sección llega con los próximos módulos.');
     }
@@ -377,7 +380,7 @@ export default function FeedPage() {
       activeRoute="home"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
+      onSearch={() => router.push('/explorar')}
       toast={toast}
       overlay={
         commentsStory ? (

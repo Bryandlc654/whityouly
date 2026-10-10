@@ -73,6 +73,7 @@ const STORY_DETAIL_SELECT = {
   title: true,
   visibility: true,
   status: true,
+  featuredAt: true,
   createdAt: true,
   updatedAt: true,
   character: { select: { name: true, avatarUrl: true } },
@@ -88,6 +89,7 @@ const STORY_LIST_SELECT = {
   title: true,
   visibility: true,
   status: true,
+  featuredAt: true,
   createdAt: true,
   updatedAt: true,
   categories: { select: { category: { select: { name: true } } } },
@@ -445,6 +447,33 @@ export class StoriesService {
     return this.getOwnedDetail(userId, storyId);
   }
 
+  /** Destaca el relato en el perfil público. Solo relatos publicados. */
+  async feature(userId: string, storyId: string) {
+    const story = await this.findOwnedStory(userId, storyId);
+
+    if (story.status !== StoryStatus.PUBLISHED) {
+      throw new ConflictException('Solo se pueden destacar relatos publicados.');
+    }
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: { featuredAt: new Date() },
+    });
+
+    return this.getOwnedDetail(userId, storyId);
+  }
+
+  async unfeature(userId: string, storyId: string) {
+    await this.findOwnedStory(userId, storyId);
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: { featuredAt: null },
+    });
+
+    return this.getOwnedDetail(userId, storyId);
+  }
+
   /**
    * Baja lógica: el relato deja de mostrarse y de poder editarse, pero la fila
    * se conserva para moderación y para no romper interacciones existentes. Se
@@ -547,6 +576,9 @@ export class StoriesService {
       where: {
         status: StoryStatus.PUBLISHED,
         visibility: 'PUBLIC',
+        ...(query.q
+          ? { title: { contains: query.q, mode: 'insensitive' } }
+          : {}),
         ...(query.category ? { categories: { some: { category: { name: { equals: query.category, mode: 'insensitive' } } } } } : {}),
         ...(query.emotion ? { emotions: { some: { emotion: { name: { equals: query.emotion, mode: 'insensitive' } } } } } : {}),
         ...(query.tag ? { tags: { some: { tag: { name: { equals: query.tag, mode: 'insensitive' } } } } } : {}),
@@ -1131,6 +1163,7 @@ export class StoriesService {
     title: string;
     visibility: string;
     status: StoryStatus;
+    featuredAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
     character?: { name: string; avatarUrl: string | null } | null;
@@ -1145,6 +1178,7 @@ export class StoriesService {
       title: story.title,
       visibility: story.visibility,
       status: story.status,
+      featuredAt: story.featuredAt ?? null,
       author: story.character
         ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
         : null,
@@ -1168,6 +1202,7 @@ export class StoriesService {
     title: string;
     visibility: string;
     status: StoryStatus;
+    featuredAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
     categories: { category: { name: string } }[];
@@ -1182,6 +1217,7 @@ export class StoriesService {
       title: story.title,
       visibility: story.visibility,
       status: story.status,
+      featuredAt: story.featuredAt ?? null,
       categories: story.categories.map(({ category }) => category.name),
       emotions: story.emotions.map(({ emotion }) => ({
         name: emotion.name,

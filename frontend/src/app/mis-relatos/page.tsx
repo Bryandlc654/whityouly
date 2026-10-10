@@ -14,9 +14,11 @@ import StoryMetaModal, { type EditableStory } from '@/components/wy/StoryMetaMod
 import StoryDetailModal from '@/components/wy/StoryDetailModal';
 import {
   deleteStory,
+  featureStory,
   getMyStory,
   listMyStories,
   publishStory,
+  unfeatureStory,
   unpublishStory,
   type MyStory,
   type MyStoryListItem,
@@ -163,6 +165,9 @@ export default function MyStoriesPage() {
       case 'my-stories':
         setComposerOpen(true);
         break;
+      case 'explore':
+        router.push('/explorar');
+        break;
       case 'mood':
         notify('Mi estado emocional llega con el módulo del diario.');
         break;
@@ -203,6 +208,19 @@ export default function MyStoriesPage() {
     notify(result.message);
   };
 
+  const toggleFeatured = async (story: MyStoryListItem) => {
+    setBusyId(story.id);
+    const result = story.featuredAt ? await unfeatureStory(story.id) : await featureStory(story.id);
+    setBusyId(null);
+
+    if (result.status === 'ok') {
+      notify(story.featuredAt ? 'Quitado de las destacadas.' : 'Relato destacado en tu perfil.');
+      void loadStories(filter);
+      return;
+    }
+    notify(result.message);
+  };
+
   const openDetail = async (story: MyStoryListItem) => {
     setDetailBusy(true);
     const result = await getMyStory(story.id);
@@ -230,7 +248,7 @@ export default function MyStoriesPage() {
       activeRoute="my-stories"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => notify('La búsqueda llega con el módulo de exploración.')}
+      onSearch={() => router.push('/explorar')}
       toast={toast}
       overlay={
         composerOpen ? (
@@ -326,9 +344,14 @@ export default function MyStoriesPage() {
               <article key={story.id} className="card story-row">
                 <div className="story-row-head">
                   <h2>{story.title}</h2>
-                  <span className={`status-pill ${story.status === 'PUBLISHED' ? 'published' : 'draft'}`}>
-                    {story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}
-                  </span>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {story.featuredAt ? (
+                      <span className="status-pill featured">Destacado</span>
+                    ) : null}
+                    <span className={`status-pill ${story.status === 'PUBLISHED' ? 'published' : 'draft'}`}>
+                      {story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}
+                    </span>
+                  </div>
                 </div>
 
                 <p className="story-row-meta">
@@ -375,6 +398,14 @@ export default function MyStoriesPage() {
                     }
                   >
                     <Icon name="edit" /> Editar
+                  </button>
+                  <button
+                    className="action-link"
+                    type="button"
+                    disabled={busyId === story.id}
+                    onClick={() => void toggleFeatured(story)}
+                  >
+                    <Icon name="sparkle" /> {story.featuredAt ? 'Quitar destacado' : 'Destacar'}
                   </button>
                   <button
                     className="action-link"

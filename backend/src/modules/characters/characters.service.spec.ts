@@ -61,6 +61,9 @@ describe('CharactersService', () => {
       },
       interest: { findMany: vi.fn().mockResolvedValue([]) },
       analyticsEvent: { create: vi.fn().mockResolvedValue({}) },
+      follower: { count: vi.fn().mockResolvedValue(0) },
+      companionship: { count: vi.fn().mockResolvedValue(0) },
+      story: { count: vi.fn().mockResolvedValue(0), findMany: vi.fn().mockResolvedValue([]) },
       // La búsqueda por seudónimo va en SQL parametrizado para poder usar el
       // índice funcional; por defecto no encuentra a nadie.
       $queryRaw: vi.fn().mockResolvedValue([]),

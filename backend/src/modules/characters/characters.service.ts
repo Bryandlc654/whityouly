@@ -290,6 +290,26 @@ export class CharactersService {
     // El lema y los intereses son información del perfil: se ocultan juntos con
     // la biografía. Así no se puede desactivar `showBio` y dejar al descubierto
     // parte de lo que la persona escribió sobre sí misma.
+    const [followers, following, companionshipsReceived, publishedCount, featuredStories, recentStories] =
+      await Promise.all([
+        this.prisma.follower.count({ where: { followingCharacterId: character.id } }),
+        this.prisma.follower.count({ where: { followerId: character.id, followingCharacterId: { not: null } } }),
+        this.prisma.companionship.count({ where: { targetCharacterId: character.id } }),
+        this.prisma.story.count({ where: { characterId: character.id, status: 'PUBLISHED' } }),
+        this.prisma.story.findMany({
+          where: { characterId: character.id, status: 'PUBLISHED', visibility: 'PUBLIC', featuredAt: { not: null } },
+          orderBy: { featuredAt: 'desc' },
+          take: 6,
+          select: PUBLIC_STORY_SELECT,
+        }),
+        this.prisma.story.findMany({
+          where: { characterId: character.id, status: 'PUBLISHED', visibility: 'PUBLIC' },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: PUBLIC_STORY_SELECT,
+        }),
+      ]);
+
     return {
       id: character.id,
       name: character.name,
@@ -300,7 +320,78 @@ export class CharactersService {
         ? character.interests.map(({ interest }) => interest.name).sort((a, b) => a.localeCompare(b, 'es'))
         : [],
       createdAt: character.createdAt,
+      stats: {
+        followers,
+        following,
+        companionshipsReceived,
+        stories: publishedCount,
+      },
+      featuredStories: featuredStories.map(toPublicStorySummary),
+      recentStories: recentStories.map(toPublicStorySummary),
     };
+  }
+
+  /** Búsqueda por prefijo del seudónimo (usa el índice funcional `lower(name)`). */
+  async search(rawQ: string, limit = 20): Promise<{ items: CharacterSearchResult[] }> {
+    const q = normalizeCharacterName(rawQ);
+    if (!q) {
+      return { items: [] };
+    }
+
+    const take = Math.min(Math.max(limit, 1), 30);
+
+    const ids = await this.prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
+      SELECT "id", "name" FROM "characters"
+      WHERE lower("name") LIKE lower(${q}) || '%'
+        AND ("privacySettings" IS NULL OR "privacySettings"->>'profileVisibility' = 'PUBLIC')
+      ORDER BY lower("name") ASC
+      LIMIT ${take}
+    `);
+
+    if (ids.length === 0) {
+      return { items: [] };
+    }
+
+    const [characters, storyCounts] = await Promise.all([
+      this.prisma.character.findMany({
+        where: { id: { in: ids.map((row) => row.id) } },
+        select: {
+          id: true,
+          name: true,
+          tagline: true,
+          avatarUrl: true,
+          bio: true,
+          privacySettings: true,
+          interests: { select: { interest: { select: { name: true } } } },
+          _count: { select: { followers: true } },
+        },
+      }),
+      this.prisma.$queryRaw<{ characterId: string; count: number }[]>(Prisma.sql`
+        SELECT "characterId", COUNT(*)::int AS "count" FROM "stories"
+        WHERE "characterId" IN (${Prisma.join(ids.map((row) => row.id))}) AND "status" = 'PUBLISHED'
+        GROUP BY "characterId"
+      `),
+    ]);
+
+    const storyCountMap = new Map(storyCounts.map((row) => [row.characterId, row.count]));
+    const characterById = new Map(characters.map((c) => [c.id, c]));
+
+    const items = ids
+      .map((row) => characterById.get(row.id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .map((character) => {
+        const privacy = this.resolvePrivacy(character.privacySettings);
+        return {
+          name: character.name,
+          tagline: privacy.showBio ? sanitizeTagline(character.tagline) : null,
+          avatarUrl: privacy.showAvatar ? character.avatarUrl : null,
+          interests: character.interests.map(({ interest }) => interest.name),
+          stories: storyCountMap.get(character.id) ?? 0,
+          followers: character._count.followers,
+        };
+      });
+
+    return { items };
   }
 
   async isNameAvailable(name: string): Promise<{ available: boolean; reason?: string }> {
@@ -470,3 +561,70 @@ export type PublicCharacter = Pick<
   Character,
   'id' | 'name' | 'avatarUrl' | 'bio' | 'createdAt' | 'updatedAt'
 >;
+
+/** Resumen de un relato público para el perfil del personaje. */
+export interface PublicStorySummary {
+  id: string;
+  title: string;
+  category: string | null;
+  opening: { content: string; mediaUrl: string | null; audioUrl: string | null } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CharacterSearchResult {
+  name: string;
+  tagline: string | null;
+  avatarUrl: string | null;
+  interests: string[];
+  stories: number;
+  followers: number;
+}
+
+const PUBLIC_STORY_SELECT = {
+  id: true,
+  title: true,
+  createdAt: true,
+  updatedAt: true,
+  categories: { select: { category: { select: { name: true } } } },
+  updates: {
+    orderBy: { stageOrder: 'asc' },
+    take: 1,
+    select: {
+      content: true,
+      mediaAsset: { select: { fileUrl: true } },
+      audioAsset: { select: { fileUrl: true } },
+    },
+  },
+} satisfies Prisma.StorySelect;
+
+function toPublicStorySummary(story: {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  categories: { category: { name: string } }[];
+  updates: {
+    content: string;
+    mediaAsset: { fileUrl: string } | null;
+    audioAsset: { fileUrl: string } | null;
+  }[];
+}): PublicStorySummary {
+  const category = story.categories[0]?.category.name ?? null;
+  const opening = story.updates[0];
+
+  return {
+    id: story.id,
+    title: story.title,
+    category,
+    opening: opening
+      ? {
+          content: opening.content,
+          mediaUrl: opening.mediaAsset?.fileUrl ?? null,
+          audioUrl: opening.audioAsset?.fileUrl ?? null,
+        }
+      : null,
+    createdAt: story.createdAt,
+    updatedAt: story.updatedAt,
+  };
+}

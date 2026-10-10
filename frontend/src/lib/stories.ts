@@ -41,6 +41,7 @@ export interface MyStoryListItem {
   title: string;
   visibility: StoryVisibility;
   status: StoryStatus;
+  featuredAt: string | null;
   categories: string[];
   emotions: StoryEmotion[];
   tags: string[];
@@ -169,6 +170,7 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
     title,
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
+    featuredAt: typeof record.featuredAt === 'string' ? record.featuredAt : null,
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),
     tags: parseNames(record.tags),
@@ -338,6 +340,25 @@ export function deleteStoryStage(
   );
 }
 
+/** Destaca/quita de destacadas un relato propio en el perfil público. */
+export function featureStory(id: string): Promise<LoadResult<MyStory>> {
+  return authedRequest(
+    `/stories/me/${encodeURIComponent(id)}/feature`,
+    { method: 'POST' },
+    'No se pudo destacar el relato.',
+    parseStory,
+  );
+}
+
+export function unfeatureStory(id: string): Promise<LoadResult<MyStory>> {
+  return authedRequest(
+    `/stories/me/${encodeURIComponent(id)}/feature`,
+    { method: 'DELETE' },
+    'No se pudo quitar el destacado.',
+    parseStory,
+  );
+}
+
 export function publishStory(id: string): Promise<LoadResult<MyStory>> {
   return authedRequest(
     `/stories/me/${encodeURIComponent(id)}/publish`,
@@ -473,10 +494,11 @@ export function getFeed(): Promise<LoadResult<FeedSections>> {
 
 /** Feed público (relatos publicados con visibilidad pública). */
 export function listPublicStories(
-  params: { cursor?: string; category?: string; emotion?: string; tag?: string } = {},
+  params: { cursor?: string; q?: string; category?: string; emotion?: string; tag?: string } = {},
 ): Promise<LoadResult<FollowingPage>> {
   const query = new URLSearchParams();
   if (params.cursor) query.set('cursor', params.cursor);
+  if (params.q) query.set('q', params.q);
   if (params.category) query.set('category', params.category);
   if (params.emotion) query.set('emotion', params.emotion);
   if (params.tag) query.set('tag', params.tag);

@@ -1,4 +1,5 @@
 import { API_URL } from './api';
+import type { LoadResult } from './account';
 
 const REQUEST_TIMEOUT_MS = 8_000;
 const MAX_NAME_LENGTH = 30;
@@ -14,6 +15,32 @@ export interface PublicProfile {
   bio: string | null;
   interests: string[];
   createdAt: string | null;
+  stats?: {
+    followers: number;
+    following: number;
+    companionshipsReceived: number;
+    stories: number;
+  };
+  featuredStories?: PublicStoryPreview[];
+  recentStories?: PublicStoryPreview[];
+}
+
+export interface PublicStoryPreview {
+  id: string;
+  title: string;
+  category: string | null;
+  opening: { content: string; mediaUrl: string | null; audioUrl: string | null } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CharacterSearchItem {
+  name: string;
+  tagline: string | null;
+  avatarUrl: string | null;
+  interests: string[];
+  stories: number;
+  followers: number;
 }
 
 /**
@@ -68,6 +95,28 @@ export async function fetchPublicProfile(name: string): Promise<PublicProfileRes
  * devolviera un cuerpo inesperado, la página no debe romperse ni renderizar
  * tipos inesperados.
  */
+function parseStoryPreview(value: unknown): PublicStoryPreview | null {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id : null;
+  const title = typeof record.title === 'string' ? record.title : null;
+  if (!id || !title) return null;
+  const openingRecord = (record.opening ?? {}) as Record<string, unknown>;
+  return {
+    id,
+    title,
+    category: typeof record.category === 'string' ? record.category : null,
+    opening: openingRecord
+      ? {
+          content: typeof openingRecord.content === 'string' ? openingRecord.content : '',
+          mediaUrl: isSafeImageUrl(openingRecord.mediaUrl),
+          audioUrl: isSafeImageUrl(openingRecord.audioUrl),
+        }
+      : null,
+    createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
+    updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
+  };
+}
+
 function parseProfile(payload: unknown): PublicProfile | null {
   if (typeof payload !== 'object' || payload === null) {
     return null;
@@ -79,6 +128,10 @@ function parseProfile(payload: unknown): PublicProfile | null {
     return null;
   }
 
+  const statsRecord = (payload as Record<string, unknown>).stats ?? {};
+  const stats = statsRecord as Record<string, unknown>;
+  const num = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
   return {
     name,
     tagline: isBoundedString(tagline, MAX_TAGLINE_LENGTH),
@@ -86,6 +139,22 @@ function parseProfile(payload: unknown): PublicProfile | null {
     bio: isBoundedString(bio, MAX_BIO_LENGTH),
     interests: parseInterests(interests),
     createdAt: typeof createdAt === 'string' && !Number.isNaN(Date.parse(createdAt)) ? createdAt : null,
+    stats: {
+      followers: num(stats.followers),
+      following: num(stats.following),
+      companionshipsReceived: num(stats.companionshipsReceived),
+      stories: num(stats.stories),
+    },
+    featuredStories: Array.isArray((payload as Record<string, unknown>).featuredStories)
+      ? ((payload as Record<string, unknown>).featuredStories as unknown[])
+          .map(parseStoryPreview)
+          .filter((item): item is PublicStoryPreview => item !== null)
+      : [],
+    recentStories: Array.isArray((payload as Record<string, unknown>).recentStories)
+      ? ((payload as Record<string, unknown>).recentStories as unknown[])
+          .map(parseStoryPreview)
+          .filter((item): item is PublicStoryPreview => item !== null)
+      : [],
   };
 }
 
@@ -134,6 +203,51 @@ function isSafeImageUrl(value: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/** Búsqueda pública de personajes por prefijo del seudónimo. */
+export async function searchCharacters(
+  rawQ: string,
+  limit = 20,
+): Promise<LoadResult<{ items: CharacterSearchItem[] }>> {
+  const q = rawQ.normalize('NFKC').trim();
+  if (!q) {
+    return { status: 'ok', data: { items: [] } };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_URL}/characters/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+      { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { Accept: 'application/json' } },
+    );
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    return { status: 'error', message: 'No se pudo buscar personajes.' };
+  }
+
+  const body = (await response.json().catch(() => null)) as { items?: unknown[] } | null;
+  const items = Array.isArray(body?.items) ? body.items : [];
+  const parsed = items
+    .map((item) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      const name = typeof row.name === 'string' ? row.name : null;
+      if (!name) return null;
+      return {
+        name,
+        tagline: isBoundedString(row.tagline, MAX_TAGLINE_LENGTH),
+        avatarUrl: isSafeImageUrl(row.avatarUrl),
+        interests: parseInterests(row.interests),
+        stories: typeof row.stories === 'number' ? row.stories : 0,
+        followers: typeof row.followers === 'number' ? row.followers : 0,
+      } satisfies CharacterSearchItem;
+    })
+    .filter((item): item is CharacterSearchItem => item !== null);
+
+  return { status: 'ok', data: { items: parsed } };
 }
 
 export function formatJoinDate(value: string | null): string | null {

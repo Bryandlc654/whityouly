@@ -252,6 +252,12 @@ export class ListMyStoriesQueryDto {
 }
 
 export class ListPublicStoriesQueryDto {
+  @ApiPropertyOptional({ description: 'Búsqueda por texto en el título.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

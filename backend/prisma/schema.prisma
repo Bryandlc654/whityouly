@@ -224,6 +224,8 @@ model Story {
   title       String
   visibility  Visibility  @default(PUBLIC)
   status      StoryStatus @default(DRAFT)
+  // Cuando la persona destaca un relato en su perfil público.
+  featuredAt  DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -244,6 +246,8 @@ model Story {
   @@index([characterId, createdAt])
   // Feed público: filtra por estado y visibilidad antes de ordenar por fecha.
   @@index([status, visibility, createdAt])
+  // "Historias destacadas" del perfil público: se leen por personaje y fecha.
+  @@index([characterId, featuredAt])
   @@map("stories")
 }
 

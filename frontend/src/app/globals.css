@@ -145,6 +145,11 @@ body {
   color: #936317;
 }
 
+.wy .status-pill.featured {
+  background: #f0ecff;
+  color: #6247d6;
+}
+
 .wy .story-row-meta {
   display: flex;
   align-items: center;
@@ -222,6 +227,94 @@ body {
 .wy .post-audio {
   width: 100%;
   margin-top: 10px;
+}
+
+/* Búsqueda y exploración. */
+.wy .search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f4f3f9;
+  padding: 0 14px;
+  height: 46px;
+}
+
+.wy .search-row svg {
+  width: 20px;
+  height: 20px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.wy .search-row input {
+  border: 0;
+  background: transparent;
+  outline: 0;
+  flex: 1;
+  font: inherit;
+  color: var(--ink);
+}
+
+.wy .explore-person {
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
+.wy .explore-person:hover {
+  background: #fbfaff;
+}
+
+/* Perfil público: estadísticas y listado de relatos. */
+.wy .profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.wy .profile-stats > div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 10px;
+  text-align: center;
+  display: grid;
+  gap: 2px;
+}
+
+.wy .profile-stats b {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.wy .profile-stats span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.wy .profile-stories {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.wy .profile-story {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.wy .profile-story h3 {
+  margin: 0 0 2px;
+  font-size: 17px;
+}
+
+@media (max-width: 720px) {
+  .wy .profile-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Comentarios. */
