@@ -8,6 +8,9 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
+import Avatar from '@/components/wy/Avatar';
+import Icon from '@/components/wy/Icon';
+import type { IconName } from '@/components/wy/icons';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import PreferencesSection from '@/components/account/PreferencesSection';
 import SecuritySection from '@/components/account/SecuritySection';
@@ -16,11 +19,11 @@ import DeleteAccountSection from '@/components/account/DeleteAccountSection';
 
 type Tab = 'preferencias' | 'seguridad' | 'archivos' | 'baja';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'preferencias', label: 'Preferencias' },
-  { id: 'seguridad', label: 'Seguridad' },
-  { id: 'archivos', label: 'Archivos' },
-  { id: 'baja', label: 'Baja' },
+const TABS: { id: Tab; label: string; icon: IconName; danger?: boolean }[] = [
+  { id: 'preferencias', label: 'Preferencias', icon: 'settings' },
+  { id: 'seguridad', label: 'Seguridad', icon: 'shield' },
+  { id: 'archivos', label: 'Archivos', icon: 'book' },
+  { id: 'baja', label: 'Baja', icon: 'trash', danger: true },
 ];
 
 function initialsOf(name?: string | null) {
@@ -152,21 +155,29 @@ export default function AccountPage() {
         />
       }
     >
-      <section className="screen">
-        <div className="screen-heading">
-          <div>
-            <h1>Configuración de la cuenta</h1>
-            <p>
-              {account
-                ? `${account.email} · ${account.activeSessions} ${
-                    account.activeSessions === 1 ? 'sesión activa' : 'sesiones activas'
-                  }`
-                : 'Cargando tus datos…'}
-            </p>
+      <section className="screen account">
+        <div className="card account-hero">
+          <Avatar initials={initialsOf(character?.name)} avatarUrl={character?.avatarUrl} size="lg" />
+          <div className="account-hero-info">
+            <h1>Hola, {name || 'tu seudónimo'}</h1>
+            <p>{account ? account.email : loading ? 'Cargando tus datos…' : 'No se pudieron cargar tus datos.'}</p>
+            {account ? (
+              <span className={`account-verified ${account.isEmailVerified ? 'ok' : 'muted-flag'}`}>
+                <Icon name={account.isEmailVerified ? 'check' : 'lock'} />
+                {account.isEmailVerified ? 'Correo verificado' : 'Correo sin verificar'}
+              </span>
+            ) : null}
           </div>
+          {account ? (
+            <div className="account-hero-badges">
+              <span className="account-badge">
+                <Icon name="lock" />
+                {account.activeSessions}{' '}
+                {account.activeSessions === 1 ? 'sesión activa' : 'sesiones activas'}
+              </span>
+            </div>
+          ) : null}
         </div>
-
-        {loading ? <p className="muted small">Cargando…</p> : null}
 
         {!loading && error ? (
           <div className="auth-error" role="alert">
@@ -179,16 +190,18 @@ export default function AccountPage() {
 
         {!loading && account ? (
           <>
-            <div className="segmented">
-              {TABS.map(({ id, label }) => (
+            <div className="account-tabs" role="tablist">
+              {TABS.map(({ id, label, icon, danger }) => (
                 <button
                   key={id}
                   type="button"
-                  className={tab === id ? 'active' : undefined}
-                  aria-current={tab === id ? 'page' : undefined}
+                  role="tab"
+                  aria-selected={tab === id}
+                  className={`${tab === id ? 'active' : ''} ${danger ? 'danger-toggle' : ''}`.trim()}
                   onClick={() => setTab(id)}
                 >
-                  {label}
+                  <Icon name={icon} />
+                  <span>{label}</span>
                 </button>
               ))}
             </div>
@@ -197,14 +210,12 @@ export default function AccountPage() {
             {tab === 'seguridad' && <SecuritySection account={account} />}
             {tab === 'archivos' && <FilesSection usage={account.usage} />}
             {tab === 'baja' && <DeleteAccountSection />}
-          </>
-        ) : null}
 
-        {!loading && account ? (
-          <p className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-            Tu correo se usa para iniciar sesión y recuperar la cuenta. Nunca aparece en tu perfil
-            público. La comunidad solo ve tu seudónimo{name ? ` ${name}` : ''}.
-          </p>
+            <p className="account-note">
+              Tu correo se usa solo para iniciar sesión y recuperar la cuenta: nunca aparece en tu
+              perfil público. La comunidad ve únicamente tu seudónimo{name ? ` ${name}` : ''}.
+            </p>
+          </>
         ) : null}
       </section>
     </WyFrame>
