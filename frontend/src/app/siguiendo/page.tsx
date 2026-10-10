@@ -10,7 +10,7 @@ import Icon from '@/components/wy/Icon';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import CommentSection from '@/components/wy/CommentSection';
+import StoryViewer from '@/components/wy/StoryViewer';
 import {
   followCharacter,
   listFollowing,
@@ -219,46 +219,8 @@ export default function FollowingPage() {
       onOpenAccount={openAccount}
       toast={toast}
       overlay={
-        view ? (
-          <div className="modal" role="dialog" aria-modal="true" aria-label={view.title}>
-            <div className="modal-head">
-              <div>
-                <h2>{view.title}</h2>
-                <p>{view.author ? `${view.author.name} · ` : ''}{view.updates.length} etapas</p>
-              </div>
-              <button className="close" type="button" onClick={() => setView(null)} aria-label="Cerrar">
-                <Icon name="x" />
-              </button>
-            </div>
-
-            <div className="stage-list" style={{ marginTop: 14 }}>
-              {view.updates.map((stage) => (
-                <div key={stage.id} className="stage-item">
-                  <div className="stage-head">
-                    <span>Etapa {stage.stageOrder}</span>
-                  </div>
-                  <p>{stage.content}</p>
-                  {stage.mediaUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={stage.mediaUrl} alt="" style={{ marginTop: 10, borderRadius: 12, maxWidth: '100%' }} />
-                  ) : null}
-                  {stage.audioUrl ? (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <audio controls src={stage.audioUrl} style={{ width: '100%', marginTop: 10 }} />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-
-            <CommentSection storyId={view.id} />
-
-            <div className="modal-actions">
-              <button className="ghost" type="button" onClick={() => setView(null)}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        ) : null
+        view ? <StoryViewer story={view} onClose={() => setView(null)} />
+          : null
       }
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={

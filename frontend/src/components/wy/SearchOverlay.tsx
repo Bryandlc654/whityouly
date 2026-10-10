@@ -12,9 +12,9 @@ import {
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import Avatar from './Avatar';
-import CommentSection from './CommentSection';
+import StoryViewer from './StoryViewer';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
-import { listPublicStories, viewStory, type FollowingStory, type MyStory } from '@/lib/stories';
+import { listPublicStories, type FollowingStory } from '@/lib/stories';
 import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
 
 type Tab = 'historias' | 'personajes';
@@ -101,8 +101,7 @@ export default function SearchOverlay({ onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const [detail, setDetail] = useState<MyStory | null>(null);
-  const [detailBusy, setDetailBusy] = useState(false);
+  const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -193,15 +192,8 @@ export default function SearchOverlay({ onClose }: Props) {
     return () => clearTimeout(timer);
   }, [run]);
 
-  const openDetail = async (storyId: string) => {
-    setDetailBusy(true);
-    const result = await viewStory(storyId);
-    setDetailBusy(false);
-    if (result.status === 'ok') {
-      setDetail(result.data);
-      return;
-    }
-    setError(result.message);
+  const openDetail = (storyId: string, storyTitle: string) => {
+    setReader({ id: storyId, title: storyTitle });
   };
 
   const goToCharacter = (name: string) => {
@@ -267,8 +259,7 @@ export default function SearchOverlay({ onClose }: Props) {
               key={story.id}
               type="button"
               className="search-result"
-              disabled={detailBusy}
-              onClick={() => void openDetail(story.id)}
+              onClick={() => openDetail(story.id, story.title)}
             >
               <span className="search-result-title">{story.title}</span>
               <span className="search-result-meta">
@@ -390,39 +381,13 @@ export default function SearchOverlay({ onClose }: Props) {
           </button>
         </div>
 
-        {detail ? (
-          <div className="search-detail">
-            <div className="search-detail-head">
-              <button className="action-link" type="button" onClick={() => setDetail(null)}>
-                <Icon name="chevron" /> Volver a resultados
-              </button>
-              <span className="hint">
-                {detail.author ? `${detail.author.name} · ` : ''}
-                {detail.updates.length} {detail.updates.length === 1 ? 'etapa' : 'etapas'}
-              </span>
-            </div>
-            <h2 className="search-detail-title">{detail.title}</h2>
-            <div className="stage-list">
-              {detail.updates.map((stage) => (
-                <div key={stage.id} className="stage-item">
-                  <div className="stage-head">
-                    <span>Etapa {stage.stageOrder}</span>
-                    <span>{relativeTime(stage.createdAt)}</span>
-                  </div>
-                  {stage.content ? <p>{stage.content}</p> : null}
-                  {stage.mediaUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={stage.mediaUrl} alt="" className="post-media" />
-                  ) : null}
-                  {stage.audioUrl ? (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <audio controls src={stage.audioUrl} className="post-audio" />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            <CommentSection storyId={detail.id} />
-          </div>
+        {reader ? (
+          <StoryViewer
+            storyId={reader.id}
+            title={reader.title}
+            variant="inline"
+            onClose={() => setReader(null)}
+          />
         ) : (
           <>
             <div className="search-toolbar">

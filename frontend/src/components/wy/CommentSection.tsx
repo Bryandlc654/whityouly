@@ -273,9 +273,12 @@ export default function CommentSection({ storyId, onNotify }: Props) {
 
   return (
     <section className="comments" aria-label="Comentarios">
-      <h3 className="comments-title">
-        {commentCount} {commentCount === 1 ? 'comentario' : 'comentarios'}
-      </h3>
+      <div className="comments-head">
+        <h3 className="comments-title">
+          {commentCount} {commentCount === 1 ? 'comentario' : 'comentarios'}
+        </h3>
+        <span className="hint">En orden de conversación</span>
+      </div>
 
       {localNote ? <p className="hint">{localNote}</p> : null}
       {error ? (

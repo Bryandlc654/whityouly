@@ -489,13 +489,17 @@ body {
   }
 }
 
-/* Comentarios. */
+/* Comentarios: bandeja limpia y con hilo de respuestas. */
 .wy .comments {
   display: grid;
-  gap: 12px;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  margin-top: 12px;
+  gap: 14px;
+}
+
+.wy .comments-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .wy .comments-title {
@@ -507,21 +511,33 @@ body {
 
 .wy .comment-composer {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #faf9fd;
+  padding: 12px;
+}
+
+.wy .comment-composer .field {
+  background: #fff;
 }
 
 .wy .comment-composer .primary.sm {
-  justify-self: start;
+  justify-self: end;
 }
 
 .wy .comment-list {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .wy .comment-item {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px 16px;
 }
 
 .wy .comment-head {
@@ -530,24 +546,43 @@ body {
   gap: 10px;
 }
 
+.wy .comment-head .avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 11px;
+}
+
+.wy .comment-head > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.wy .comment-head b {
+  font-size: 13px;
+}
+
 .wy .comment-head .hint {
-  margin-left: 6px;
+  margin-left: auto;
 }
 
 .wy .comment-head .tag {
-  margin-left: 6px;
+  margin-left: 0;
 }
 
 .wy .comment-body {
-  margin: 2px 0;
+  margin: 0;
   white-space: pre-wrap;
   font-size: 14px;
-  line-height: 1.55;
-  color: #474d5e;
+  line-height: 1.6;
+  color: #3f4658;
 }
 
 .wy .comment-deleted {
-  margin: 2px 0;
+  margin: 0;
   color: var(--muted);
   font-style: italic;
   font-size: 13px;
@@ -558,6 +593,8 @@ body {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+  border-top: 1px solid #f4f2f8;
+  padding-top: 8px;
 }
 
 .wy .comment-actions .action-link {
@@ -565,18 +602,18 @@ body {
 }
 
 .wy .comment-reply {
-  margin-left: 20px;
-  padding-left: 14px;
-  border-left: 2px solid var(--line);
   display: grid;
-  gap: 6px;
+  gap: 10px;
+  margin-left: 18px;
+  padding-left: 18px;
+  border-left: 2px solid #e7e2f6;
 }
 
 .wy .reply-composer,
 .wy .comment-edit {
   display: grid;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .wy .report-reasons {
@@ -586,6 +623,128 @@ body {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: #fbfafd;
+}
+
+/* Lector de historia completo (StoryViewer): autor + línea de tiempo + comentarios. */
+.wy .story-viewer.modal {
+  width: min(640px, 100%);
+}
+
+.wy .story-reader {
+  display: grid;
+  gap: 18px;
+}
+
+.wy .story-reader-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wy .story-reader-author > div {
+  display: grid;
+  gap: 2px;
+}
+
+.wy .story-reader-author b {
+  font-size: 14px;
+}
+
+.wy .story-reader-author .hint {
+  margin: 0;
+}
+
+.wy .story-timeline {
+  display: grid;
+}
+
+.wy .story-stage {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 2px 0 24px 30px;
+}
+
+.wy .story-stage:not(.last)::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  bottom: 2px;
+  width: 2px;
+  background: #e5dff7;
+}
+
+.wy .story-stage-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--purple);
+  box-sizing: border-box;
+}
+
+.wy .story-stage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wy .story-stage-tag {
+  border-radius: 999px;
+  background: var(--purple-3);
+  color: var(--purple);
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wy .story-stage-head .hint {
+  margin: 0;
+}
+
+.wy .story-stage-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #333a4d;
+  white-space: pre-wrap;
+}
+
+.wy .story-reader-comments {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+/* Versión embebida dentro de otro contenedor (buscador). */
+.wy .story-viewer-inline {
+  display: grid;
+  gap: 14px;
+}
+
+.wy .story-viewer-inline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wy .story-viewer-inline-head .action-link svg {
+  transform: rotate(180deg);
+}
+
+.wy .story-viewer-inline-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
 }
 
 /* Confirmación animada al guardar un relato. */
@@ -1232,31 +1391,6 @@ body {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
-}
-
-/* Detalle del relato dentro del buscador. */
-.wy .search-detail {
-  display: grid;
-  gap: 14px;
-  padding: 16px 18px 22px;
-}
-
-.wy .search-detail-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.wy .search-detail-head .action-link svg {
-  transform: rotate(180deg);
-}
-
-.wy .search-detail-title {
-  margin: 0;
-  font-size: 22px;
-  line-height: 1.25;
 }
 
 @media (max-width: 640px) {

@@ -12,7 +12,7 @@ import RightRail from '@/components/wy/RightRail';
 import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import CommentSection from '@/components/wy/CommentSection';
+import StoryViewer from '@/components/wy/StoryViewer';
 import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
 import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
@@ -97,7 +97,7 @@ export default function FeedPage() {
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
   const [composerOpen, setComposerOpen] = useState(false);
-  const [commentsStory, setCommentsStory] = useState<FollowingStory | null>(null);
+  const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
   const [moodValue, setMoodValue] = useState(7);
@@ -366,7 +366,7 @@ export default function FeedPage() {
           onOpenMenu={() => openPostMenu(entry.id)}
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
-          onComment={() => setCommentsStory(story)}
+          onComment={() => setReader({ id: story.id, title: story.title })}
         />
       </div>
     );
@@ -416,7 +416,7 @@ export default function FeedPage() {
                 <img src={story.opening.mediaUrl} alt="" className="post-media" />
               ) : null}
               <div className="story-row-actions">
-                <button className="action-link" type="button" onClick={() => setCommentsStory(story)}>
+                <button className="action-link" type="button" onClick={() => setReader({ id: story.id, title: story.title })}>
                   <Icon name="book" /> Leer historia
                 </button>
               </div>
@@ -451,28 +451,23 @@ export default function FeedPage() {
         notificationsOpen ? (
           <NotificationsPanel
             onClose={() => setNotificationsOpen(false)}
+            onUnreadChange={setUnreadCount}
             onOpenStory={(storyId) => {
               setNotificationsOpen(false);
-              setCommentsStory({ id: storyId, title: '' } as FollowingStory);
+              setReader({ id: storyId, title: '' });
             }}
             onOpenCharacter={(name) => {
               setNotificationsOpen(false);
               router.push(`/personaje/${encodeURIComponent(name)}`);
             }}
           />
-        ) : commentsStory ? (
-          <div className="modal" role="dialog" aria-modal="true" aria-label="Comentarios">
-            <div className="modal-head">
-              <div>
-                <h2>Comentarios</h2>
-                <p>{commentsStory.title}</p>
-              </div>
-              <button className="close" type="button" onClick={() => setCommentsStory(null)} aria-label="Cerrar">
-                <Icon name="x" />
-              </button>
-            </div>
-            <CommentSection storyId={commentsStory.id} onNotify={notify} />
-          </div>
+        ) : reader ? (
+          <StoryViewer
+            storyId={reader.id}
+            title={reader.title}
+            onNotify={notify}
+            onClose={() => setReader(null)}
+          />
         ) : moodOpen ? (
           <MoodModal
             name={moodName}
