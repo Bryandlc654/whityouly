@@ -1,5 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StoriesService } from '../stories/stories.service';
 import { normalizeCharacterName } from '../characters/characters.service';
 
 export interface FollowedCharacter {
@@ -8,14 +10,24 @@ export interface FollowedCharacter {
   avatarUrl: string | null;
 }
 
+export interface FollowedStory {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  author: { name: string; avatarUrl: string | null };
+}
+
 /**
- * Seguimiento entre personajes. Solo se sigue a personajes (no a cuentas): la
- * identidad pública vive en `Character`, así que seguir es una relación entre
- * personajes y nunca revela a quién hay detrás.
+ * Seguimiento de personajes e historias. Todo sigue a entidades de la identidad
+ * pública (`Character`) y a relatos, nunca a cuentas.
  */
 @Injectable()
 export class FollowsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storiesService: StoriesService,
+  ) {}
 
   async follow(userId: string, rawName: string): Promise<{ following: true }> {
     const follower = await this.getOwnCharacter(userId);
@@ -75,6 +87,101 @@ export class FollowsService {
         .map((row) => row.followingCharacter)
         .filter((row): row is FollowedCharacter => row !== null),
     };
+  }
+
+  async followStory(userId: string, storyId: string): Promise<{ following: true }> {
+    // Solo se sigue un relato que se puede ver.
+    await this.storiesService.assertStoryVisible(userId, storyId);
+    const follower = await this.getOwnCharacter(userId);
+
+    const existing = await this.prisma.follower.findFirst({
+      where: { followerId: follower.id, followingStoryId: storyId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      await this.prisma.follower
+        .create({ data: { followerId: follower.id, followingStoryId: storyId } })
+        .catch((error) => {
+          if (!this.isUniqueError(error)) throw error;
+        });
+    }
+
+    return { following: true };
+  }
+
+  async unfollowStory(userId: string, storyId: string): Promise<{ following: false }> {
+    const follower = await this.getOwnCharacter(userId);
+
+    await this.prisma.follower.deleteMany({
+      where: { followerId: follower.id, followingStoryId: storyId },
+    });
+
+    return { following: false };
+  }
+
+  /** Historias que sigue el usuario (con su autor), para "Lo que sigo". */
+  async listFollowedStories(userId: string): Promise<FollowedStory[]> {
+    const character = await this.prisma.character.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!character) {
+      return [];
+    }
+
+    const rows = await this.prisma.follower.findMany({
+      where: { followerId: character.id, followingStoryId: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        followingStory: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+            updatedAt: true,
+            character: { select: { name: true, avatarUrl: true } },
+          },
+        },
+      },
+    });
+
+    return rows
+      .map((row) => {
+        const story = row.followingStory;
+        if (!story) return null;
+        return {
+          id: story.id,
+          title: story.title,
+          createdAt: story.createdAt,
+          updatedAt: story.updatedAt,
+          author: {
+            name: story.character.name,
+            avatarUrl: story.character.avatarUrl,
+          },
+        };
+      })
+      .filter((row): row is FollowedStory => row !== null);
+  }
+
+  /** Resumen de "Lo que sigo": personajes e historias. */
+  async whatIFollow(userId: string): Promise<{ characters: FollowedCharacter[]; stories: FollowedStory[] }> {
+    const [characters, stories] = await Promise.all([
+      this.listFollowing(userId),
+      this.listFollowedStories(userId),
+    ]);
+
+    return { characters: characters.items, stories };
+  }
+
+  private isUniqueError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
   }
 
   private async getOwnCharacter(userId: string): Promise<{ id: string }> {

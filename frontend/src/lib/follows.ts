@@ -8,6 +8,17 @@ export interface FollowedCharacter {
   avatarUrl: string | null;
 }
 
+export interface FollowedStorySummary {
+  id: string;
+  title: string;
+  author: { name: string; avatarUrl: string | null };
+}
+
+export interface WhatIFollow {
+  characters: FollowedCharacter[];
+  stories: FollowedStorySummary[];
+}
+
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function safeUrl(value: unknown): string | null {
@@ -83,6 +94,49 @@ export function unfollowCharacter(name: string): Promise<LoadResult<{ following:
     (body) => {
       const record = (body ?? {}) as Record<string, unknown>;
       return { following: record.following === true };
+    },
+  );
+}
+
+/** Resumen de "Lo que sigo": personajes e historias. */
+export function whatIFollow(): Promise<LoadResult<WhatIFollow>> {
+  return request(
+    '/follows',
+    { method: 'GET' },
+    'No se pudo cargar lo que sigues.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const characters = Array.isArray(record.characters)
+        ? record.characters
+            .map((item) => {
+              const row = (item ?? {}) as Record<string, unknown>;
+              const name = typeof row.name === 'string' ? row.name : null;
+              if (!name) return null;
+              return {
+                name,
+                tagline: typeof row.tagline === 'string' ? row.tagline : null,
+                avatarUrl: safeUrl(row.avatarUrl),
+              } satisfies FollowedCharacter;
+            })
+            .filter((item): item is FollowedCharacter => item !== null)
+        : [];
+      const stories = Array.isArray(record.stories)
+        ? record.stories
+            .map((item) => {
+              const row = (item ?? {}) as Record<string, unknown>;
+              const id = typeof row.id === 'string' ? row.id : null;
+              const title = typeof row.title === 'string' ? row.title : null;
+              const authorRecord = (row.author ?? {}) as Record<string, unknown>;
+              if (!id || !title || typeof authorRecord.name !== 'string') return null;
+              return {
+                id,
+                title,
+                author: { name: authorRecord.name, avatarUrl: safeUrl(authorRecord.avatarUrl) },
+              } satisfies FollowedStorySummary;
+            })
+            .filter((item): item is FollowedStorySummary => item !== null)
+        : [];
+      return { characters, stories };
     },
   );
 }

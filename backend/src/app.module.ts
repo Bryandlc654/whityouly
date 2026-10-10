@@ -22,6 +22,8 @@ import { TaxonomyModule } from './modules/taxonomy/taxonomy.module';
 import { StoriesModule } from './modules/stories/stories.module';
 import { FollowsModule } from './modules/follows/follows.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { InteractionsModule } from './modules/interactions/interactions.module';
+import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { CommentsModule } from './modules/comments/comments.module';
     StoriesModule,
     FollowsModule,
     CommentsModule,
+    InteractionsModule,
+    BookmarksModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

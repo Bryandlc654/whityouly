@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
@@ -15,6 +15,8 @@ import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import CommentSection from '@/components/wy/CommentSection';
 import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
+import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
+import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { getFeed, type FeedSections, type FollowingStory } from '@/lib/stories';
 import type { DemoStory } from '@/components/wy/feedData';
 
@@ -87,6 +89,7 @@ export default function FeedPage() {
 
   const [followedAuthors, setFollowedAuthors] = useState<Set<string>>(new Set());
   const [supported, setSupported] = useState<Set<string>>(new Set());
+  const [supportCounts, setSupportCounts] = useState<Record<string, number>>({});
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
@@ -182,25 +185,6 @@ export default function FeedPage() {
     router.push('/login');
   }, [router]);
 
-  const toggle = (
-    setter: Dispatch<SetStateAction<Set<string>>>,
-    id: string,
-    onMessage: string,
-    offMessage: string,
-  ) => {
-    setter((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        notify(offMessage);
-      } else {
-        next.add(id);
-        notify(onMessage);
-      }
-      return next;
-    });
-  };
-
   const openAccount = () => {
     setSheet({
       title: 'Tu cuenta',
@@ -235,12 +219,71 @@ export default function FeedPage() {
     notify(isFollowing ? `Dejaste de seguir a ${authorName}.` : `Ahora sigues a ${authorName}.`);
   };
 
+  const toggleSupport = async (storyId: string) => {
+    const active = supported.has(storyId);
+    const result = active ? await unsupportStory(storyId) : await supportStory(storyId);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
+      return;
+    }
+
+    setSupported((prev) => {
+      const next = new Set(prev);
+      if (active) next.delete(storyId);
+      else next.add(storyId);
+      return next;
+    });
+    setSupportCounts((prev) => ({ ...prev, [storyId]: result.data.count }));
+    notify(active ? 'Quitaste tu apoyo.' : 'Tu apoyo fue enviado.');
+  };
+
+  const toggleFollowStory = async (storyId: string) => {
+    const active = followStories.has(storyId);
+    const result = active ? await unfollowStory(storyId) : await followStory(storyId);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
+      return;
+    }
+
+    setFollowStories((prev) => {
+      const next = new Set(prev);
+      if (active) next.delete(storyId);
+      else next.add(storyId);
+      return next;
+    });
+    notify(
+      active
+        ? 'Dejaste de seguir sus actualizaciones.'
+        : 'Seguirás las actualizaciones de este relato.',
+    );
+  };
+
+  const toggleSave = async (storyId: string) => {
+    const active = saved.has(storyId);
+    const result = active ? await unsaveStory(storyId) : await saveStory(storyId);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
+      return;
+    }
+
+    setSaved((prev) => {
+      const next = new Set(prev);
+      if (active) next.delete(storyId);
+      else next.add(storyId);
+      return next;
+    });
+    notify(active ? 'Relato eliminado de guardados.' : 'Relato guardado en privado.');
+  };
+
   const openPostMenu = (storyId: string) => {
     setSheet({
       title: 'Opciones del relato',
       rows: [
-        { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => toggle(setFollowStories, storyId, 'Seguirás las actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones') },
-        { label: 'Guardar relato', icon: 'bookmark', onClick: () => toggle(setSaved, storyId, 'Relato guardado', 'Relato eliminado de guardados') },
+        { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => void toggleFollowStory(storyId) },
+        { label: 'Guardar relato', icon: 'bookmark', onClick: () => void toggleSave(storyId) },
         { label: 'Compartir enlace', icon: 'share', onClick: () => notify('Enlace copiado') },
         { label: 'Reportar contenido', icon: 'flag', danger: true, onClick: () => notify('Reporte enviado a revisión prioritaria') },
       ],
@@ -284,15 +327,14 @@ export default function FeedPage() {
           mediaUrl={entry.mediaUrl}
           audioUrl={entry.audioUrl}
           supported={supported.has(entry.id)}
+          supportCount={supportCounts[entry.id]}
           saved={saved.has(entry.id)}
           followingAuthor={followedAuthors.has(entry.author)}
           followingStory={followStories.has(entry.id)}
-          onSupport={() => toggle(setSupported, entry.id, 'Tu apoyo fue enviado', 'Quitaste tu apoyo')}
-          onSave={() => toggle(setSaved, entry.id, 'Relato guardado', 'Relato eliminado de guardados')}
+          onSupport={() => void toggleSupport(entry.id)}
+          onSave={() => void toggleSave(entry.id)}
           onFollowAuthor={() => void toggleFollowAuthor(entry.author)}
-          onFollowStory={() =>
-            toggle(setFollowStories, entry.id, 'Recibirás futuras actualizaciones de este relato', 'Dejaste de seguir sus actualizaciones')
-          }
+          onFollowStory={() => void toggleFollowStory(entry.id)}
           onOpenMenu={() => openPostMenu(entry.id)}
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}

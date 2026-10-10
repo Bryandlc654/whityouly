@@ -11,8 +11,17 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import CommentSection from '@/components/wy/CommentSection';
-import { followCharacter, listFollowing, unfollowCharacter, type FollowedCharacter } from '@/lib/follows';
+import {
+  followCharacter,
+  listFollowing,
+  unfollowCharacter,
+  whatIFollow,
+  type FollowedCharacter,
+  type WhatIFollow,
+} from '@/lib/follows';
 import { listFollowingStories, viewStory, type FollowingStory, type MyStory } from '@/lib/stories';
+import { unfollowStory } from '@/lib/interactions';
+import { listSavedStories, unsaveStory, type SavedStory } from '@/lib/bookmarks';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -29,6 +38,8 @@ export default function FollowingPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [feedError, setFeedError] = useState('');
   const [following, setFollowing] = useState<FollowedCharacter[]>([]);
+  const [sigo, setSigo] = useState<WhatIFollow | null>(null);
+  const [saved, setSaved] = useState<SavedStory[]>([]);
   const [busyAuthor, setBusyAuthor] = useState<string | null>(null);
 
   const [view, setView] = useState<MyStory | null>(null);
@@ -52,9 +63,11 @@ export default function FollowingPage() {
   const loadAll = useCallback(async (cursor?: string) => {
     if (!cursor) setFeedError('');
 
-    const [feedResult, followingResult] = await Promise.all([
+    const [feedResult, followingResult, sigoResult, savedResult] = await Promise.all([
       listFollowingStories({ cursor }),
       listFollowing(),
+      whatIFollow(),
+      listSavedStories(),
     ]);
 
     if (feedResult.status === 'ok') {
@@ -67,6 +80,12 @@ export default function FollowingPage() {
 
     if (followingResult.status === 'ok') {
       setFollowing(followingResult.data.items);
+    }
+    if (sigoResult.status === 'ok') {
+      setSigo(sigoResult.data);
+    }
+    if (savedResult.status === 'ok') {
+      setSaved(savedResult.data.items);
     }
   }, []);
 
@@ -152,6 +171,28 @@ export default function FollowingPage() {
     notify(result.message);
   };
 
+  const unfollowFollowedStory = async (storyId: string) => {
+    const result = await unfollowStory(storyId);
+    if (result.status === 'ok') {
+      setSigo((prev) =>
+        prev ? { ...prev, stories: prev.stories.filter((story) => story.id !== storyId) } : prev,
+      );
+      notify('Dejaste de seguir esta historia.');
+      return;
+    }
+    notify(result.message);
+  };
+
+  const unsave = async (storyId: string) => {
+    const result = await unsaveStory(storyId);
+    if (result.status === 'ok') {
+      setSaved((prev) => prev.filter((item) => item.id !== storyId));
+      notify('Quitado de tus guardados.');
+      return;
+    }
+    notify(result.message);
+  };
+
   const openStory = async (storyId: string) => {
     setViewBusy(true);
     const result = await viewStory(storyId);
@@ -231,11 +272,11 @@ export default function FollowingPage() {
       <section className="screen">
         <div className="welcome-row">
           <div>
-            <h1>Siguiendo</h1>
+            <h1>Lo que sigo</h1>
             <p className="muted small">
               {name
-                ? `${name}, aquí llegan los relatos de los personajes que sigues.`
-                : 'Relatos de los personajes que sigues.'}
+                ? `${name}, aquí estás al día de lo que te importa.`
+                : 'Lo que sigues y guardas.'}
             </p>
           </div>
         </div>
@@ -257,6 +298,56 @@ export default function FollowingPage() {
                 >
                   {person.name} · Dejar de seguir
                 </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {sigo && sigo.stories.length > 0 ? (
+          <section className="card pad">
+            <h2 className="h-section" style={{ marginBottom: 10 }}>
+              Historias que sigues
+            </h2>
+            <div className="stack">
+              {sigo.stories.map((story) => (
+                <div key={story.id} className="row-between">
+                  <div style={{ minWidth: 0 }}>
+                    <b>{story.title}</b>
+                    <p className="hint" style={{ margin: 0 }}>
+                      {story.author.name}
+                    </p>
+                  </div>
+                  <button
+                    className="link-danger"
+                    type="button"
+                    onClick={() => void unfollowFollowedStory(story.id)}
+                  >
+                    Dejar de seguir
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {saved.length > 0 ? (
+          <section className="card pad">
+            <h2 className="h-section" style={{ marginBottom: 10 }}>
+              Guardados
+            </h2>
+            <div className="story-list" style={{ gap: 8 }}>
+              {saved.map((item) => (
+                <div key={item.id} className="row-between">
+                  <div style={{ minWidth: 0 }}>
+                    <b>{item.title}</b>
+                    <p className="hint" style={{ margin: 0 }}>
+                      {item.author ? item.author.name : 'Relato'}
+                    </p>
+                  </div>
+                  <button className="link-danger" type="button" onClick={() => void unsave(item.id)}>
+                    Quitar
+                  </button>
+                </div>
               ))}
             </div>
           </section>

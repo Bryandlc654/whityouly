@@ -17,6 +17,8 @@ interface PostCardProps {
   /** Imagen/audio de la apertura, para relatos sin texto. */
   mediaUrl?: string | null;
   audioUrl?: string | null;
+  /** Total de acompañamientos exacto (tras una acción propia). */
+  supportCount?: number;
   onSupport: () => void;
   onSave: () => void;
   onFollowAuthor: () => void;
@@ -45,6 +47,7 @@ export default function PostCard({
   onComment,
   mediaUrl,
   audioUrl,
+  supportCount,
 }: PostCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -123,7 +126,7 @@ export default function PostCard({
       ) : null}
 
       <div className="post-stats">
-        <span>{story.support + (supported ? 1 : 0)} personas están contigo</span>
+        <span>{supportCount ?? story.support + (supported ? 1 : 0)} personas están contigo</span>
         <span>{story.comments} comentarios</span>
       </div>
 

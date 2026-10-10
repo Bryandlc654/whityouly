@@ -352,6 +352,10 @@ model Companionship {
   targetStory     Story?     @relation("StoryReceivesCompanionship", fields: [targetStoryId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+  // Contar acompañamientos y comprobar duplicados: se consulta por objetivo y
+  // por quién acompaña. Postgres no indexa las FK por su cuenta.
+  @@index([targetStoryId])
+  @@index([targetCharacterId])
   @@map("companionships")
 }
 
@@ -396,6 +400,9 @@ model Follower {
   // y el filtro "quién me sigue".
   @@index([followerId, followingCharacterId])
   @@index([followingCharacterId])
+  // "Historias que sigo": se consulta por historia seguida (contador) y por
+  // seguidor para listar las tuyas.
+  @@index([followingStoryId])
   @@map("followers")
 }
 
@@ -438,6 +445,8 @@ model Bookmark {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // La biblioteca de guardados es por usuario: se listan con un solo índice.
+  @@index([userId])
   @@map("bookmarks")
 }
 
