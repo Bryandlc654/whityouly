@@ -230,7 +230,7 @@ export default function SearchOverlay({ onClose }: Props) {
   const hasQuery = q.trim().length > 0;
 
   const renderStories = () => {
-    if (busy && stories.length === 0) return <p className="hint">Buscando…</p>;
+    if (busy && stories.length === 0) return <p className="hint search-status">Buscando…</p>;
     if (stories.length === 0) {
       if (error) {
         return (
@@ -239,14 +239,15 @@ export default function SearchOverlay({ onClose }: Props) {
           </div>
         );
       }
+      const started = hasQuery || activeFilters.length > 0;
       return (
-        <div className="empty card search-empty">
-          <div className="empty-icon">
-            <Icon name={hasQuery || activeFilters.length > 0 ? 'search' : 'book'} />
-          </div>
-          <h2>{hasQuery || activeFilters.length > 0 ? 'Sin relatos' : 'Busca relatos'}</h2>
+        <div className="search-empty">
+          <span className="search-empty-icon">
+            <Icon name={started ? 'search' : 'book'} />
+          </span>
+          <h3>{started ? 'Sin relatos' : 'Busca relatos'}</h3>
           <p>
-            {hasQuery || activeFilters.length > 0
+            {started
               ? 'Prueba con otro texto o ajusta los filtros de categoría, emoción y etiqueta.'
               : 'Escribe una palabra o elige una categoría, emoción o etiqueta para empezar.'}
           </p>
@@ -260,46 +261,39 @@ export default function SearchOverlay({ onClose }: Props) {
             {error}
           </div>
         ) : null}
-        <div className="story-list">
+        <div className="search-list">
           {stories.map((story) => (
-            <article key={story.id} className="card story-row">
-              <div className="story-row-head">
-                <h2>{story.title}</h2>
-                <span className="hint">{relativeTime(story.createdAt)}</span>
-              </div>
-              <p className="story-row-meta">
-                <Icon name="user" />
-                <span>{story.author.name}</span>
+            <button
+              key={story.id}
+              type="button"
+              className="search-result"
+              disabled={detailBusy}
+              onClick={() => void openDetail(story.id)}
+            >
+              <span className="search-result-title">{story.title}</span>
+              <span className="search-result-meta">
+                <span className="search-result-author">
+                  <Icon name="user" />
+                  {story.author.name}
+                </span>
                 {story.categories[0] ? (
-                  <>
-                    <span className="dot" aria-hidden />
-                    <span>{story.categories[0]}</span>
-                  </>
+                  <span className="search-result-cat">{story.categories[0]}</span>
                 ) : null}
-              </p>
-              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
-              <div className="story-row-actions">
-                <button
-                  className="action-link"
-                  type="button"
-                  disabled={detailBusy}
-                  onClick={() => void openDetail(story.id)}
-                >
-                  <Icon name="book" /> Leer relato
-                </button>
-                <button
-                  className="action-link"
-                  type="button"
-                  onClick={() => goToCharacter(story.author.name)}
-                >
-                  <Icon name="user" /> Ver personaje
-                </button>
-              </div>
-            </article>
+                <span className="search-result-time">{relativeTime(story.createdAt)}</span>
+              </span>
+              {story.opening?.content ? (
+                <span className="search-result-snippet">{story.opening.content}</span>
+              ) : null}
+            </button>
           ))}
         </div>
         {nextCursor ? (
-          <button className="btn-outline" type="button" disabled={busy} onClick={() => void run(nextCursor)}>
+          <button
+            className="btn-outline search-more"
+            type="button"
+            disabled={busy}
+            onClick={() => void run(nextCursor)}
+          >
             {busy ? 'Cargando…' : 'Ver más'}
           </button>
         ) : null}
@@ -310,16 +304,16 @@ export default function SearchOverlay({ onClose }: Props) {
   const renderPeople = () => {
     if (!hasQuery) {
       return (
-        <div className="empty card search-empty">
-          <div className="empty-icon">
+        <div className="search-empty">
+          <span className="search-empty-icon">
             <Icon name="users" />
-          </div>
-          <h2>Busca a alguien</h2>
+          </span>
+          <h3>Busca a alguien</h3>
           <p>Escribe un seudónimo para encontrar personas con las que conectar.</p>
         </div>
       );
     }
-    if (busy && people.length === 0) return <p className="hint">Buscando…</p>;
+    if (busy && people.length === 0) return <p className="hint search-status">Buscando…</p>;
     if (error && people.length === 0) {
       return (
         <div className="auth-error" role="alert">
@@ -329,41 +323,33 @@ export default function SearchOverlay({ onClose }: Props) {
     }
     if (people.length === 0) {
       return (
-        <div className="empty card search-empty">
-          <div className="empty-icon">
+        <div className="search-empty">
+          <span className="search-empty-icon">
             <Icon name="search" />
-          </div>
-          <h2>Sin resultados</h2>
+          </span>
+          <h3>Sin resultados</h3>
           <p>No encontramos personajes con ese seudónimo. Prueba con otro nombre.</p>
         </div>
       );
     }
     return (
-      <div className="stack">
+      <div className="search-list">
         {people.map((person) => (
           <button
             key={person.name}
             type="button"
-            className="card pad explore-person"
+            className="search-result search-result-person"
             onClick={() => goToCharacter(person.name)}
           >
-            <div className="row-between">
-              <div className="search-person-row">
-                <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
-                <div style={{ minWidth: 0 }}>
-                  <b>{person.name}</b>
-                  {person.tagline ? (
-                    <p className="hint" style={{ margin: 0 }}>
-                      {person.tagline}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-              <span className="hint">
-                {person.stories} {person.stories === 1 ? 'relato' : 'relatos'} · {person.followers}{' '}
-                {person.followers === 1 ? 'seguidor' : 'seguidores'}
-              </span>
-            </div>
+            <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
+            <span className="search-result-main">
+              <span className="search-result-title">{person.name}</span>
+              {person.tagline ? <span className="search-result-snippet">{person.tagline}</span> : null}
+            </span>
+            <span className="search-result-stats">
+              {person.stories} {person.stories === 1 ? 'relato' : 'relatos'} · {person.followers}{' '}
+              {person.followers === 1 ? 'seguidor' : 'seguidores'}
+            </span>
           </button>
         ))}
       </div>
@@ -399,7 +385,7 @@ export default function SearchOverlay({ onClose }: Props) {
               </button>
             ) : null}
           </div>
-          <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
+          <button className="search-close" type="button" onClick={onClose} aria-label="Cerrar">
             <Icon name="x" />
           </button>
         </div>
@@ -439,63 +425,62 @@ export default function SearchOverlay({ onClose }: Props) {
           </div>
         ) : (
           <>
-            <div className="segmented search-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'historias'}
-                className={tab === 'historias' ? 'active' : undefined}
-                onClick={() => setTab('historias')}
-              >
-                Historias
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'personajes'}
-                className={tab === 'personajes' ? 'active' : undefined}
-                onClick={() => setTab('personajes')}
-              >
-                Personajes
-              </button>
-            </div>
-
-            {tab === 'historias' && taxo ? (
-              <div className="search-filters">
+            <div className="search-toolbar">
+              <div className="segmented search-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === 'historias'}
+                  className={tab === 'historias' ? 'active' : undefined}
+                  onClick={() => setTab('historias')}
+                >
+                  Historias
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === 'personajes'}
+                  className={tab === 'personajes' ? 'active' : undefined}
+                  onClick={() => setTab('personajes')}
+                >
+                  Personajes
+                </button>
+              </div>
+              {tab === 'historias' && taxo ? (
                 <button
                   type="button"
                   className="search-filters-toggle"
                   aria-expanded={filtersOpen}
                   onClick={() => setFiltersOpen((value) => !value)}
                 >
-                  <Icon name="chevron" className={filtersOpen ? 'open' : undefined} />
                   Filtros
                   {activeFilters.length > 0 ? (
                     <span className="search-filters-count">{activeFilters.length}</span>
                   ) : null}
                 </button>
-                {filtersOpen ? (
-                  <>
-                    <FilterGroup
-                      label="Categoría"
-                      items={taxo.categories}
-                      selected={selCat}
-                      onToggle={toggle(setSelCat)}
-                    />
-                    <FilterGroup
-                      label="Emoción"
-                      items={taxo.emotions}
-                      selected={selEmo}
-                      onToggle={toggle(setSelEmo)}
-                    />
-                    <FilterGroup
-                      label="Etiqueta"
-                      items={taxo.tags}
-                      selected={selTag}
-                      onToggle={toggle(setSelTag)}
-                    />
-                  </>
-                ) : null}
+              ) : null}
+            </div>
+
+            {tab === 'historias' && taxo && filtersOpen ? (
+              <div className="search-filters">
+                <FilterGroup
+                  label="Categoría"
+                  items={taxo.categories}
+                  selected={selCat}
+                  onToggle={toggle(setSelCat)}
+                />
+                <FilterGroup
+                  label="Emoción"
+                  items={taxo.emotions}
+                  selected={selEmo}
+                  onToggle={toggle(setSelEmo)}
+                />
+                <FilterGroup
+                  label="Etiqueta"
+                  items={taxo.tags}
+                  selected={selTag}
+                  onToggle={toggle(setSelTag)}
+                />
               </div>
             ) : null}
 
