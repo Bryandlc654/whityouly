@@ -16,6 +16,12 @@ const MAX_PAGE_SIZE = 50;
 // presión sobre el planificador de Postgres y fallos más baratos de reintentar.
 const CREATE_BATCH_SIZE = 500;
 
+// La escritura masiva no se hace dentro de la petición que origina el aviso: se
+// encola y un único worker la drena en segundo plano. La cola tiene un tope en
+// lotes para que una avalancha nunca deje a la instancia sin memoria; por encima
+// del tope se descartan avisos (son efímeros y la bandeja se poda igualmente).
+const DISPATCH_QUEUE_CAP = 24;
+
 export interface CreateNotificationInput {
   /** Destinatario. */
   userId: string;
@@ -76,6 +82,10 @@ export interface NotificationView {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
+  /** Lotes pendientes de insertar (fan-out de relatos seguidos). */
+  private readonly queue: Prisma.NotificationCreateManyInput[][] = [];
+  private processing = false;
+
   constructor(private readonly prisma: PrismaService) {}
 
   // --- Escritura ------------------------------------------------------------
@@ -117,14 +127,52 @@ export class NotificationsService {
       actorCharacterId: input.actorCharacterId ?? null,
     }));
 
+    // No se espera a la escritura: encolar y devolver. El worker drena la cola
+    // en segundo plano, así que publicar una etapa no paga el coste de avisar a
+    // todos sus seguidores y una avalancha no puede saturar la base.
+    let enqueued = 0;
     for (let i = 0; i < rows.length; i += CREATE_BATCH_SIZE) {
-      const slice = rows.slice(i, i + CREATE_BATCH_SIZE);
-      try {
-        await this.prisma.notification.createMany({ data: slice });
-      } catch (error) {
-        // Un lote roto no debe impedir que el resto de avisos lleguen.
-        this.logger.warn(`No se pudieron crear notificaciones: ${(error as Error).message}`);
+      const chunk = rows.slice(i, i + CREATE_BATCH_SIZE);
+      if (this.queue.length >= DISPATCH_QUEUE_CAP) {
+        this.logger.warn(
+          `Cola de notificaciones llena (${this.queue.length} lotes): descartando ${chunk.length} avisos.`,
+        );
+        continue;
       }
+      this.queue.push(chunk);
+      enqueued += 1;
+    }
+
+    if (enqueued > 0) {
+      void this.drain();
+    }
+  }
+
+  /** Drena la cola de escritura con un solo worker: serializa los INSERT y limita la presión sobre Postgres. */
+  private async drain(): Promise<void> {
+    if (this.processing) {
+      return;
+    }
+    this.processing = true;
+    try {
+      while (this.queue.length > 0) {
+        const chunk = this.queue.shift()!;
+        try {
+          await this.prisma.notification.createMany({ data: chunk });
+        } catch (error) {
+          // Un lote roto no debe impedir que el resto de avisos lleguen.
+          this.logger.warn(`No se pudieron crear notificaciones: ${(error as Error).message}`);
+        }
+      }
+    } finally {
+      this.processing = false;
+    }
+  }
+
+  /** Espera a que la cola de escritura quede vacía (pruebas y apagado ordenado). */
+  async flush(): Promise<void> {
+    while (this.queue.length > 0 || this.processing) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
     }
   }
 

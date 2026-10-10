@@ -8,7 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, StoryStatus } from '@prisma/client';
+import { NotificationStatus, Prisma, StoryStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QuotaService } from '../../common/quota/quota.service';
 import { env } from '../../config/env';
@@ -302,8 +302,12 @@ export class StoriesService {
 
   /**
    * Avisa a quienes siguen el relato (y no son su autor) de que hay una etapa
-   * nueva. Se hace en un solo INSERT por lote: un relato popular puede tener
-   * muchos seguidores y no conviene una consulta por cada uno.
+   * nueva. Una única consulta reúne a los seguidores y la escritura se encola
+   * (véase `NotificationsService.createMany`), de modo que publicar no paga el
+   * fan-out: un relato popular puede tener miles de seguidores.
+   *
+   * Coalescing: quien ya tiene una "etapa nueva" sin leer de este relato no
+   * recibe otra que la duplique. Evita apilar avisos y recorta las escrituras.
    */
   private async notifyStoryFollowers(
     ownerUserId: string,
@@ -314,9 +318,29 @@ export class StoriesService {
       where: { followingStoryId: storyId, follower: { userId: { not: ownerUserId } } },
       select: { follower: { select: { userId: true } } },
     });
+    if (followers.length === 0) {
+      return;
+    }
+
+    const alreadyNotified = await this.prisma.notification.findMany({
+      where: {
+        userId: { in: followers.map((row) => row.follower.userId) },
+        type: NOTIFICATION_TYPES.STORY_UPDATE,
+        entityType: NOTIFICATION_ENTITY.STORY,
+        entityId: storyId,
+        status: NotificationStatus.UNREAD,
+      },
+      select: { userId: true },
+    });
+    const withUnread = new Set(alreadyNotified.map((row) => row.userId));
+
+    const recipients = followers.filter((row) => !withUnread.has(row.follower.userId));
+    if (recipients.length === 0) {
+      return;
+    }
 
     await this.notifications.createMany(
-      followers.map((row) => ({
+      recipients.map((row) => ({
         userId: row.follower.userId,
         actorUserId: ownerUserId,
         actorCharacterId: characterId,

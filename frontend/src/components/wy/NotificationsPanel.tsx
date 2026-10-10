@@ -15,6 +15,8 @@ interface NotificationsPanelProps {
   onClose: () => void;
   onOpenStory: (storyId: string) => void;
   onOpenCharacter: (name: string) => void;
+  /** Se dispara cada vez que cambia el número de avisos sin leer (actualiza el badge del encabezado). */
+  onUnreadChange?: (count: number) => void;
 }
 
 function initialsOf(name?: string | null) {
@@ -48,7 +50,7 @@ function describe(item: NotificationItem): { icon: IconName; text: string } {
     case 'COMMENT':
       return { icon: 'message', text: `${who} comentó en tu relato ${story}` };
     case 'COMMENT_REPLY':
-      return { icon: 'message', text: `${who} respondió a un comentario en ${story}` };
+      return { icon: 'message', text: `${who} respondió a tu comentario en ${story}` };
     case 'COMPANIONSHIP':
       return {
         icon: 'heart',
@@ -57,7 +59,7 @@ function describe(item: NotificationItem): { icon: IconName; text: string } {
           : `${who} te acompañó`,
       };
     case 'STORY_UPDATE':
-      return { icon: 'book', text: `El relato que sigues ${story} tiene una etapa nueva` };
+      return { icon: 'book', text: `${who} añadió una etapa a ${story}` };
     case 'MODERATION':
       return { icon: 'shield', text: 'El equipo de moderación revisó tu contenido' };
     case 'SYSTEM':
@@ -67,7 +69,12 @@ function describe(item: NotificationItem): { icon: IconName; text: string } {
   }
 }
 
-export default function NotificationsPanel({ onClose, onOpenStory, onOpenCharacter }: NotificationsPanelProps) {
+export default function NotificationsPanel({
+  onClose,
+  onOpenStory,
+  onOpenCharacter,
+  onUnreadChange,
+}: NotificationsPanelProps) {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -117,6 +124,13 @@ export default function NotificationsPanel({ onClose, onOpenStory, onOpenCharact
   };
 
   const unreadCount = items.reduce((acc, item) => acc + (item.status === 'UNREAD' ? 1 : 0), 0);
+
+  // Actualiza el badge del encabezado al cargar la bandeja y al marcar avisos
+  // como leídos. Se ignora mientras carga para no pisar un badge real con "0".
+  useEffect(() => {
+    if (loading) return;
+    onUnreadChange?.(unreadCount);
+  }, [loading, unreadCount, onUnreadChange]);
 
   return (
     <div className="modal notifications-modal" role="dialog" aria-modal="true" aria-label="Notificaciones">

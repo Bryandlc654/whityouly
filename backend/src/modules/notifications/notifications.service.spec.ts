@@ -91,6 +91,25 @@ describe('NotificationsService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('encola el fan-out por lotes y lo drena en segundo plano', async () => {
+    const inputs = Array.from({ length: 1100 }, (_, index) => ({
+      userId: `user-${index}`,
+      type: NOTIFICATION_TYPES.STORY_UPDATE,
+      entityType: 'STORY',
+      entityId: 'story-1',
+      actorCharacterId: 'char-1',
+      actorUserId: 'owner',
+    }));
+
+    await service.createMany(inputs);
+    await service.flush();
+
+    const calls = prisma.notification.createMany.mock.calls as { data: unknown[] }[][];
+    expect(calls.length).toBe(3);
+    expect(calls[0][0].data).toHaveLength(500);
+    expect(calls[2][0].data).toHaveLength(100);
+  });
+
   it('lista notificaciones resolviendo actores, relatos y el contador de no leídas', async () => {
     prisma.notification.findMany.mockResolvedValue([row()]);
     prisma.character.findMany.mockResolvedValue([
