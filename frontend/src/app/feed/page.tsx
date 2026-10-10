@@ -445,7 +445,6 @@ export default function FeedPage() {
       activeRoute="home"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => router.push('/explorar')}
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={

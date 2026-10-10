@@ -140,7 +140,6 @@ export default function AccountPage() {
       activeRoute="profile"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => router.push('/explorar')}
       toast={toast}
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={

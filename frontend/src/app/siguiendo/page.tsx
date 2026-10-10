@@ -217,7 +217,6 @@ export default function FollowingPage() {
       activeRoute="following"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => router.push('/explorar')}
       toast={toast}
       overlay={
         view ? (

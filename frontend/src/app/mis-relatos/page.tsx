@@ -248,7 +248,6 @@ export default function MyStoriesPage() {
       activeRoute="my-stories"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => router.push('/explorar')}
       toast={toast}
       overlay={
         composerOpen ? (

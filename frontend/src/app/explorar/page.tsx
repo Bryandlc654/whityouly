@@ -354,7 +354,6 @@ export default function ExplorePage() {
       activeRoute="explore"
       onNavigate={navigate}
       onOpenAccount={openAccount}
-      onSearch={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={

@@ -1,9 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Icon from './Icon';
 import type { IconName } from './icons';
+import SearchOverlay from './SearchOverlay';
 
 export type WyRoute =
   | 'home'
@@ -30,7 +31,6 @@ interface FrameProps {
   activeRoute: WyRoute;
   onNavigate: (route: WyRoute) => void;
   onOpenAccount: () => void;
-  onSearch: () => void;
   rightRail: ReactNode;
   overlay?: ReactNode;
   sheet?: ReactNode;
@@ -44,19 +44,25 @@ function TopBar({
   avatarUrl,
   onNavigate,
   onOpenAccount,
-  onSearch,
+  onOpenSearch,
   unreadNotifications = 0,
 }: Pick<
   FrameProps,
-  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'onSearch' | 'unreadNotifications'
->) {
+  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'unreadNotifications'
+> & { onOpenSearch: () => void }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
         <button className="brand" type="button" onClick={() => onNavigate('home')} aria-label="Ir al inicio">
           <span className="brand-crop" role="img" aria-label="Withyouly" />
         </button>
-        <button className="searchbox" type="button" onClick={onSearch} aria-label="Buscar">
+        <button
+          className="searchbox"
+          type="button"
+          onClick={onOpenSearch}
+          aria-label="Buscar"
+          aria-haspopup="dialog"
+        >
           <Icon name="search" />
           <span>Buscar relatos, emociones o seudónimos</span>
         </button>
@@ -180,7 +186,6 @@ export default function WyFrame({
   activeRoute,
   onNavigate,
   onOpenAccount,
-  onSearch,
   rightRail,
   overlay,
   sheet,
@@ -188,6 +193,8 @@ export default function WyFrame({
   unreadNotifications = 0,
   children,
 }: FrameProps) {
+  const [searchOpen, setSearchOpen] = useState(false);
+
   return (
     <div className="wy">
       <TopBar
@@ -195,7 +202,7 @@ export default function WyFrame({
         avatarUrl={avatarUrl}
         onNavigate={onNavigate}
         onOpenAccount={onOpenAccount}
-        onSearch={onSearch}
+        onOpenSearch={() => setSearchOpen(true)}
         unreadNotifications={unreadNotifications}
       />
       <div className="app-shell">
@@ -208,6 +215,7 @@ export default function WyFrame({
         </aside>
       </div>
       <BottomNav activeRoute={activeRoute} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
+      {searchOpen ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
       {overlay ? <div className="modal-layer">{overlay}</div> : null}
       {sheet ? <div className="sheet-layer">{sheet}</div> : null}
       <div className={`toast ${toast ? 'show' : ''}`} role="status">
