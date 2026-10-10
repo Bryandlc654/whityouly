@@ -480,11 +480,12 @@ describe('StoriesService', () => {
       interests: [{ interest: { name: 'Esperanza' } }],
     });
     prisma.follower.findMany.mockResolvedValue([]);
-    // recent, popular, piscina de candidatos y el resto.
+    // perfil (propios), piscina, populares y vistas completas.
     prisma.story.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([other, match])
+      .mockResolvedValueOnce([])                    // relatos propios (perfil)
+      .mockResolvedValueOnce([other, match])        // piscina de candidatos
+      .mockResolvedValueOnce([])                    // populares
+      .mockResolvedValueOnce([other, match])        // vistas completas
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');
@@ -512,14 +513,14 @@ describe('StoriesService', () => {
   it('las categorias que el autor ya usa influyen en la recomendacion', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
     prisma.follower.findMany.mockResolvedValue([]);
+    const authored = [{ categories: [{ category: { name: 'Esperanza' } }], emotions: [], tags: [] }];
+    const c1 = taxoRow('c1', { categories: [{ category: { name: 'Trabajo' } }] });
+    const c2 = taxoRow('c2', { categories: [{ category: { name: 'Esperanza' } }] });
     prisma.story.findMany
-      .mockResolvedValueOnce([])                                    // recientes
-      .mockResolvedValueOnce([])                                    // populares
-      .mockResolvedValueOnce([                                       // piscina
-        taxoRow('c1', { categories: [{ category: { name: 'Trabajo' } }] }),
-        taxoRow('c2', { categories: [{ category: { name: 'Esperanza' } }] }),
-      ])
-      .mockResolvedValueOnce([{ categories: [{ category: { name: 'Esperanza' } }], emotions: [], tags: [] }]) // propios
+      .mockResolvedValueOnce(authored)             // relatos propios (perfil)
+      .mockResolvedValueOnce([c1, c2])             // piscina de candidatos
+      .mockResolvedValueOnce([])                   // populares
+      .mockResolvedValueOnce([c1, c2])             // vistas completas
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');
@@ -529,14 +530,14 @@ describe('StoriesService', () => {
   it('las emociones que el autor ya usa influyen en la recomendacion', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
     prisma.follower.findMany.mockResolvedValue([]);
+    const authored = [{ categories: [], emotions: [{ emotion: { name: 'Tristeza' } }], tags: [] }];
+    const e1 = taxoRow('e1', { emotions: [{ emotion: { name: 'Calma', colorHex: null } }] });
+    const e2 = taxoRow('e2', { emotions: [{ emotion: { name: 'Tristeza', colorHex: null } }] });
     prisma.story.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        taxoRow('e1', { emotions: [{ emotion: { name: 'Calma', colorHex: null } }] }),
-        taxoRow('e2', { emotions: [{ emotion: { name: 'Tristeza', colorHex: null } }] }),
-      ])
-      .mockResolvedValueOnce([{ categories: [], emotions: [{ emotion: { name: 'Tristeza' } }], tags: [] }])
+      .mockResolvedValueOnce(authored)             // relatos propios (perfil)
+      .mockResolvedValueOnce([e1, e2])             // piscina de candidatos
+      .mockResolvedValueOnce([])                   // populares
+      .mockResolvedValueOnce([e1, e2])             // vistas completas
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');
@@ -546,14 +547,13 @@ describe('StoriesService', () => {
   it('las etiquetas que el autor ya usa influyen en la recomendacion', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
     prisma.follower.findMany.mockResolvedValue([]);
+    const t1 = taxoRow('t1', { tags: [{ tag: { name: 'Trabajo' } }] });
+    const t2 = taxoRow('t2', { tags: [{ tag: { name: 'Autoestima' } }] });
     prisma.story.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        taxoRow('t1', { tags: [{ tag: { name: 'Trabajo' } }] }),
-        taxoRow('t2', { tags: [{ tag: { name: 'Autoestima' } }] }),
-      ])
-      .mockResolvedValueOnce([{ categories: [], emotions: [], tags: [{ tag: { name: 'Autoestima' } }] }])
+      .mockResolvedValueOnce([{ categories: [], emotions: [], tags: [{ tag: { name: 'Autoestima' } }] }])  // propios
+      .mockResolvedValueOnce([t1, t2])                                     // piscina
+      .mockResolvedValueOnce([])                                           // populares
+      .mockResolvedValueOnce([t1, t2])                                     // vistas completas
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');

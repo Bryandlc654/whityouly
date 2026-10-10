@@ -708,12 +708,29 @@ export class StoriesService {
   async getFeed(userId: string) {
     const baseWhere = { status: StoryStatus.PUBLISHED, visibility: 'PUBLIC' } as const;
 
-    const [recent, popular, followingRows, pool] = await Promise.all([
+    // El personaje (con sus intereses) se lee una vez y se reutiliza para
+    // resolver los seguidos y el perfil, sin consultas duplicadas.
+    const character = await this.prisma.character.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        interests: { select: { interest: { select: { name: true } } } },
+      },
+    });
+    const followedIds = character
+      ? await this.getFollowedCharacterIdsByCharacter(character.id)
+      : [];
+
+    const [profile, recentPool, popular, following] = await Promise.all([
+      // El perfil también consulta los relatos propios; todo en paralelo.
+      this.buildProfile(userId, character, followedIds),
+      // Piscina ligera (sin etapas ni medios): con ella se calculan recientes y
+      // recomendadas, así que no hace falta una consulta por sección.
       this.prisma.story.findMany({
         where: baseWhere,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: FEED_SECTION_LIMIT,
-        select: STORY_LIST_SELECT_WITH_AUTHOR,
+        take: RECOMMEND_POOL_SIZE,
+        select: RECOMMEND_SELECT,
       }),
       this.prisma.story.findMany({
         where: baseWhere,
@@ -725,42 +742,53 @@ export class StoriesService {
         take: FEED_SECTION_LIMIT,
         select: STORY_LIST_SELECT_WITH_AUTHOR,
       }),
-      this.loadFollowingRows(userId, FEED_SECTION_LIMIT),
-      this.prisma.story.findMany({
-        where: baseWhere,
-        // Los más recientes como piscina: se puntúan y ordenan en memoria, sin
-        // recorrer la tabla completa de relatos en cada petición.
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: RECOMMEND_POOL_SIZE,
-        select: STORY_LIST_SELECT_WITH_AUTHOR,
-      }),
+      followedIds.length > 0
+        ? this.prisma.story.findMany({
+            where: {
+              characterId: { in: followedIds },
+              status: StoryStatus.PUBLISHED,
+              visibility: { in: ['PUBLIC', 'FOLLOWERS'] },
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: FEED_SECTION_LIMIT,
+            select: STORY_LIST_SELECT_WITH_AUTHOR,
+          })
+        : Promise.resolve<StoryListView[]>([]),
     ]);
 
-    const recommended = await this.rankRecommended(userId, pool);
+    // Recientes = cabecera de la piscina; recomendadas = ranking de la misma.
+    const recent = recentPool.slice(0, FEED_SECTION_LIMIT);
+    const recommended = this.topRecommended(recentPool, profile);
+
+    // Las vistas completas solo se descargan de los relatos que se van a
+    // mostrar, y en una única consulta.
+    const wanted = new Set<string>([
+      ...recent.map((row) => row.id),
+      ...recommended.map((row) => row.id),
+      ...popular.map((row) => row.id),
+      ...following.map((row) => row.id),
+    ]);
+    const fullRows = await this.prisma.story.findMany({
+      where: { id: { in: [...wanted] } },
+      select: STORY_LIST_SELECT_WITH_AUTHOR,
+    });
+    const fullById = new Map(fullRows.map((row) => [row.id, row]));
+    const asFull = (id: string) => fullById.get(id) as StoryListView;
 
     return {
-      recent: recent.map((row) => this.toPublicListView(row)),
-      recommended: recommended.map((row) => this.toPublicListView(row)),
+      recent: recent.map((row) => this.toPublicListView(asFull(row.id))),
+      recommended: recommended.map((row) => this.toPublicListView(asFull(row.id))),
       popular: popular.map((row) => this.toPublicListView(row)),
-      following: followingRows.map((row) => this.toPublicListView(row)),
+      following: following.map((row) => this.toPublicListView(row)),
     };
   }
 
   // --- Apoyo ----------------------------------------------------------------
 
-  /** Ids (sin repetir) de los personajes que sigue el usuario. Vacío si no tiene. */
-  private async getFollowedCharacterIds(userId: string): Promise<string[]> {
-    const character = await this.prisma.character.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-
-    if (!character) {
-      return [];
-    }
-
+  /** Ids (sin repetir) de los personajes que sigue ese personaje concreto. */
+  private async getFollowedCharacterIdsByCharacter(characterId: string): Promise<string[]> {
     const follows = await this.prisma.follower.findMany({
-      where: { followerId: character.id, followingCharacterId: { not: null } },
+      where: { followerId: characterId, followingCharacterId: { not: null } },
       select: { followingCharacterId: true },
     });
 
@@ -773,87 +801,78 @@ export class StoriesService {
     ];
   }
 
-  /** Relatos publicados de los personajes seguidos, para la sección del feed. */
-  private loadFollowingRows(userId: string, take: number) {
-    return this.getFollowedCharacterIds(userId).then((followedIds) => {
-      if (followedIds.length === 0) {
-        return [] as FeedRow[];
-      }
-      return this.prisma.story.findMany({
-        where: {
-          characterId: { in: followedIds },
-          status: StoryStatus.PUBLISHED,
-          visibility: { in: ['PUBLIC', 'FOLLOWERS'] },
-        },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take,
-        select: STORY_LIST_SELECT_WITH_AUTHOR,
-      });
+  /** Ids (sin repetir) de los personajes que sigue el usuario. Vacío si no tiene. */
+  private async getFollowedCharacterIds(userId: string): Promise<string[]> {
+    const character = await this.prisma.character.findUnique({
+      where: { userId },
+      select: { id: true },
     });
+
+    if (!character) {
+      return [];
+    }
+
+    return this.getFollowedCharacterIdsByCharacter(character.id);
   }
 
-  private async rankRecommended(userId: string, pool: FeedRow[]): Promise<FeedRow[]> {
-    const profile = await this.buildUserProfile(userId);
-
-    const scored = pool.map((row) => ({
-      row,
-      score: this.scoreStory(row, profile),
-      createdAt: row.createdAt.getTime(),
-    }));
-
-    scored.sort((a, b) => b.score - a.score || b.createdAt - a.createdAt);
-
-    return scored.slice(0, FEED_SECTION_LIMIT).map((entry) => entry.row);
+  /** Ordena la piscina por puntuación y devuelve el mejor tramo. */
+  private topRecommended(pool: FeedRow[], profile: UserProfile): FeedRow[] {
+    return [...pool]
+      .sort(
+        (a, b) =>
+          this.scoreStory(b, profile) - this.scoreStory(a, profile) ||
+          b.createdAt.getTime() - a.createdAt.getTime(),
+      )
+      .slice(0, FEED_SECTION_LIMIT);
   }
 
   /**
    * Perfil de preferencias del usuario para la recomendación: sus intereses
-   * declarados, la temática de lo que ya publica y a quién sigue.
+   * declarados, la temática de lo que ya publica y a quién sigue. Recibe el
+   * personaje y los seguidos ya resueltos para no repetir consultas en el feed.
    */
-  private async buildUserProfile(userId: string): Promise<UserProfile> {
-    const character = await this.prisma.character.findUnique({
-      where: { userId },
-      select: {
-        id: true,
-        interests: { select: { interest: { select: { name: true } } } },
-      },
-    });
-
+  private async buildProfile(
+    userId: string,
+    character: { id: string; interests: { interest: { name: string } }[] } | null,
+    followedIds: string[],
+  ): Promise<UserProfile> {
     const profile: UserProfile = {
       interests: new Set<string>(),
       authoredTags: new Map<string, number>(),
       authoredCategories: new Map<string, number>(),
       authoredEmotions: new Map<string, number>(),
-      followedIds: new Set(await this.getFollowedCharacterIds(userId)),
+      followedIds: new Set(followedIds),
     };
 
     for (const { interest } of character?.interests ?? []) {
       profile.interests.add(interest.name.toLowerCase());
     }
 
-    if (character) {
-      const authored = await this.prisma.story.findMany({
-        where: { character: { userId }, status: StoryStatus.PUBLISHED },
-        orderBy: { createdAt: 'desc' },
-        take: 40,
-        select: {
-          categories: { select: { category: { select: { name: true } } } },
-          emotions: { select: { emotion: { select: { name: true } } } },
-          tags: { select: { tag: { select: { name: true } } } },
-        },
-      });
+    if (!character) {
+      return profile;
+    }
 
-      for (const story of authored) {
-        story.categories.forEach(({ category }) =>
-          profile.authoredCategories.set(category.name.toLowerCase(), (profile.authoredCategories.get(category.name.toLowerCase()) ?? 0) + 1),
-        );
-        story.emotions.forEach(({ emotion }) =>
-          profile.authoredEmotions.set(emotion.name.toLowerCase(), (profile.authoredEmotions.get(emotion.name.toLowerCase()) ?? 0) + 1),
-        );
-        story.tags.forEach(({ tag }) =>
-          profile.authoredTags.set(tag.name.toLowerCase(), (profile.authoredTags.get(tag.name.toLowerCase()) ?? 0) + 1),
-        );
-      }
+    const authored = await this.prisma.story.findMany({
+      where: { character: { userId }, status: StoryStatus.PUBLISHED },
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+      select: {
+        categories: { select: { category: { select: { name: true } } } },
+        emotions: { select: { emotion: { select: { name: true } } } },
+        tags: { select: { tag: { select: { name: true } } } },
+      },
+    });
+
+    for (const story of authored) {
+      story.categories.forEach(({ category }) =>
+        profile.authoredCategories.set(category.name.toLowerCase(), (profile.authoredCategories.get(category.name.toLowerCase()) ?? 0) + 1),
+      );
+      story.emotions.forEach(({ emotion }) =>
+        profile.authoredEmotions.set(emotion.name.toLowerCase(), (profile.authoredEmotions.get(emotion.name.toLowerCase()) ?? 0) + 1),
+      );
+      story.tags.forEach(({ tag }) =>
+        profile.authoredTags.set(tag.name.toLowerCase(), (profile.authoredTags.get(tag.name.toLowerCase()) ?? 0) + 1),
+      );
     }
 
     return profile;
@@ -1240,8 +1259,26 @@ const STORY_LIST_SELECT_WITH_AUTHOR = {
   character: { select: { name: true, avatarUrl: true } },
 } satisfies Prisma.StorySelect;
 
-/** Fila del feed tal y como la consume el ranking de recomendación. */
-type FeedRow = Prisma.StoryGetPayload<{ select: typeof STORY_LIST_SELECT_WITH_AUTHOR }>;
+/** Vista completa de una fila del feed (para mostrarla). */
+type StoryListView = Prisma.StoryGetPayload<{ select: typeof STORY_LIST_SELECT_WITH_AUTHOR }>;
+
+/**
+ * Selección ligera para ranquear candidatos en el feed: basta con las etiquetas,
+ * categorías, emociones, el autor y los contadores. No arrastra etapas ni
+ * archivos, que es lo que encarece la proyección de la vista completa.
+ */
+const RECOMMEND_SELECT = {
+  id: true,
+  characterId: true,
+  createdAt: true,
+  categories: { select: { category: { select: { name: true } } } },
+  emotions: { select: { emotion: { select: { name: true } } } },
+  tags: { select: { tag: { select: { name: true } } } },
+  _count: { select: { comments: true, companionships: true } },
+} satisfies Prisma.StorySelect;
+
+/** Fila ligera para el ranking de recomendación. */
+type FeedRow = Prisma.StoryGetPayload<{ select: typeof RECOMMEND_SELECT }>;
 
 /** Preferencias del usuario para la recomendación por contenido. */
 interface UserProfile {
