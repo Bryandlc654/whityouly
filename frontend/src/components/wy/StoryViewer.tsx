@@ -73,20 +73,22 @@ export default function StoryViewer({
 
       {story ? (
         <>
-          <div className="story-reader-author">
-            <Avatar
-              initials={initialsOf(story.author?.name)}
-              avatarUrl={story.author?.avatarUrl}
-              size="sm"
-            />
-            <div>
-              <b>{story.author?.name ?? 'Autor desconocido'}</b>
-              <span className="hint">
-                {formatDate(story.updatedAt)} · {story.updates.length}{' '}
-                {story.updates.length === 1 ? 'etapa' : 'etapas'}
-              </span>
+          {variant === 'inline' ? (
+            <div className="story-reader-author">
+              <Avatar
+                initials={initialsOf(story.author?.name)}
+                avatarUrl={story.author?.avatarUrl}
+                size="sm"
+              />
+              <div>
+                <b>{story.author?.name ?? 'Autor desconocido'}</b>
+                <span className="hint">
+                  {formatDate(story.updatedAt)} · {story.updates.length}{' '}
+                  {story.updates.length === 1 ? 'etapa' : 'etapas'}
+                </span>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="story-timeline">
             {story.updates.map((stage, index) => {

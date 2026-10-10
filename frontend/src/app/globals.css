@@ -626,6 +626,14 @@ body {
 }
 
 /* Lector de historia completo (StoryViewer): autor + línea de tiempo + comentarios. */
+.wy .modal {
+  scrollbar-width: none;
+}
+
+.wy .modal::-webkit-scrollbar {
+  display: none;
+}
+
 .wy .story-viewer.modal {
   width: min(640px, 100%);
 }
@@ -663,8 +671,8 @@ body {
 .wy .story-stage {
   position: relative;
   display: grid;
-  gap: 8px;
-  padding: 2px 0 24px 30px;
+  gap: 6px;
+  padding: 2px 0 18px 30px;
 }
 
 .wy .story-stage:not(.last)::before {
