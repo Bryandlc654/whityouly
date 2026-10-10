@@ -522,7 +522,7 @@ export default function FeedPage() {
                 type="button"
                 onClick={() => openMood(mood.name)}
               >
-                <span>{mood.glyph}</span>
+                <span>{mood.emoji}</span>
                 <small>{mood.name}</small>
               </button>
             ))}

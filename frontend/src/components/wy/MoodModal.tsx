@@ -3,11 +3,11 @@
 import Icon from './Icon';
 
 export const MOODS = [
-  { name: 'Calma', glyph: '☁' },
-  { name: 'Ansiedad', glyph: '≈' },
-  { name: 'Neutral', glyph: '—' },
-  { name: 'Tristeza', glyph: '⌣' },
-  { name: 'Esperanza', glyph: '✦' },
+  { name: 'Calma', emoji: '😌' },
+  { name: 'Ansiedad', emoji: '😰' },
+  { name: 'Neutral', emoji: '😐' },
+  { name: 'Tristeza', emoji: '😢' },
+  { name: 'Esperanza', emoji: '🌈' },
 ] as const;
 
 const DAYPARTS = ['Todo el día', 'Mañana', 'Tarde', 'Noche'];
@@ -53,7 +53,7 @@ export default function MoodModal({
             type="button"
             onClick={() => onChangeName(mood.name)}
           >
-            <span>{mood.glyph}</span>
+            <span>{mood.emoji}</span>
             <small>{mood.name}</small>
           </button>
         ))}
