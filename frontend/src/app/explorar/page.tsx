@@ -13,6 +13,17 @@ import CommentSection from '@/components/wy/CommentSection';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { listPublicStories, viewStory, type FollowingStory, type MyStory } from '@/lib/stories';
 import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
+import {
+  getFeaturedStories,
+  getRecommendedCharacters,
+  getTrendingStories,
+  type FeaturedStory,
+  type RecommendedCharacter,
+  type TrendStory,
+} from '@/lib/discovery';
+import { unreadNotificationsCount } from '@/lib/notifications';
+import NotificationsPanel from '@/components/wy/NotificationsPanel';
+import Avatar from '@/components/wy/Avatar';
 
 type Tab = 'historias' | 'personajes';
 
@@ -60,6 +71,11 @@ export default function ExplorePage() {
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [featured, setFeatured] = useState<FeaturedStory[]>([]);
+  const [trends, setTrends] = useState<TrendStory[]>([]);
+  const [recommended, setRecommended] = useState<RecommendedCharacter[]>([]);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const notify = useCallback((message: string) => {
@@ -96,6 +112,18 @@ export default function ExplorePage() {
     void verify();
     void fetchTaxonomy().then((result) => {
       if (result.status === 'ok') setTaxo(result.data);
+    });
+
+    void Promise.all([
+      getFeaturedStories(),
+      getTrendingStories(),
+      getRecommendedCharacters(),
+      unreadNotificationsCount(),
+    ]).then(([featuredResult, trendsResult, recommendedResult, unread]) => {
+      if (featuredResult.status === 'ok') setFeatured(featuredResult.data.items);
+      if (trendsResult.status === 'ok') setTrends(trendsResult.data.items);
+      if (recommendedResult.status === 'ok') setRecommended(recommendedResult.data.items);
+      if (unread.status === 'ok') setUnreadCount(unread.data.count);
     });
   }, [router]);
 
@@ -176,6 +204,12 @@ export default function ExplorePage() {
       case 'mood':
         notify('Mi estado emocional llega con el módulo del diario.');
         break;
+      case 'notifications':
+        setNotificationsOpen(true);
+        break;
+      case 'help':
+        notify('Ayuda, privacidad y recursos de apoyo llegarán pronto.');
+        break;
       default:
         notify('Esta sección llega con los próximos módulos.');
     }
@@ -190,6 +224,117 @@ export default function ExplorePage() {
       return;
     }
     notify(result.message);
+  };
+
+  const renderFeatured = (items: FeaturedStory[]) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="feed-group">
+        <h2 className="feed-group-title">Contenido destacado</h2>
+        <div className="featured-strip">
+          {items.map((story) => (
+            <article key={story.id} className="card featured-card">
+              <span className="featured-label">
+                <Icon name="sparkle" />
+                {story.note || 'Destacado'}
+              </span>
+              <h3>{story.title}</h3>
+              <p className="story-row-meta">
+                <Icon name="user" />
+                <span>{story.author.name}</span>
+                {story.categories[0] ? (
+                  <>
+                    <span className="dot" aria-hidden />
+                    <span>{story.categories[0]}</span>
+                  </>
+                ) : null}
+              </p>
+              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
+              {story.opening?.mediaUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={story.opening.mediaUrl} alt="" className="post-media" />
+              ) : null}
+              <div className="story-row-actions">
+                <button className="action-link" type="button" onClick={() => void openStory(story.id)}>
+                  <Icon name="book" /> Leer historia
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTrends = (items: TrendStory[]) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="feed-group" style={{ marginTop: 16 }}>
+        <h2 className="feed-group-title">Tendencias</h2>
+        <div className="stack">
+          {items.slice(0, 6).map((story) => (
+            <article key={story.id} className="card story-row">
+              <div className="story-row-head">
+                <h2>{story.title}</h2>
+                <span className="status-pill featured">{story.trendScore} hoy</span>
+              </div>
+              <p className="story-row-meta">
+                <Icon name="user" />
+                <span>{story.author.name}</span>
+                {story.categories[0] ? (
+                  <>
+                    <span className="dot" aria-hidden />
+                    <span>{story.categories[0]}</span>
+                  </>
+                ) : null}
+              </p>
+              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
+              <div className="story-row-actions">
+                <button className="action-link" type="button" onClick={() => void openStory(story.id)}>
+                  <Icon name="book" /> Leer historia
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderRecommended = (items: RecommendedCharacter[]) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="feed-group" style={{ marginTop: 16 }}>
+        <h2 className="feed-group-title">Personajes recomendados</h2>
+        <div className="stack">
+          {items.map((person) => (
+            <button
+              key={person.name}
+              type="button"
+              className="card pad recommend-person"
+              onClick={() => router.push(`/personaje/${encodeURIComponent(person.name)}`)}
+            >
+              <div className="recommend-row">
+                <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
+                <div style={{ minWidth: 0 }}>
+                  <b>{person.name}</b>
+                  {person.tagline ? <p className="hint" style={{ margin: 0 }}>{person.tagline}</p> : null}
+                </div>
+              </div>
+              <div className="recommend-meta">
+                {person.sharedInterests > 0 ? (
+                  <span className="chip on">{person.sharedInterests} interés{person.sharedInterests === 1 ? '' : 'es'} en común</span>
+                ) : null}
+                <span className="hint">
+                  {person.stories} {person.stories === 1 ? 'relato' : 'relatos'} · {person.followers}{' '}
+                  {person.followers === 1 ? 'seguidor' : 'seguidores'}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -211,8 +356,21 @@ export default function ExplorePage() {
       onOpenAccount={openAccount}
       onSearch={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       toast={toast}
+      unreadNotifications={unreadCount}
       overlay={
-        view ? (
+        notificationsOpen ? (
+          <NotificationsPanel
+            onClose={() => setNotificationsOpen(false)}
+            onOpenStory={(storyId) => {
+              setNotificationsOpen(false);
+              void openStory(storyId);
+            }}
+            onOpenCharacter={(name) => {
+              setNotificationsOpen(false);
+              router.push(`/personaje/${encodeURIComponent(name)}`);
+            }}
+          />
+        ) : view ? (
           <div className="modal" role="dialog" aria-modal="true" aria-label={view.title}>
             <div className="modal-head">
               <div>
@@ -353,6 +511,14 @@ export default function ExplorePage() {
         ) : null}
 
         {busy ? <p className="muted small">Buscando…</p> : null}
+
+        {!q && !selCat && !selEmo && !selTag ? (
+          <>
+            {renderFeatured(featured)}
+            {renderTrends(trends)}
+            {renderRecommended(recommended)}
+          </>
+        ) : null}
 
         {error ? (
           <div className="auth-error" role="alert">

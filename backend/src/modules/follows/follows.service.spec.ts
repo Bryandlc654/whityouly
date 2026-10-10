@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { FollowsService } from './follows.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 describe('FollowsService', () => {
   let service: FollowsService;
@@ -18,11 +19,16 @@ describe('FollowsService', () => {
         create: vi.fn().mockResolvedValue({}),
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
-      $queryRaw: vi.fn().mockResolvedValue([{ id: 'char-2' }]),
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'char-2', userId: 'user-2' }]),
     };
 
     storiesService = {
-      assertStoryVisible: vi.fn().mockResolvedValue({ id: 'story-1', characterId: 'char-owner', isOwner: false }),
+      assertStoryVisible: vi.fn().mockResolvedValue({ id: 'story-1', characterId: 'char-owner', ownerUserId: 'user-owner', isOwner: false }),
+    };
+
+    const notifications = {
+      create: vi.fn().mockResolvedValue(undefined),
+      createMany: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -30,6 +36,7 @@ describe('FollowsService', () => {
         FollowsService,
         { provide: PrismaService, useValue: prisma },
         { provide: StoriesService, useValue: storiesService },
+        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
 

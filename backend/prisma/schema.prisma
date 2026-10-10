@@ -123,6 +123,10 @@ model Character {
   companionshipsReceived Companionship[] @relation("CharacterReceivesCompanionship")
   followers       Follower[] @relation("CharacterFollowers")
   following       Follower[] @relation("CharacterFollowing")
+  // Notificaciones que este personaje provocó (seguidor, comentarista,
+  // acompañante...). Se separa del destinatario: `Notification.userId` es quien
+  // recibe y `actorCharacterId` es quien lo originó.
+  notificationsTriggered Notification[] @relation("NotificationActor")
 
   // El barrido de avatares huérfanos busca por `avatarUrl`. Sin índice, esa
   // comprobación recorre la tabla de personajes entera en cada pasada.
@@ -239,6 +243,9 @@ model Story {
   companionships Companionship[] @relation("StoryReceivesCompanionship")
   followers      Follower[]      @relation("StoryFollowers")
   music          StoryMusic[]
+  // Destacado editorial (lo elige administración). Es independiente de
+  // `featuredAt`, que es el relato que la propia persona fija en su perfil.
+  featuredStory  FeaturedStory?
 
   @@index([createdAt])
   // Listado del propietario ("mis relatos"): filtra por personaje y ordena por
@@ -248,6 +255,9 @@ model Story {
   @@index([status, visibility, createdAt])
   // "Historias destacadas" del perfil público: se leen por personaje y fecha.
   @@index([characterId, featuredAt])
+  // El contenido destacado cae a los relatos que sus autores marcaron en el
+  // perfil cuando no hay curación; esa consulta ordena por `featuredAt` sola.
+  @@index([featuredAt])
   @@map("stories")
 }
 
@@ -385,6 +395,12 @@ model Comment {
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
 
+  // El listado de comentarios de un relato filtra por relato y ordena por fecha.
+  // Las tendencias agrupan comentarios de la última ventana por estado y fecha.
+  // Sin estos índices, ambas consultas recorren la tabla entera (es la tabla que
+  // más crece: un comentario por cada interacción escrita).
+  @@index([storyId, createdAt])
+  @@index([status, createdAt])
   @@map("comments")
 }
 
@@ -417,17 +433,46 @@ enum NotificationStatus {
 
 model Notification {
   id         String             @id @default(uuid())
+  // Destinatario de la notificación.
   userId     String
+  // Código del evento: FOLLOW, COMMENT, COMMENT_REPLY, COMPANIONSHIP,
+  // STORY_UPDATE, MODERATION o SYSTEM.
   type       String
+  // Quién lo provocó (nulo en avisos de sistema o si el personaje se borró).
+  actorCharacterId String?
+  // Objeto sobre el que actuar: STORY, CHARACTER o SYSTEM.
   entityType String
-  entityId   String
+  entityId   String?
   status     NotificationStatus @default(UNREAD)
   createdAt  DateTime           @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorCharacter Character? @relation("NotificationActor", fields: [actorCharacterId], references: [id], onDelete: SetNull)
 
-  @@index([userId])
+  // La bandeja se lee por destinatario y fecha, y el contador de no leídas
+  // filtra además por estado. Los dos índices cubren ambos casos.
+  @@index([userId, createdAt])
+  @@index([userId, status, createdAt])
+  @@index([actorCharacterId])
   @@map("notifications")
+}
+
+// Contenido destacado por administración: una lista curada y ordenada de
+// relatos. `expiresAt` permite programar su salida de portada sin volver a
+// tocarla. Es distinto del destacado del perfil, que controla su autor.
+model FeaturedStory {
+  id        String    @id @default(uuid())
+  storyId   String    @unique
+  // Menor = aparece antes. Los empates se resuelven por fecha de curación.
+  position  Int       @default(0)
+  note      String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([position, createdAt])
+  @@map("featured_stories")
 }
 
 // ----------------------------------------------------------------------------

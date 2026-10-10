@@ -26,6 +26,11 @@ import {
   sanitizeStoryContent,
   sanitizeStoryTitle,
 } from './story-sanitize';
+import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NOTIFICATION_ENTITY,
+  NOTIFICATION_TYPES,
+} from '../notifications/notification-types';
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 20;
@@ -106,6 +111,7 @@ export class StoriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly quota: QuotaService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // --- Escritura (propietario) ---------------------------------------------
@@ -289,7 +295,36 @@ export class StoriesService {
       storyId,
     });
 
+    await this.notifyStoryFollowers(userId, story.characterId, storyId);
+
     return this.toStageView(stage);
+  }
+
+  /**
+   * Avisa a quienes siguen el relato (y no son su autor) de que hay una etapa
+   * nueva. Se hace en un solo INSERT por lote: un relato popular puede tener
+   * muchos seguidores y no conviene una consulta por cada uno.
+   */
+  private async notifyStoryFollowers(
+    ownerUserId: string,
+    characterId: string,
+    storyId: string,
+  ): Promise<void> {
+    const followers = await this.prisma.follower.findMany({
+      where: { followingStoryId: storyId, follower: { userId: { not: ownerUserId } } },
+      select: { follower: { select: { userId: true } } },
+    });
+
+    await this.notifications.createMany(
+      followers.map((row) => ({
+        userId: row.follower.userId,
+        actorUserId: ownerUserId,
+        actorCharacterId: characterId,
+        type: NOTIFICATION_TYPES.STORY_UPDATE,
+        entityType: NOTIFICATION_ENTITY.STORY,
+        entityId: storyId,
+      })),
+    );
   }
 
   async updateStage(
@@ -617,6 +652,30 @@ export class StoriesService {
   }
 
   /**
+   * Vista pública de una lista de relatos por id, en el orden recibido. Solo
+   * devuelve los que siguen publicados con visibilidad pública; el resto se
+   * descarta. Lo usan el contenido destacado y las tendencias, que primero
+   * deciden qué relatos mostrar y luego necesitan la misma vista que el feed.
+   */
+  async listPublicByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows = await this.prisma.story.findMany({
+      where: { id: { in: ids }, status: StoryStatus.PUBLISHED, visibility: 'PUBLIC' },
+      select: STORY_LIST_SELECT_WITH_AUTHOR,
+    });
+
+    const byId = new Map(rows.map((row) => [row.id, row]));
+
+    return ids
+      .map((id) => byId.get(id))
+      .filter((row): row is StoryListView => Boolean(row))
+      .map((row) => this.toPublicListView(row));
+  }
+
+  /**
    * Detalle autenticado: aplica la visibilidad. El propietario ve cualquier
    * relato suyo (borrador incluido); quien sigue al autor ve PUBLIC y FOLLOWERS;
    * el resto solo PUBLIC. Un relato que no se puede ver responde 404, igual que
@@ -645,7 +704,7 @@ export class StoriesService {
   async assertStoryVisible(
     userId: string,
     storyId: string,
-  ): Promise<{ id: string; characterId: string; isOwner: boolean }> {
+  ): Promise<{ id: string; characterId: string; ownerUserId: string; isOwner: boolean }> {
     const scope = await this.prisma.story.findFirst({
       where: { id: storyId, status: { not: StoryStatus.DELETED } },
       select: {
@@ -683,7 +742,7 @@ export class StoriesService {
       }
     }
 
-    return { id: scope.id, characterId: scope.characterId, isOwner };
+    return { id: scope.id, characterId: scope.characterId, ownerUserId: scope.character.userId, isOwner };
   }
 
   /**

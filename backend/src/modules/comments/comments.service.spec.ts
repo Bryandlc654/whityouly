@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, ForbiddenException, NotFoundExc
 import { CommentsService } from './comments.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 function commentRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -42,7 +43,12 @@ describe('CommentsService', () => {
     };
 
     storiesService = {
-      assertStoryVisible: vi.fn().mockResolvedValue({ id: 'story-1', characterId: 'char-owner', isOwner: false }),
+      assertStoryVisible: vi.fn().mockResolvedValue({ id: 'story-1', characterId: 'char-owner', ownerUserId: 'user-owner', isOwner: false }),
+    };
+
+    const notifications = {
+      create: vi.fn().mockResolvedValue(undefined),
+      createMany: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -50,6 +56,7 @@ describe('CommentsService', () => {
         CommentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: StoriesService, useValue: storiesService },
+        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
 
@@ -90,7 +97,12 @@ describe('CommentsService', () => {
 
   it('responde solo a comentarios de primer nivel', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
-    prisma.comment.findFirst.mockResolvedValue({ id: 'c0', parentId: null, status: 'ACTIVE' });
+    prisma.comment.findFirst.mockResolvedValue({
+      id: 'c0',
+      parentId: null,
+      status: 'ACTIVE',
+      character: { userId: 'user-owner' },
+    });
 
     await service.create('user-1', 'story-1', { content: 'Respuesta', parentId: 'c0' });
     expect(prisma.comment.create).toHaveBeenCalledWith(

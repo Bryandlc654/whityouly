@@ -2,6 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 import { normalizeCharacterName } from '../characters/characters.service';
 
 export interface FollowedCharacter {
@@ -27,6 +29,7 @@ export class FollowsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async follow(userId: string, rawName: string): Promise<{ following: true }> {
@@ -47,6 +50,16 @@ export class FollowsService {
     if (!existing) {
       await this.prisma.follower.create({
         data: { followerId: follower.id, followingCharacterId: target.id },
+      });
+
+      // Solo al crear el vínculo (no en un seguimiento repetido) y nunca a uno
+      // mismo, que ya se ha rechazado antes.
+      await this.notifications.create({
+        userId: target.userId,
+        actorCharacterId: follower.id,
+        type: NOTIFICATION_TYPES.FOLLOW,
+        entityType: NOTIFICATION_ENTITY.CHARACTER,
+        entityId: target.id,
       });
     }
 
@@ -197,7 +210,7 @@ export class FollowsService {
     return character;
   }
 
-  private async resolveTarget(rawName: string): Promise<{ id: string }> {
+  private async resolveTarget(rawName: string): Promise<{ id: string; userId: string }> {
     const name = normalizeCharacterName(rawName);
 
     if (!name || name.length > 30) {
@@ -205,9 +218,10 @@ export class FollowsService {
     }
 
     // Mismo criterio que el perfil público: el nombre se resuelve sin distinguir
-    // mayúsculas contra el índice funcional.
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT "id" FROM "characters" WHERE lower("name") = lower(${name}) LIMIT 1
+    // mayúsculas contra el índice funcional. Se trae el `userId` para poder
+    // notificar al propietario sin una consulta extra.
+    const rows = await this.prisma.$queryRaw<{ id: string; userId: string }[]>`
+      SELECT "id", "userId" FROM "characters" WHERE lower("name") = lower(${name}) LIMIT 1
     `;
 
     const target = rows[0];

@@ -16,6 +16,8 @@ import {
   ListCommentsQueryDto,
   ReportCommentDto,
 } from './dto/comment.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
@@ -49,11 +51,12 @@ export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(userId: string, storyId: string, dto: CreateCommentDto) {
     // El comentario exige poder ver el relato (propietario, seguidor o público).
-    await this.storiesService.assertStoryVisible(userId, storyId);
+    const story = await this.storiesService.assertStoryVisible(userId, storyId);
     const character = await this.requireCommenterCharacter(userId);
 
     const content = sanitizeCommentContent(dto.content);
@@ -62,10 +65,16 @@ export class CommentsService {
     }
 
     let parentId: string | null = null;
+    let parentAuthorUserId: string | null = null;
     if (dto.parentId) {
       const parent = await this.prisma.comment.findFirst({
         where: { id: dto.parentId, storyId },
-        select: { id: true, parentId: true, status: true },
+        select: {
+          id: true,
+          parentId: true,
+          status: true,
+          character: { select: { userId: true } },
+        },
       });
       // Se permite una sola profundidad de respuesta: solo se responde a
       // comentarios de primer nivel.
@@ -76,6 +85,7 @@ export class CommentsService {
         throw new NotFoundException('El comentario al que respondes ya no está disponible.');
       }
       parentId = parent.id;
+      parentAuthorUserId = parent.character.userId;
     }
 
     const comment = await this.prisma.comment.create({
@@ -84,8 +94,61 @@ export class CommentsService {
     });
 
     await this.track('comment.created', { userId, storyId, commentId: comment.id });
+    await this.notifyComment(userId, {
+      storyId,
+      ownerUserId: story.ownerUserId,
+      commenterCharacterId: character.id,
+      parentAuthorUserId,
+    });
 
     return this.toView(comment, character.id);
+  }
+
+  /**
+   * Avisa al autor del relato (comentario nuevo) y, en una respuesta, también al
+   * autor del comentario original. Nunca a uno mismo ni dos veces a la misma
+   * persona: si el autor del relato y el del comentario padre coinciden, solo
+   * recibe un aviso.
+   */
+  private async notifyComment(
+    actorUserId: string,
+    data: {
+      storyId: string;
+      ownerUserId: string;
+      commenterCharacterId: string;
+      parentAuthorUserId: string | null;
+    },
+  ): Promise<void> {
+    const base = {
+      userId: data.ownerUserId,
+      actorUserId,
+      actorCharacterId: data.commenterCharacterId,
+      entityType: NOTIFICATION_ENTITY.STORY,
+      entityId: data.storyId,
+    } as const;
+
+    if (data.parentAuthorUserId) {
+      await this.notifications.create({
+        ...base,
+        type: NOTIFICATION_TYPES.COMMENT_REPLY,
+      });
+
+      // El autor del comentario padre recibe su propio aviso si no es el autor
+      // del relato (que ya recibió el de arriba) ni quien escribió.
+      if (data.parentAuthorUserId !== data.ownerUserId) {
+        await this.notifications.create({
+          ...base,
+          userId: data.parentAuthorUserId,
+          type: NOTIFICATION_TYPES.COMMENT_REPLY,
+        });
+      }
+      return;
+    }
+
+    await this.notifications.create({
+      ...base,
+      type: NOTIFICATION_TYPES.COMMENT,
+    });
   }
 
   async list(userId: string, storyId: string, query: ListCommentsQueryDto) {

@@ -50,9 +50,18 @@ Backend y frontend están desplegados y operativos en producción con identidad,
 | Intereses | Completo | Catálogo público y asignación a personajes |
 | Archivos | Completo | Biblioteca personal con cuotas, paginación por cursor y borrado protegido |
 | Frontend | Parcial | Login, registro, verificación, reset, cuenta, perfil público y Feed. El Feed usa **datos de ejemplo** |
-| Historias | **No empezado** | El modelo de datos existe; no hay API |
-| Comunidad | **No empezado** | Carpetas vacías |
+| Historias, comunidad e interacciones | Completo | El README quedó desactualizado; ver git log y el módulo `stories` |
 | Notificaciones, analítica, IA, música | **No empezado** | Carpetas vacías |
+
+### Descubrimiento y notificaciones
+
+Desde el 10 de octubre de 2026 el backend incluye además:
+
+| Módulo | Estado | Qué incluye |
+|---|---|---|
+| Notificaciones | Completo | Bandeja paginada por cursor, contador de no leídas, marcar leída individual o todas. Se emiten avisos de seguidor nuevo, comentario, respuesta a comentario, acompañamiento y etapa nueva en un relato seguido |
+| Descubrimiento | Completo | Contenido destacado curado por administración (`featured_stories`), tendencias por interacción reciente y personajes recomendados por afinidad de intereses |
+| Curación (`/admin/featured`) | Completo | `ADMIN`/`SUPERADMIN` pueden destacar, reordenar, añadir nota o caducidad y retirar relatos de la portada |
 
 ### Rutas del frontend
 
@@ -282,6 +291,35 @@ Todas las rutas cuelgan de la raíz del backend. `JWT` indica que exigen access 
 | `GET` | `/files` | JWT | Listar biblioteca, paginado por cursor |
 | `DELETE` | `/files/:id` | JWT | Borrar, si no está en uso |
 
+### Notificaciones — `/notifications`
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/notifications` | JWT | Bandeja, paginada por cursor, con `unreadCount` |
+| `GET` | `/notifications/unread-count` | JWT | Número de no leídas |
+| `POST` | `/notifications/read-all` | JWT | Marcar todas como leídas |
+| `POST` | `/notifications/:id/read` | JWT | Marcar una como leída |
+
+Se crean solas al seguir, comentar, responder, acompañar o publicar una etapa en un relato seguido. Nunca avisan a uno mismo.
+
+### Descubrimiento — `/discover`
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/discover/featured` | — | Contenido destacado (curado por administración; si no hay, cae a los relatos destacados por sus autores) |
+| `GET` | `/discover/trends` | — | Relatos en tendencia por interacción reciente |
+| `GET` | `/discover/characters` | JWT | Personajes recomendados según intereses y seguidos |
+
+### Curación — `/admin/featured`
+
+Reservada a `ADMIN`/`SUPERADMIN`. `feature` es un PUT idempotente: omite campos = conserva, `note: ''` la vacía.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/admin/featured` | Lista la curación actual |
+| `PUT` | `/admin/featured/:storyId` | Destacar un relato (crea o actualiza; solo publicados) |
+| `DELETE` | `/admin/featured/:storyId` | Quitar de la portada |
+
 ### Administración
 
 | Método | Ruta | Auth | Descripción |
@@ -307,9 +345,15 @@ Enums principales: `Role` (USER, MODERATOR, ADMIN, SUPERADMIN), `Status` (ACTIVE
 El historial está versionado en Git:
 
 | Migración | Contenido |
-|---|---|
+|---|---|---|
 | `20261003205500_init_baseline` | Esquema completo, generado del estado real de la base |
 | `20261004120000_indices_de_consulta` | Seis índices para las tareas periódicas y las claves foráneas |
+| `20261008120000_stories_indices` | Índices de relatos (feed, propietario, destacados) |
+| `20261008130000_story_audio_and_follows` | Audio por etapa y índices de seguimiento |
+| `20261008140000_interactions_indices` | Unicidad de interacciones y guardados |
+| `20261008150000_featured_stories` | Destacado del relato en el perfil público |
+| `20261010120000_notifications_and_featured` | `featured_stories` (portada curada), actor y contadores de notificaciones |
+| `20261010150000_discovery_escalabilidad` | Índices de comentarios (listado y ventana de tendencias) y de `stories.featuredAt` |
 
 ```bash
 npx prisma migrate deploy    # aplicar

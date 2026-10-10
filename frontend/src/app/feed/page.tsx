@@ -18,6 +18,9 @@ import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows
 import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { getFeed, type FeedSections, type FollowingStory } from '@/lib/stories';
+import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
+import { unreadNotificationsCount } from '@/lib/notifications';
+import NotificationsPanel from '@/components/wy/NotificationsPanel';
 import type { DemoStory } from '@/components/wy/feedData';
 
 interface FeedEntry extends DemoStory {
@@ -103,6 +106,9 @@ export default function FeedPage() {
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [featured, setFeatured] = useState<FeaturedStory[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const composerRef = useRef<HTMLElement>(null);
@@ -159,10 +165,23 @@ export default function FeedPage() {
     setFeedLoading(true);
     setFeedError('');
 
-    const [feed, follows] = await Promise.all([getFeed(), listFollowing()]);
+    const [feed, follows, featuredResult, unread] = await Promise.all([
+      getFeed(),
+      listFollowing(),
+      getFeaturedStories(),
+      unreadNotificationsCount(),
+    ]);
 
     if (follows.status === 'ok') {
       setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
+    }
+
+    if (featuredResult.status === 'ok') {
+      setFeatured(featuredResult.data.items);
+    }
+
+    if (unread.status === 'ok') {
+      setUnreadCount(unread.data.count);
     }
 
     if (feed.status !== 'ok') {
@@ -301,6 +320,12 @@ export default function FeedPage() {
       case 'mood':
         openMood();
         break;
+      case 'notifications':
+        setNotificationsOpen(true);
+        break;
+      case 'help':
+        notify('Ayuda, privacidad y recursos de apoyo llegarán pronto.');
+        break;
       case 'profile':
         router.push('/cuenta');
         break;
@@ -362,6 +387,46 @@ export default function FeedPage() {
     );
   };
 
+  const renderFeatured = (items: FeaturedStory[]) => {
+    if (items.length === 0) return null;
+    return (
+      <section className="feed-group">
+        <h2 className="feed-group-title">Contenido destacado</h2>
+        <div className="featured-strip">
+          {items.map((story) => (
+            <article key={story.id} className="card featured-card">
+              <span className="featured-label">
+                <Icon name="sparkle" />
+                {story.note || 'Destacado'}
+              </span>
+              <h3>{story.title}</h3>
+              <p className="story-row-meta">
+                <Icon name="user" />
+                <span>{story.author.name}</span>
+                {story.categories[0] ? (
+                  <>
+                    <span className="dot" aria-hidden />
+                    <span>{story.categories[0]}</span>
+                  </>
+                ) : null}
+              </p>
+              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
+              {story.opening?.mediaUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={story.opening.mediaUrl} alt="" className="post-media" />
+              ) : null}
+              <div className="story-row-actions">
+                <button className="action-link" type="button" onClick={() => setCommentsStory(story)}>
+                  <Icon name="book" /> Leer historia
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
   if (loading) {
     return (
       <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
@@ -382,8 +447,21 @@ export default function FeedPage() {
       onOpenAccount={openAccount}
       onSearch={() => router.push('/explorar')}
       toast={toast}
+      unreadNotifications={unreadCount}
       overlay={
-        commentsStory ? (
+        notificationsOpen ? (
+          <NotificationsPanel
+            onClose={() => setNotificationsOpen(false)}
+            onOpenStory={(storyId) => {
+              setNotificationsOpen(false);
+              setCommentsStory({ id: storyId, title: '' } as FollowingStory);
+            }}
+            onOpenCharacter={(name) => {
+              setNotificationsOpen(false);
+              router.push(`/personaje/${encodeURIComponent(name)}`);
+            }}
+          />
+        ) : commentsStory ? (
           <div className="modal" role="dialog" aria-modal="true" aria-label="Comentarios">
             <div className="modal-head">
               <div>
@@ -510,6 +588,7 @@ export default function FeedPage() {
         {feedLoading ? <p className="muted small">Preparando tu feed…</p> : null}
 
         <div id="feedList" className="stack">
+          {renderFeatured(featured)}
           {renderSection('Historias recientes', sections?.recent ?? [], name)}
           {renderSection('Recomendadas para ti', sections?.recommended ?? [], name)}
           {renderSection('Historias populares', sections?.popular ?? [], name)}

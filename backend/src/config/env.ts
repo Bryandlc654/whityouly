@@ -168,4 +168,28 @@ export const env = {
     // Máximo de modificaciones de metadatos (título, visibilidad, taxonomía).
     editsPerHour: parseNumber(process.env.STORY_EDITS_PER_HOUR, 60),
   },
+  discovery: {
+    // Ventana de tiempo que define "tendencia": solo cuenta la interacción
+    // reciente, para que lo popular de hace un mes deje de copar la portada.
+    trendingWindowDays: parseNumber(process.env.DISCOVERY_TRENDING_WINDOW_DAYS, 14),
+    // Tamaño por defecto de cada sección de descubrimiento.
+    sectionLimit: parseNumber(process.env.DISCOVERY_SECTION_LIMIT, 12),
+    // Piscina de candidatos que se puntúa para recomendar personajes antes de
+    // recortar la sección. Acotarla evita recorrer toda la tabla.
+    recommendPool: parseNumber(process.env.DISCOVERY_RECOMMEND_POOL, 120),
+    // TTL de la caché del descubrimiento. Las consultas agregan datos (grupos de
+    // interacción, orden por seguidores) que no necesitan ser realtime: sin TTL,
+    // cada carga de portada repite agregados sobre las tablas que más crecen.
+    featuredCacheMs: parseNumber(process.env.DISCOVERY_FEATURED_CACHE_MS, 10 * 60_000),
+    trendingCacheMs: parseNumber(process.env.DISCOVERY_TRENDING_CACHE_MS, 5 * 60_000),
+    popularCharactersCacheMs: parseNumber(process.env.DISCOVERY_POPULAR_CHARACTERS_CACHE_MS, 10 * 60_000),
+  },
+  notifications: {
+    // Los avisos se acumulan (cada etapa de un relato seguido genera uno por
+    // seguidor). Para que la tabla no crezca sin techo, cada bandeja se poda
+    // hasta este máximo y el resto se borra en una tarea periódica.
+    maxPerUser: parseNumber(process.env.NOTIFICATIONS_MAX_PER_USER, 200),
+    // Cadencia de la poda. 0 desactiva la tarea.
+    cleanupIntervalMs: parseNumber(process.env.NOTIFICATIONS_CLEANUP_INTERVAL_MS, 60 * 60_000),
+  },
 };

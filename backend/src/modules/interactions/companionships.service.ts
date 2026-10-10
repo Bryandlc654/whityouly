@@ -8,6 +8,8 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 import { normalizeCharacterName } from '../characters/characters.service';
 
 /**
@@ -22,10 +24,11 @@ export class CompanionshipsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async supportStory(userId: string, storyId: string): Promise<{ supporting: true; count: number }> {
-    await this.storiesService.assertStoryVisible(userId, storyId);
+    const story = await this.storiesService.assertStoryVisible(userId, storyId);
     const character = await this.requireCharacter(userId);
 
     const existing = await this.prisma.companionship.findFirst({
@@ -40,6 +43,15 @@ export class CompanionshipsService {
           // P2002 = ya existía (petición concurrente): acompañar dos veces no añade nada.
           if (!this.isUniqueError(error)) throw error;
         });
+
+      await this.notifications.create({
+        userId: story.ownerUserId,
+        actorUserId: userId,
+        actorCharacterId: character.id,
+        type: NOTIFICATION_TYPES.COMPANIONSHIP,
+        entityType: NOTIFICATION_ENTITY.STORY,
+        entityId: storyId,
+      });
     }
 
     const count = await this.prisma.companionship.count({ where: { targetStoryId: storyId } });
@@ -78,6 +90,15 @@ export class CompanionshipsService {
         .catch((error) => {
           if (!this.isUniqueError(error)) throw error;
         });
+
+      await this.notifications.create({
+        userId: target.userId,
+        actorUserId: userId,
+        actorCharacterId: character.id,
+        type: NOTIFICATION_TYPES.COMPANIONSHIP,
+        entityType: NOTIFICATION_ENTITY.CHARACTER,
+        entityId: target.id,
+      });
     }
 
     const count = await this.prisma.companionship.count({ where: { targetCharacterId: target.id } });
@@ -110,14 +131,14 @@ export class CompanionshipsService {
     return character;
   }
 
-  private async resolveTarget(rawName: string): Promise<{ id: string }> {
+  private async resolveTarget(rawName: string): Promise<{ id: string; userId: string }> {
     const name = normalizeCharacterName(rawName);
     if (!name || name.length > 30) {
       throw new NotFoundException('Personaje no encontrado.');
     }
 
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT "id" FROM "characters" WHERE lower("name") = lower(${name}) LIMIT 1
+    const rows = await this.prisma.$queryRaw<{ id: string; userId: string }[]>`
+      SELECT "id", "userId" FROM "characters" WHERE lower("name") = lower(${name}) LIMIT 1
     `;
     const target = rows[0];
     if (!target) {

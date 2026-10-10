@@ -35,6 +35,7 @@ interface FrameProps {
   overlay?: ReactNode;
   sheet?: ReactNode;
   toast?: string;
+  unreadNotifications?: number;
   children: ReactNode;
 }
 
@@ -44,9 +45,10 @@ function TopBar({
   onNavigate,
   onOpenAccount,
   onSearch,
+  unreadNotifications = 0,
 }: Pick<
   FrameProps,
-  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'onSearch'
+  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'onSearch' | 'unreadNotifications'
 >) {
   return (
     <header className="topbar">
@@ -68,12 +70,17 @@ function TopBar({
             <Icon name="help" />
           </button>
           <button
-            className="icon-btn has-dot"
+            className="icon-btn"
             type="button"
             onClick={() => onNavigate('notifications')}
             aria-label="Notificaciones"
           >
             <Icon name="bell" />
+            {unreadNotifications > 0 ? (
+              <span className="notif-badge" aria-hidden>
+                {unreadNotifications > 9 ? '9+' : unreadNotifications}
+              </span>
+            ) : null}
           </button>
           <button
             className="avatar avatar-sm"
@@ -178,6 +185,7 @@ export default function WyFrame({
   overlay,
   sheet,
   toast,
+  unreadNotifications = 0,
   children,
 }: FrameProps) {
   return (
@@ -188,6 +196,7 @@ export default function WyFrame({
         onNavigate={onNavigate}
         onOpenAccount={onOpenAccount}
         onSearch={onSearch}
+        unreadNotifications={unreadNotifications}
       />
       <div className="app-shell">
         <LeftRail activeRoute={activeRoute} onNavigate={onNavigate} />

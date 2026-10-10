@@ -9,6 +9,7 @@ import {
 import { StoriesService } from './stories.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { QuotaService } from '../../common/quota/quota.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 function detailRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -82,11 +83,17 @@ describe('StoriesService', () => {
 
     quota = { consume: vi.fn().mockResolvedValue({ allowed: true, limit: 20, remaining: 19, retryAfterSeconds: 0 }) };
 
+    const notifications = {
+      create: vi.fn().mockResolvedValue(undefined),
+      createMany: vi.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StoriesService,
         { provide: PrismaService, useValue: prisma },
         { provide: QuotaService, useValue: quota },
+        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
 

@@ -24,6 +24,8 @@ import { FollowsModule } from './modules/follows/follows.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { DiscoveryModule } from './modules/discovery/discovery.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
     CommentsModule,
     InteractionsModule,
     BookmarksModule,
+    NotificationsModule,
+    DiscoveryModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],
