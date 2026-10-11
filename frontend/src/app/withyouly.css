@@ -87,7 +87,12 @@
 .wy .post{padding:20px}
 .wy .post-head{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
 .wy .post-author{font-weight:850}
-.wy .post-author button{border:0;background:transparent;color:var(--purple);font-weight:800;margin-left:5px;cursor:pointer}
+.wy .post-author button{border:0;background:transparent;color:var(--purple);font-weight:800;margin-left:5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;line-height:1.1;transition:background .22s ease,color .22s ease,transform .12s ease;animation:wy-follow-pop .34s cubic-bezier(.34,1.56,.64,1) both}
+.wy .post-author button svg{width:14px;height:14px}
+.wy .post-author button:hover{background:var(--purple-3)}
+.wy .post-author button.on{background:var(--purple-3);color:var(--purple)}
+.wy .post-author button:active{transform:scale(.93)}
+.wy .post-author button:disabled{opacity:.55;cursor:default;animation:none}
 .wy .post-time{font-size:12px;color:var(--muted);margin-top:3px}
 .wy .more-btn{width:38px;height:38px;border:0;background:transparent;border-radius:50%;cursor:pointer;color:var(--muted)}
 .wy .more-btn:hover{background:#f3f1f8}
@@ -563,3 +568,8 @@
 .wy .link-danger:disabled{opacity:.5;cursor:default}
 @media(max-width:820px){.wy .file-grid{grid-template-columns:repeat(2,1fr)}}
 @keyframes wy-spin{to{transform:rotate(360deg)}}
+.wy .follow-chip{display:inline-flex;align-items:center;gap:5px;transition:background .2s ease,border-color .2s ease,color .2s ease,transform .12s ease;animation:wy-follow-pop .34s cubic-bezier(.34,1.56,.64,1) both}
+.wy .follow-chip:hover{background:#efe9ff;border-color:#c9bcff}
+.wy .follow-chip:active{transform:scale(.94)}
+.wy .follow-chip:disabled{opacity:.55;cursor:default;animation:none}
+@keyframes wy-follow-pop{0%{transform:scale(.55);opacity:.3}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}

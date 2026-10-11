@@ -154,8 +154,8 @@ export default function FeedPage() {
     verifySession();
   }, [router]);
 
-  const loadFeed = useCallback(async () => {
-    setFeedLoading(true);
+  const loadFeed = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setFeedLoading(true);
     setFeedError('');
 
     const [feed, follows, featuredResult, unread] = await Promise.all([
@@ -229,6 +229,10 @@ export default function FeedPage() {
       return next;
     });
     notify(isFollowing ? `Dejaste de seguir a ${authorName}.` : `Ahora sigues a ${authorName}.`);
+
+    // El algoritmo pondera a los autores seguidos, así que se reordena el feed
+    // sin bloquear la vista: los relatos de quien acabas de seguir suben solos.
+    void loadFeed({ silent: true });
   };
 
   const toggleSupport = async (storyId: string) => {

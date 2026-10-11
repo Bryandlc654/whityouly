@@ -75,8 +75,15 @@ export default function PostCard({
                 {statusLabel === 'PUBLISHED' ? 'Tu relato · Publicado' : 'Tu relato · Borrador'}
               </span>
             ) : (
-              <button type="button" onClick={onFollowAuthor}>
-                {followingAuthor ? 'Siguiendo' : '+ Seguir autor'}
+              <button
+                type="button"
+                key={followingAuthor ? 'following' : 'follow'}
+                className={`follow-btn${followingAuthor ? ' on' : ''}`}
+                aria-pressed={followingAuthor}
+                onClick={onFollowAuthor}
+              >
+                <Icon name={followingAuthor ? 'check' : 'plus'} />
+                {followingAuthor ? 'Siguiendo' : 'Seguir autor'}
               </button>
             )}
           </div>

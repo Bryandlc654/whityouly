@@ -44,6 +44,11 @@ const RECOMMEND_POOL_SIZE = 60;
 // contenido sin que una sola carga materialice cientos de tarjetas.
 const MAX_FEED_ITEMS = 60;
 
+// Piscina propia para los relatos de los personajes seguidos. Es mayor que el de
+// cada sección para que quien sigues tenga presencia real en el feed aunque
+// haya publicado bastante: sus últimos relatos entran siempre y van primero.
+const FOLLOWING_FEED_LIMIT = 30;
+
 // Estados sobre los que el propietario todavía puede escribir. HIDDEN, REPORTED
 // y MODERATED son decisiones de moderación: no se pisan desde aquí.
 const EDITABLE_STATUSES: StoryStatus[] = [StoryStatus.DRAFT, StoryStatus.PUBLISHED];
@@ -871,7 +876,7 @@ export class StoriesService {
               visibility: { in: ['PUBLIC', 'FOLLOWERS'] },
             },
             orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-            take: FEED_SECTION_LIMIT,
+            take: FOLLOWING_FEED_LIMIT,
             select: STORY_LIST_SELECT_WITH_AUTHOR,
           })
         : Promise.resolve<StoryListView[]>([]),

@@ -255,7 +255,7 @@ export default function FollowingPage() {
                 <button
                   key={person.name}
                   type="button"
-                  className="chip on"
+                  className="chip on follow-chip"
                   disabled={busyAuthor === person.name}
                   onClick={() => void toggleFollow(person.name)}
                   title="Dejar de seguir"
@@ -358,10 +358,14 @@ export default function FollowingPage() {
                       <span>{story.author.name}</span>
                       <button
                         type="button"
+                        key={isFollowing ? 'following' : 'follow'}
+                        className={`follow-btn${isFollowing ? ' on' : ''}`}
+                        aria-pressed={isFollowing}
                         disabled={busyAuthor === story.author.name}
                         onClick={() => void toggleFollow(story.author.name)}
                       >
-                        {isFollowing ? 'Siguiendo' : '+ Seguir autor'}
+                        <Icon name={isFollowing ? 'check' : 'plus'} />
+                        {isFollowing ? 'Siguiendo' : 'Seguir autor'}
                       </button>
                     </div>
                     <div className="post-time">
