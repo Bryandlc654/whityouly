@@ -454,16 +454,11 @@ describe('StoriesService', () => {
     );
   });
 
-  it('devuelve las cuatro secciones del feed', async () => {
+  it('devuelve el feed unificado vacío', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1', interests: [] });
     prisma.story.findMany.mockResolvedValue([]);
 
-    await expect(service.getFeed('user-1')).resolves.toEqual({
-      recent: [],
-      recommended: [],
-      popular: [],
-      following: [],
-    });
+    await expect(service.getFeed('user-1')).resolves.toEqual({ items: [] });
   });
 
   it('las recomendadas priorizan los relatos afines a los intereses', async () => {
@@ -497,8 +492,8 @@ describe('StoriesService', () => {
 
     const feed = await service.getFeed('user-1');
 
-    expect(feed.recommended).toHaveLength(2);
-    expect(feed.recommended[0].id).toBe('match');
+    expect(feed.items).toHaveLength(2);
+    expect(feed.items[0].id).toBe('match');
   });
 
   const taxoRow = (id: string, overrides: Record<string, unknown>) => ({
@@ -531,7 +526,7 @@ describe('StoriesService', () => {
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');
-    expect(feed.recommended[0].id).toBe('c2');
+    expect(feed.items[0].id).toBe('c2');
   });
 
   it('las emociones que el autor ya usa influyen en la recomendacion', async () => {
@@ -548,7 +543,7 @@ describe('StoriesService', () => {
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');
-    expect(feed.recommended[0].id).toBe('e2');
+    expect(feed.items[0].id).toBe('e2');
   });
 
   it('las etiquetas que el autor ya usa influyen en la recomendacion', async () => {
@@ -564,6 +559,6 @@ describe('StoriesService', () => {
       .mockResolvedValue([]);
 
     const feed = await service.getFeed('user-1');
-    expect(feed.recommended[0].id).toBe('t2');
+    expect(feed.items[0].id).toBe('t2');
   });
 });

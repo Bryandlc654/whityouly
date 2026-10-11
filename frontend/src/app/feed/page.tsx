@@ -17,7 +17,7 @@ import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
 import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
-import { getFeed, type FeedSections, type FollowingStory } from '@/lib/stories';
+import { getFeed, type FollowingStory } from '@/lib/stories';
 import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import NotificationsPanel from '@/components/wy/NotificationsPanel';
@@ -71,14 +71,8 @@ function toEntry(story: FollowingStory, authorName: string): FeedEntry {
   };
 }
 
-function allEmpty(sections: FeedSections | null): boolean {
-  if (!sections) return true;
-  return (
-    sections.recent.length === 0 &&
-    sections.recommended.length === 0 &&
-    sections.popular.length === 0 &&
-    sections.following.length === 0
-  );
+function allEmpty(feedItems: FollowingStory[] | null): boolean {
+  return !feedItems || feedItems.length === 0;
 }
 
 export default function FeedPage() {
@@ -86,7 +80,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
 
-  const [sections, setSections] = useState<FeedSections | null>(null);
+  const [feedItems, setFeedItems] = useState<FollowingStory[] | null>(null);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState('');
 
@@ -112,7 +106,6 @@ export default function FeedPage() {
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const composerRef = useRef<HTMLElement>(null);
-  const followingRef = useRef<HTMLElement>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -186,12 +179,12 @@ export default function FeedPage() {
 
     if (feed.status !== 'ok') {
       setFeedError('No se pudo cargar el feed.');
-      setSections(null);
+      setFeedItems(null);
       setFeedLoading(false);
       return;
     }
 
-    setSections(feed.data);
+    setFeedItems(feed.data.items);
     setFeedLoading(false);
   }, []);
 
@@ -315,7 +308,7 @@ export default function FeedPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case 'following':
-        followingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        router.push('/siguiendo');
         break;
       case 'mood':
         openMood();
@@ -369,21 +362,6 @@ export default function FeedPage() {
           onComment={() => setReader({ id: story.id, title: story.title })}
         />
       </div>
-    );
-  };
-
-  const renderSection = (
-    title: string,
-    items: FollowingStory[],
-    authorName: string,
-    anchorId?: string,
-  ) => {
-    if (items.length === 0) return null;
-    return (
-      <section className="feed-group" id={anchorId} ref={anchorId === 'seguidos' ? followingRef : undefined}>
-        <h2 className="feed-group-title">{title}</h2>
-        {items.map((story, index) => renderCard(story, index, authorName))}
-      </section>
     );
   };
 
@@ -583,12 +561,12 @@ export default function FeedPage() {
 
         <div id="feedList" className="stack">
           {renderFeatured(featured)}
-          {renderSection('Historias recientes', sections?.recent ?? [], name)}
-          {renderSection('Recomendadas para ti', sections?.recommended ?? [], name)}
-          {renderSection('Historias populares', sections?.popular ?? [], name)}
-          {renderSection('De personas que sigues', sections?.following ?? [], name, 'seguidos')}
 
-          {!feedLoading && !feedError && allEmpty(sections) ? (
+          {feedItems && feedItems.length > 0
+            ? feedItems.map((story, index) => renderCard(story, index, name))
+            : null}
+
+          {!feedLoading && !feedError && allEmpty(feedItems) ? (
             <div className="empty card">
               <div className="empty-icon">
                 <Icon name="book" />

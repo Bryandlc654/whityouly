@@ -526,6 +526,16 @@ body {
   justify-self: end;
 }
 
+/* Botones primarios con icono + texto en la misma línea. El preflight de
+   Tailwind hace que el <svg> sea display:block y, sin flex, el texto cae debajo
+   del icono. `.secondary` ya era inline-flex; `.primary` queda igual. */
+.wy .primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
 .wy .comment-list {
   display: grid;
   gap: 12px;

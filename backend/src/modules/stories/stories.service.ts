@@ -40,6 +40,10 @@ const DEFAULT_PAGE_SIZE = 20;
 const FEED_SECTION_LIMIT = 12;
 const RECOMMEND_POOL_SIZE = 60;
 
+// Tope de relatos del feed unificado. Basta para pintar muchas páginas de
+// contenido sin que una sola carga materialice cientos de tarjetas.
+const MAX_FEED_ITEMS = 60;
+
 // Estados sobre los que el propietario todavía puede escribir. HIDDEN, REPORTED
 // y MODERATED son decisiones de moderación: no se pisan desde aquí.
 const EDITABLE_STATUSES: StoryStatus[] = [StoryStatus.DRAFT, StoryStatus.PUBLISHED];
@@ -814,11 +818,13 @@ export class StoriesService {
   }
 
   /**
-   * Feed principal en secciones: recientes, recomendadas, populares y los de
-   * personas seguidas. La recomendación es un ranking por contenido: afinidad
-   * con los intereses del personaje y con el tema de lo que ya publica el
-   * usuario, con un refuerzo para autores seguidos y una base de popularidad y
-   * frescura. Si el perfil aún no tiene señales, cae a popularidad + frescura.
+   * Feed principal unificado. El algoritmo mezcla lo más relevante para el
+   * usuario en una sola lista ordenada —personas seguidas, recomendado por
+   * afinidad, recién publicado y popular— sin dividirlo en secciones. La
+   * recomendación es un ranking por contenido: afinidad con los intereses del
+   * personaje y con el tema de lo que ya publica el usuario, con un refuerzo
+   * para autores seguidos y una base de popularidad y frescura. Si el perfil
+   * aún no tiene señales, cae a popularidad + frescura.
    */
   async getFeed(userId: string) {
     const baseWhere = { status: StoryStatus.PUBLISHED, visibility: 'PUBLIC' } as const;
@@ -875,26 +881,31 @@ export class StoriesService {
     const recent = recentPool.slice(0, FEED_SECTION_LIMIT);
     const recommended = this.topRecommended(recentPool, profile);
 
+    // Orden único de relevancia, sin repetir relatos: primero lo que ya sigues,
+    // luego lo recomendado, lo recién publicado, lo popular y el resto de la
+    // piscina fresca. Todo eso es "tu feed", sin separadores.
+    const idsInOrder: string[] = [];
+    const seen = new Set<string>();
+    for (const group of [following, recommended, recent, popular, recentPool]) {
+      for (const row of group) {
+        if (!seen.has(row.id)) {
+          seen.add(row.id);
+          idsInOrder.push(row.id);
+        }
+      }
+    }
+    const wanted = idsInOrder.slice(0, MAX_FEED_ITEMS);
+
     // Las vistas completas solo se descargan de los relatos que se van a
     // mostrar, y en una única consulta.
-    const wanted = new Set<string>([
-      ...recent.map((row) => row.id),
-      ...recommended.map((row) => row.id),
-      ...popular.map((row) => row.id),
-      ...following.map((row) => row.id),
-    ]);
     const fullRows = await this.prisma.story.findMany({
-      where: { id: { in: [...wanted] } },
+      where: { id: { in: wanted } },
       select: STORY_LIST_SELECT_WITH_AUTHOR,
     });
     const fullById = new Map(fullRows.map((row) => [row.id, row]));
-    const asFull = (id: string) => fullById.get(id) as StoryListView;
 
     return {
-      recent: recent.map((row) => this.toPublicListView(asFull(row.id))),
-      recommended: recommended.map((row) => this.toPublicListView(asFull(row.id))),
-      popular: popular.map((row) => this.toPublicListView(row)),
-      following: following.map((row) => this.toPublicListView(row)),
+      items: wanted.map((id) => this.toPublicListView(fullById.get(id) as StoryListView)),
     };
   }
 

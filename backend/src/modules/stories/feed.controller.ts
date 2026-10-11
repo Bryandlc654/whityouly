@@ -8,9 +8,9 @@ import { StoriesService } from './stories.service';
 type AuthenticatedRequest = Request & { user: { userId: string } };
 
 /**
- * Feed principal con secciones (recientes, recomendadas, populares y de
- * personas seguidas). Requiere sesión para poder personalizar las
- * recomendaciones con los intereses del personaje.
+ * Feed principal unificado: el algoritmo mezcla lo relevante para el usuario en
+ * una sola lista (seguidos, recomendado, reciente y popular), sin secciones.
+ * Requiere sesión para personalizar con los intereses del personaje.
  */
 @ApiTags('Feed')
 @ApiBearerAuth()
@@ -22,7 +22,7 @@ export class FeedController {
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
-    summary: 'Feed principal: recientes, recomendadas, populares y de seguidos',
+    summary: 'Feed principal unificado ordenado por relevancia',
   })
   getFeed(@Req() req: AuthenticatedRequest) {
     return this.storiesService.getFeed(req.user.userId);
