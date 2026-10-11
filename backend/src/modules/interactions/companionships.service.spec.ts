@@ -19,6 +19,11 @@ describe('CompanionshipsService', () => {
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
         count: vi.fn().mockResolvedValue(3),
       },
+      follower: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
       $queryRaw: vi.fn().mockResolvedValue([{ id: 'char-2', userId: 'user-2' }]),
       analyticsEvent: { create: vi.fn().mockResolvedValue({}) },
     };
@@ -29,6 +34,7 @@ describe('CompanionshipsService', () => {
 
     const notifications = {
       create: vi.fn().mockResolvedValue(undefined),
+      createAggregated: vi.fn().mockResolvedValue(undefined),
       createMany: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -66,6 +72,9 @@ describe('CompanionshipsService', () => {
     expect(prisma.companionship.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ characterId: 'char-1', targetStoryId: 'story-1' }) }),
     );
+    expect(prisma.follower.create).toHaveBeenCalledWith({
+      data: { followerId: 'char-1', followingStoryId: 'story-1', notifyLevel: 'CONSERVATIVE' },
+    });
     expect(result).toEqual({ supporting: true, count: 3 });
   });
 
@@ -85,6 +94,13 @@ describe('CompanionshipsService', () => {
 
     expect(prisma.companionship.deleteMany).toHaveBeenCalledWith({
       where: { characterId: 'char-1', targetStoryId: 'story-1' },
+    });
+    expect(prisma.follower.deleteMany).toHaveBeenCalledWith({
+      where: {
+        followerId: 'char-1',
+        followingStoryId: 'story-1',
+        notifyLevel: 'CONSERVATIVE',
+      },
     });
     expect(result).toEqual({ supporting: false, count: 3 });
   });

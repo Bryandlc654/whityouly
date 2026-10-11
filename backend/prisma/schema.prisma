@@ -409,6 +409,11 @@ model Follower {
   followerId           String
   followingCharacterId String?
   followingStoryId     String?
+  // Nivel de aviso al seguir un relato. `ALL` = "Seguir relato" (recibe las
+  // etapas nuevas); `CONSERVATIVE` = "Estoy contigo" (sigue el relato en
+  // silencio: aparece en "Lo que sigo" pero no genera notificaciones). Solo se
+  // usa en los seguimientos de historias; en los de personaje se ignora.
+  notifyLevel          String   @default("ALL")
   createdAt            DateTime @default(now())
 
   follower           Character  @relation("CharacterFollowing", fields: [followerId], references: [id], onDelete: Cascade)
@@ -443,6 +448,10 @@ model Notification {
   // Objeto sobre el que actuar: STORY, CHARACTER o SYSTEM.
   entityType String
   entityId   String?
+  // Cuántos eventos agrupa este aviso. Los comentarios y los acompañamientos de
+  // un mismo relato se agrupan en un único aviso sin leer que incrementa este
+  // contador, para que la bandeja no se llene con uno por cada interacción.
+  count      Int                @default(1)
   status     NotificationStatus @default(UNREAD)
   createdAt  DateTime           @default(now())
 

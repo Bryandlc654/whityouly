@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
+import { STORY_FOLLOW_LEVEL } from './follow-levels';
 import { normalizeCharacterName } from '../characters/characters.service';
 
 export interface FollowedCharacter {
@@ -109,16 +110,32 @@ export class FollowsService {
 
     const existing = await this.prisma.follower.findFirst({
       where: { followerId: follower.id, followingStoryId: storyId },
-      select: { id: true },
+      select: { id: true, notifyLevel: true },
     });
 
-    if (!existing) {
-      await this.prisma.follower
-        .create({ data: { followerId: follower.id, followingStoryId: storyId } })
-        .catch((error) => {
-          if (!this.isUniqueError(error)) throw error;
+    // "Estoy contigo" pudo crear un seguimiento conservador: al pulsar "Seguir
+    // relato" se sube a avisos completos reutilizando la misma fila.
+    if (existing) {
+      if (existing.notifyLevel !== STORY_FOLLOW_LEVEL.ALL) {
+        await this.prisma.follower.update({
+          where: { id: existing.id },
+          data: { notifyLevel: STORY_FOLLOW_LEVEL.ALL },
         });
+      }
+      return { following: true };
     }
+
+    await this.prisma.follower
+      .create({
+        data: {
+          followerId: follower.id,
+          followingStoryId: storyId,
+          notifyLevel: STORY_FOLLOW_LEVEL.ALL,
+        },
+      })
+      .catch((error) => {
+        if (!this.isUniqueError(error)) throw error;
+      });
 
     return { following: true };
   }

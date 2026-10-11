@@ -45,6 +45,7 @@ const NOTIFICATION_SELECT = {
   entityType: true,
   entityId: true,
   actorCharacterId: true,
+  count: true,
   createdAt: true,
 } satisfies Prisma.NotificationSelect;
 
@@ -67,6 +68,8 @@ export interface NotificationView {
   status: NotificationStatus;
   entityType: string;
   entityId: string | null;
+  /** Cuántos eventos agrupa este aviso (1 = aviso individual). */
+  count: number;
   createdAt: Date;
   actor: NotificationActor | null;
   story: NotificationStory | null;
@@ -108,6 +111,60 @@ export class NotificationsService {
     } catch (error) {
       this.logger.warn(
         `No se pudo crear la notificación ${input.type}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Crea o agrupa un aviso. Los comentarios y los acompañamientos de un mismo
+   * relato no generan una fila por evento: mientras el aviso siga sin leer, se
+   * incrementa su `count`, se actualiza el actor y se refresca la fecha para que
+   * vuelva al principio de la bandeja. Así una conversación o una oleada de
+   * "Estoy contigo" ocupa un único aviso en lugar de decenas.
+   *
+   * Igual que `create`, nunca rompe la acción que lo origina.
+   */
+  async createAggregated(input: CreateNotificationInput): Promise<void> {
+    if (this.isSelfNotification(input)) {
+      return;
+    }
+
+    try {
+      const existing = await this.prisma.notification.findFirst({
+        where: {
+          userId: input.userId,
+          type: input.type,
+          entityType: input.entityType,
+          entityId: input.entityId ?? null,
+          status: NotificationStatus.UNREAD,
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        await this.prisma.notification.update({
+          where: { id: existing.id },
+          data: {
+            count: { increment: 1 },
+            actorCharacterId: input.actorCharacterId ?? null,
+            createdAt: new Date(),
+          },
+        });
+        return;
+      }
+
+      await this.prisma.notification.create({
+        data: {
+          userId: input.userId,
+          type: input.type,
+          entityType: input.entityType,
+          entityId: input.entityId ?? null,
+          actorCharacterId: input.actorCharacterId ?? null,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo agrupar la notificación ${input.type}: ${(error as Error).message}`,
       );
     }
   }
@@ -321,6 +378,7 @@ export class NotificationsService {
       status: row.status,
       entityType: row.entityType,
       entityId: row.entityId,
+      count: row.count,
       createdAt: row.createdAt,
       actor: row.actorCharacterId ? (actors.get(row.actorCharacterId) ?? null) : null,
       story:

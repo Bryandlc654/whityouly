@@ -10,6 +10,8 @@ export interface NotificationItem {
   status: NotificationStatus;
   entityType: string;
   entityId: string | null;
+  /** Cuántos eventos agrupa (1 = aviso individual). */
+  count: number;
   createdAt: string;
   actor: { name: string; avatarUrl: string | null } | null;
   story: {
@@ -94,6 +96,10 @@ function parseItem(value: unknown): NotificationItem | null {
     status: record.status === 'READ' ? 'READ' : 'UNREAD',
     entityType: typeof record.entityType === 'string' ? record.entityType : 'SYSTEM',
     entityId: typeof record.entityId === 'string' ? record.entityId : null,
+    count:
+      typeof record.count === 'number' && Number.isFinite(record.count) && record.count > 0
+        ? Math.floor(record.count)
+        : 1,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     actor:
       typeof actorRecord.name === 'string'

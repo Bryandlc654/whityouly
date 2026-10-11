@@ -145,7 +145,9 @@ export class CommentsService {
       return;
     }
 
-    await this.notifications.create({
+    // Un comentario nuevo en el relato se agrupa: varias personas comentando lo
+    // mismo producen un único aviso "N personas comentaron", no uno por cabeza.
+    await this.notifications.createAggregated({
       ...base,
       type: NOTIFICATION_TYPES.COMMENT,
     });

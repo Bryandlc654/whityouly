@@ -12,6 +12,7 @@ function row(overrides: Record<string, unknown> = {}) {
     entityType: 'CHARACTER',
     entityId: 'char-2',
     actorCharacterId: 'char-1',
+    count: 1,
     createdAt: new Date('2026-01-01T10:00:00Z'),
     ...overrides,
   };
@@ -29,6 +30,7 @@ describe('NotificationsService', () => {
         findMany: vi.fn().mockResolvedValue([]),
         findFirst: vi.fn().mockResolvedValue(null),
         count: vi.fn().mockResolvedValue(0),
+        update: vi.fn().mockResolvedValue({}),
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
       character: { findMany: vi.fn().mockResolvedValue([]) },
@@ -77,6 +79,51 @@ describe('NotificationsService', () => {
     });
 
     expect(prisma.notification.create).not.toHaveBeenCalled();
+  });
+
+  it('agrupa un aviso repetido incrementando el contador en vez de crear otro', async () => {
+    prisma.notification.findFirst.mockResolvedValue({ id: 'n1' });
+
+    await service.createAggregated({
+      userId: 'user-2',
+      type: NOTIFICATION_TYPES.COMMENT,
+      entityType: 'STORY',
+      entityId: 'story-1',
+      actorCharacterId: 'char-9',
+      actorUserId: 'user-1',
+    });
+
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+    expect(prisma.notification.update).toHaveBeenCalledWith({
+      where: { id: 'n1' },
+      data: {
+        count: { increment: 1 },
+        actorCharacterId: 'char-9',
+        createdAt: expect.any(Date),
+      },
+    });
+  });
+
+  it('crea un aviso agrupado cuando no había uno sin leer', async () => {
+    await service.createAggregated({
+      userId: 'user-2',
+      type: NOTIFICATION_TYPES.COMMENT,
+      entityType: 'STORY',
+      entityId: 'story-1',
+      actorCharacterId: 'char-1',
+      actorUserId: 'user-1',
+    });
+
+    expect(prisma.notification.update).not.toHaveBeenCalled();
+    expect(prisma.notification.create).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-2',
+        type: NOTIFICATION_TYPES.COMMENT,
+        entityType: 'STORY',
+        entityId: 'story-1',
+        actorCharacterId: 'char-1',
+      },
+    });
   });
 
   it('nunca rompe la acción que origina la notificación si la base falla', async () => {

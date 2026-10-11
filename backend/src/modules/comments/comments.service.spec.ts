@@ -48,6 +48,7 @@ describe('CommentsService', () => {
 
     const notifications = {
       create: vi.fn().mockResolvedValue(undefined),
+      createAggregated: vi.fn().mockResolvedValue(undefined),
       createMany: vi.fn().mockResolvedValue(undefined),
     };
 

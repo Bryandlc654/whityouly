@@ -17,6 +17,7 @@ describe('FollowsService', () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
         create: vi.fn().mockResolvedValue({}),
+        update: vi.fn().mockResolvedValue({}),
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
       $queryRaw: vi.fn().mockResolvedValue([{ id: 'char-2', userId: 'user-2' }]),
@@ -120,7 +121,21 @@ describe('FollowsService', () => {
     const result = await service.followStory('user-1', 'story-1');
 
     expect(prisma.follower.create).toHaveBeenCalledWith({
-      data: { followerId: 'char-1', followingStoryId: 'story-1' },
+      data: { followerId: 'char-1', followingStoryId: 'story-1', notifyLevel: 'ALL' },
+    });
+    expect(result).toEqual({ following: true });
+  });
+
+  it('seguir un relato sube a avisos completos un seguimiento conservador', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.follower.findFirst.mockResolvedValue({ id: 'f-1', notifyLevel: 'CONSERVATIVE' });
+
+    const result = await service.followStory('user-1', 'story-1');
+
+    expect(prisma.follower.create).not.toHaveBeenCalled();
+    expect(prisma.follower.update).toHaveBeenCalledWith({
+      where: { id: 'f-1' },
+      data: { notifyLevel: 'ALL' },
     });
     expect(result).toEqual({ following: true });
   });

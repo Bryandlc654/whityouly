@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
+import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
 import { normalizeCharacterName } from '../characters/characters.service';
 
 /**
@@ -44,7 +45,12 @@ export class CompanionshipsService {
           if (!this.isUniqueError(error)) throw error;
         });
 
-      await this.notifications.create({
+      // "Estoy contigo" también sigue el relato, pero de forma conservadora:
+      // aparece en "Lo que sigo" sin generar notificaciones. Si ya había un
+      // seguimiento activo ("Seguir relato") no se toca.
+      await this.ensureConservativeStoryFollow(character.id, storyId);
+
+      await this.notifications.createAggregated({
         userId: story.ownerUserId,
         actorUserId: userId,
         actorCharacterId: character.id,
@@ -65,6 +71,16 @@ export class CompanionshipsService {
 
     await this.prisma.companionship.deleteMany({
       where: { characterId: character.id, targetStoryId: storyId },
+    });
+
+    // El seguimiento conservador que creó el acompañamiento se retira con él. Un
+    // seguimiento activo ("Seguir relato") se conserva: son decisiones distintas.
+    await this.prisma.follower.deleteMany({
+      where: {
+        followerId: character.id,
+        followingStoryId: storyId,
+        notifyLevel: STORY_FOLLOW_LEVEL.CONSERVATIVE,
+      },
     });
 
     const count = await this.prisma.companionship.count({ where: { targetStoryId: storyId } });
@@ -91,7 +107,7 @@ export class CompanionshipsService {
           if (!this.isUniqueError(error)) throw error;
         });
 
-      await this.notifications.create({
+      await this.notifications.createAggregated({
         userId: target.userId,
         actorUserId: userId,
         actorCharacterId: character.id,
@@ -116,6 +132,32 @@ export class CompanionshipsService {
 
     const count = await this.prisma.companionship.count({ where: { targetCharacterId: target.id } });
     return { supporting: false, count };
+  }
+
+  /**
+   * Sigue el relato en silencio si aún no se sigue. No degrada un seguimiento
+   * activo a conservador: "Seguir relato" siempre gana.
+   */
+  private async ensureConservativeStoryFollow(characterId: string, storyId: string): Promise<void> {
+    const existing = await this.prisma.follower.findFirst({
+      where: { followerId: characterId, followingStoryId: storyId },
+      select: { id: true },
+    });
+    if (existing) {
+      return;
+    }
+
+    await this.prisma.follower
+      .create({
+        data: {
+          followerId: characterId,
+          followingStoryId: storyId,
+          notifyLevel: STORY_FOLLOW_LEVEL.CONSERVATIVE,
+        },
+      })
+      .catch((error) => {
+        if (!this.isUniqueError(error)) throw error;
+      });
   }
 
   private async requireCharacter(userId: string): Promise<{ id: string }> {

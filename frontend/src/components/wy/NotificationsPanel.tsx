@@ -43,20 +43,24 @@ const storyTitle = (item: NotificationItem) => `«${item.story?.title ?? 'un rel
 function describe(item: NotificationItem): { icon: IconName; text: string } {
   const who = item.actor?.name ?? 'Alguien';
   const story = storyTitle(item);
+  // Aviso agrupado: "Ana y 2 personas más…". El actor mostrado es el último.
+  const extra = item.count > 1 ? ` y ${item.count - 1} ${item.count - 1 === 1 ? 'persona' : 'personas'} más` : '';
+  const commented = item.count > 1 ? 'comentaron' : 'comentó';
+  const supported = item.count > 1 ? 'acompañaron' : 'acompañó';
 
   switch (item.type) {
     case 'FOLLOW':
       return { icon: 'users', text: `${who} empezó a seguirte` };
     case 'COMMENT':
-      return { icon: 'message', text: `${who} comentó en tu relato ${story}` };
+      return { icon: 'message', text: `${who}${extra} ${commented} en tu relato ${story}` };
     case 'COMMENT_REPLY':
       return { icon: 'message', text: `${who} respondió a tu comentario en ${story}` };
     case 'COMPANIONSHIP':
       return {
         icon: 'heart',
         text: item.entityType === 'STORY'
-          ? `${who} te acompañó en ${story}`
-          : `${who} te acompañó`,
+          ? `${who}${extra} te ${supported} en ${story}`
+          : `${who}${extra} te ${supported}`,
       };
     case 'STORY_UPDATE':
       return { icon: 'book', text: `${who} añadió una etapa a ${story}` };

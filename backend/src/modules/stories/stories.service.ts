@@ -31,6 +31,7 @@ import {
   NOTIFICATION_ENTITY,
   NOTIFICATION_TYPES,
 } from '../notifications/notification-types';
+import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 20;
@@ -324,7 +325,13 @@ export class StoriesService {
     storyId: string,
   ): Promise<void> {
     const followers = await this.prisma.follower.findMany({
-      where: { followingStoryId: storyId, follower: { userId: { not: ownerUserId } } },
+      where: {
+        followingStoryId: storyId,
+        // Solo quien sigue el relato con "Seguir relato" recibe el aviso. El
+        // seguimiento conservador de "Estoy contigo" es silencioso a propósito.
+        notifyLevel: STORY_FOLLOW_LEVEL.ALL,
+        follower: { userId: { not: ownerUserId } },
+      },
       select: { follower: { select: { userId: true } } },
     });
     if (followers.length === 0) {
