@@ -52,7 +52,7 @@ export default function LoginPage() {
     <AuthCard
       title="Te damos la bienvenida"
       subtitle="Ingresa de forma segura. La comunidad nunca verá tu correo ni tu nombre real."
-      image="/auth-bg.jpg"
+      image="/auth-bg.png"
       imageAlt="Comunidad de Withyouly"
     >
       {error ? <div className="auth-error">{error}</div> : null}

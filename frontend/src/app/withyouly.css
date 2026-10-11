@@ -277,7 +277,7 @@
 .wy .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
 .wy .modal-head h2{margin:0;font-size:21px}
 .wy .modal-head p{margin:5px 0 0;color:var(--muted);font-size:12px}
-.wy .close{width:36px;height:36px;border:0;background:#f3f1f7;border-radius:50%;cursor:pointer}
+.wy .close{width:36px;height:36px;border:0;background:#f3f1f7;border-radius:50%;cursor:pointer;display:grid;place-items:center;padding:0;flex:0 0 auto}
 .wy .mood-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0}
 .wy .mood-pick{border:1px solid var(--line);background:#fff;border-radius:14px;min-height:70px;padding:7px 3px;cursor:pointer}
 .wy .mood-pick.selected{border-color:var(--purple);background:var(--purple-3)}
