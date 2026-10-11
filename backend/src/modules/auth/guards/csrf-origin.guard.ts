@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
-import { env } from '../../../config/env';
+import { isAllowedOrigin } from '../../../config/origins';
 
 /**
  * Evita que una página de otro sitio pueda usar la cookie de refresco.
@@ -29,7 +29,7 @@ export class CsrfOriginGuard implements CanActivate {
       return true;
     }
 
-    if (env.corsOrigins.includes(origin) || this.isSameHost(request, origin)) {
+    if (isAllowedOrigin(origin) || this.isSameHost(request, origin)) {
       return true;
     }
 

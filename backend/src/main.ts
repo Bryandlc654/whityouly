@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import express from 'express';
 import cookieParser = require('cookie-parser');
 import { env } from './config/env';
+import { isAllowedOrigin } from './config/origins';
 import { MEDIA_STORAGE, type MediaStorage } from './common/storage/media-storage';
 import { LocalMediaStorage } from './common/storage/local-media-storage';
 import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
@@ -27,7 +28,7 @@ async function bootstrap() {
   );
   app.use(cookieParser());
   app.enableCors({
-    origin: env.corsOrigins,
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
