@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import Icon from './Icon';
 import type { DemoStory } from './feedData';
@@ -50,6 +50,23 @@ export default function PostCard({
   supportCount,
 }: PostCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [textOverflows, setTextOverflows] = useState(false);
+
+  // "Leer relato completo" solo tiene sentido si el texto no cabe en la vista
+  // previa. Se mide el recorte real (no una estimación por caracteres) y se
+  // vuelve a comprobar al cambiar el ancho: el número de líneas depende de él.
+  useEffect(() => {
+    const element = textRef.current;
+    if (!element || expanded) return;
+
+    const measure = () => setTextOverflows(element.scrollHeight > element.clientHeight + 1);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [expanded, story.text]);
 
   return (
     <article className="post card">
@@ -103,8 +120,8 @@ export default function PostCard({
       <h2>{story.title}</h2>
       {story.text ? (
         <>
-          <p className={`post-text ${expanded ? '' : 'clamp'}`}>{story.text}</p>
-          {!expanded && (
+          <p ref={textRef} className={`post-text ${expanded ? '' : 'clamp'}`}>{story.text}</p>
+          {!expanded && textOverflows && (
             <button className="post-more" type="button" onClick={() => setExpanded(true)}>
               Leer relato completo
             </button>

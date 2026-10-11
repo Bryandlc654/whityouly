@@ -104,6 +104,9 @@
 .wy .post h2{font-size:22px;line-height:1.25;margin:8px 0 10px}
 .wy .post-text{font-size:15px;line-height:1.62;color:#474d5e;margin:0}
 .wy .post-text.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* Vista previa de un relato en el feed: hasta 6 líneas. Por encima de ese
+   máximo el texto se recorta y aparece "Leer relato completo"; por debajo no. */
+.wy .post .post-text.clamp{-webkit-line-clamp:6}
 .wy .post-more{border:0;background:transparent;color:var(--purple);font-weight:750;padding:7px 0;cursor:pointer}
 .wy .music-chip{margin-top:13px;padding:11px 12px;border-radius:14px;background:#f5f3fb;display:flex;align-items:center;gap:11px}
 .wy .play{width:35px;height:35px;border:0;border-radius:50%;background:var(--purple);color:#fff;display:grid;place-items:center;cursor:pointer}
