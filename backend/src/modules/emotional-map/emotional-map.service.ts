@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { QuotaService } from '../../common/quota/quota.service';
 import { TreeService } from '../tree/tree.service';
 import { sanitizeContextNote } from './emotional-note';
+import { globalDayRange } from './global-day';
 import {
   CreateEmotionalLogDto,
   EmotionalSummaryQueryDto,
@@ -189,6 +190,22 @@ export class EmotionalMapService {
     await this.tree.award(userId, TreePath.SELF_KNOWLEDGE, 'emotional_log');
 
     return this.toView(row);
+  }
+
+  /**
+   * Si la persona ya registró su estado en el día global en curso. El "día" es
+   * el mismo para toda la comunidad (ver `global-day.ts`), así que el
+   * recordatorio del feed se oculta hasta el siguiente día, para todo el mundo a
+   * la vez.
+   */
+  async todayStatus(
+    userId: string,
+  ): Promise<{ registered: boolean; day: string; resetsAt: string }> {
+    const { start, end, day } = globalDayRange();
+    const count = await this.prisma.emotionalLog.count({
+      where: { userId, loggedAt: { gte: start, lt: end } },
+    });
+    return { registered: count > 0, day, resetsAt: end.toISOString() };
   }
 
   async list(userId: string, query: ListEmotionalLogsQueryDto) {

@@ -23,7 +23,7 @@ import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import NotificationsPanel from '@/components/wy/NotificationsPanel';
 import type { DemoStory } from '@/components/wy/feedData';
-import { createEmotionalLog, daypartToLoggedAt } from '@/lib/emotionalMap';
+import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '@/lib/emotionalMap';
 
 interface FeedEntry extends DemoStory {
   isOwn: boolean;
@@ -101,6 +101,8 @@ export default function FeedPage() {
   const [moodDaypart, setMoodDaypart] = useState('Todo el día');
   const [moodSaving, setMoodSaving] = useState(false);
   const [moodError, setMoodError] = useState('');
+  // `null` mientras se comprueba; true si ya registró su estado en el día global.
+  const [moodRegisteredToday, setMoodRegisteredToday] = useState<boolean | null>(null);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -197,6 +199,29 @@ export default function FeedPage() {
     if (!loading) void loadFeed();
   }, [loading, loadFeed]);
 
+  const loadMoodToday = useCallback(async () => {
+    const result = await getEmotionalTodayStatus();
+    if (result.status === 'ok') setMoodRegisteredToday(result.data.registered);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) void loadMoodToday();
+  }, [loading, loadMoodToday]);
+
+  // Si la pestaña sigue abierta cuando empieza un día nuevo, el recordatorio
+  // vuelve a aparecer al recuperar el foco.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadMoodToday();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [loadMoodToday]);
+
   const logout = useCallback(async () => {
     await endSession();
     router.push('/login');
@@ -240,6 +265,7 @@ export default function FeedPage() {
 
     setMoodOpen(false);
     setMoodNote('');
+    setMoodRegisteredToday(true);
     notify(`${moodName} ${moodValue}/10 guardado de forma privada`);
   };
 
@@ -542,33 +568,41 @@ export default function FeedPage() {
             <h1>Hola, {name || 'invitado'}</h1>
             <p className="muted small">Este es un espacio para sentirte acompañado.</p>
           </div>
-          <button className="secondary" type="button" onClick={() => openMood()}>
-            <Icon name="pulse" /> Registrar estado
-          </button>
+          {moodRegisteredToday === true ? (
+            <span className="mood-done-chip">
+              <Icon name="check" /> Estado de hoy registrado
+            </span>
+          ) : (
+            <button className="secondary" type="button" onClick={() => openMood()}>
+              <Icon name="pulse" /> Registrar estado
+            </button>
+          )}
         </div>
 
-        <section className="quick-mood card">
-          <div className="quick-title">
-            <div>
-              <h2>¿Cómo estás ahora?</h2>
-              <p>Regístralo en menos de 10 segundos</p>
+        {moodRegisteredToday === true ? null : (
+          <section className="quick-mood card">
+            <div className="quick-title">
+              <div>
+                <h2>¿Cómo estás ahora?</h2>
+                <p>Regístralo en menos de 10 segundos</p>
+              </div>
+              <span className="small">Privado</span>
             </div>
-            <span className="small">Privado</span>
-          </div>
-          <div className="mood-choices">
-            {MOODS.map((mood) => (
-              <button
-                key={mood.name}
-                className="mood-choice"
-                type="button"
-                onClick={() => openMood(mood.name)}
-              >
-                <span>{mood.emoji}</span>
-                <small>{mood.name}</small>
-              </button>
-            ))}
-          </div>
-        </section>
+            <div className="mood-choices">
+              {MOODS.map((mood) => (
+                <button
+                  key={mood.name}
+                  className="mood-choice"
+                  type="button"
+                  onClick={() => openMood(mood.name)}
+                >
+                  <span>{mood.emoji}</span>
+                  <small>{mood.name}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="composer card" ref={composerRef}>
           <div className="composer-top">

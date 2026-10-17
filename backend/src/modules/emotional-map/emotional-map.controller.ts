@@ -58,6 +58,13 @@ export class EmotionalMapController {
     return this.emotionalMapService.summary(req.user.userId, query);
   }
 
+  @Get('today')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Si ya registraste tu estado en el día global en curso' })
+  today(@Req() req: AuthenticatedRequest) {
+    return this.emotionalMapService.todayStatus(req.user.userId);
+  }
+
   @Patch(':id')
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @ApiOperation({ summary: 'Editar un registro (emoción, intensidad, fecha o notas)' })

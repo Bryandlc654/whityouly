@@ -64,6 +64,8 @@
 .wy .heading-actions{display:flex;gap:8px}
 .wy .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 5px 20px rgba(42,34,72,.035)}
 .wy .welcome-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.wy .mood-done-chip{display:inline-flex;align-items:center;gap:6px;background:#eaf7f1;color:#2f8a5e;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:800;white-space:nowrap}
+.wy .mood-done-chip svg{width:15px;height:15px}
 .wy .welcome-row h1{font-size:25px;margin:0}
 .wy .quick-mood{padding:19px 20px;background:linear-gradient(135deg,#6544ed,#8d5dff);color:#fff;position:relative;overflow:hidden}
 .wy .quick-mood:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.07);right:-65px;top:-105px}

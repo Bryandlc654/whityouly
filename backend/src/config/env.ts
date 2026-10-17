@@ -184,6 +184,13 @@ export const env = {
     trendingCacheMs: parseNumber(process.env.DISCOVERY_TRENDING_CACHE_MS, 5 * 60_000),
     popularCharactersCacheMs: parseNumber(process.env.DISCOVERY_POPULAR_CHARACTERS_CACHE_MS, 10 * 60_000),
   },
+  emotional: {
+    // Hora (UTC, 0-23) a la que empieza el "día" del diario emocional. Es el
+    // mismo instante para toda la comunidad: el recordatorio de "ya registraste
+    // tu estado" aparece y desaparece a la vez para todo el mundo, sin depender
+    // del huso horario de cada persona. Por defecto, medianoche UTC.
+    dayStartHourUtc: Math.min(23, Math.max(0, parseNumber(process.env.EMOTIONAL_DAY_START_HOUR_UTC, 0))),
+  },
   notifications: {
     // Los avisos se acumulan (cada etapa de un relato seguido genera uno por
     // seguidor). Para que la tabla no crezca sin techo, cada bandeja se poda

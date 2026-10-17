@@ -366,6 +366,28 @@ export function updateEmotionalLog(
   );
 }
 
+export interface EmotionalTodayStatus {
+  registered: boolean;
+  day: string;
+  resetsAt: string;
+}
+
+/**
+ * Si ya registraste tu estado en el "día" global en curso (el mismo instante de
+ * corte para toda la comunidad). El feed oculta el recordatorio hasta que vuelve
+ * a empezar el día.
+ */
+export function getEmotionalTodayStatus(): Promise<LoadResult<EmotionalTodayStatus>> {
+  return request('/emotional-logs/today', { method: 'GET' }, 'No se pudo comprobar tu día.', (body) => {
+    const record = (body ?? {}) as Record<string, unknown>;
+    return {
+      registered: record.registered === true,
+      day: asString(record.day) ?? '',
+      resetsAt: asString(record.resetsAt) ?? '',
+    };
+  });
+}
+
 export function deleteEmotionalLog(id: string): Promise<LoadResult<{ id: string }>> {
   return request(
     `/emotional-logs/${encodeURIComponent(id)}`,

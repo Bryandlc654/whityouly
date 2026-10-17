@@ -42,6 +42,31 @@ describe('EmotionalMapService', () => {
     service = module.get<EmotionalMapService>(EmotionalMapService);
   });
 
+  describe('todayStatus', () => {
+    it('marca registrado cuando hay un registro en el día global', async () => {
+      prisma.emotionalLog.count.mockResolvedValue(1);
+
+      const result = await service.todayStatus('user-1');
+
+      expect(result.registered).toBe(true);
+      expect(result.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(new Date(result.resetsAt).getTime()).toBeGreaterThan(Date.now());
+
+      const where = prisma.emotionalLog.count.mock.calls[0][0].where;
+      expect(where.userId).toBe('user-1');
+      expect(where.loggedAt.gte).toBeInstanceOf(Date);
+      expect(where.loggedAt.lt.getTime() - where.loggedAt.gte.getTime()).toBe(24 * 60 * 60_000);
+    });
+
+    it('marca sin registrar cuando no hay registros hoy', async () => {
+      prisma.emotionalLog.count.mockResolvedValue(0);
+
+      const result = await service.todayStatus('user-1');
+
+      expect(result.registered).toBe(false);
+    });
+  });
+
   it('registra una emoción del catálogo con notas saneadas', async () => {
     prisma.emotionalLog.create.mockResolvedValue({
       id: 'log-1',
