@@ -16,6 +16,7 @@ export type WyRoute =
   | 'pulso'
   | 'tree'
   | 'profile'
+  | 'character'
   | 'help'
   | 'notifications';
 

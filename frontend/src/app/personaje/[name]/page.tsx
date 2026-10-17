@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { fetchPublicProfile, formatJoinDate } from '@/lib/characters';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
+import ProfileShell from '@/components/wy/ProfileShell';
 
 interface PageProps {
   params: { name: string };
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { profile } = result;
 
     return {
-      title: `${profile.name} · Whityouly`,
+      title: `${profile.name} — Whityouly`,
       description:
         profile.tagline ?? (profile.bio ? profile.bio.slice(0, 160) : `El perfil público de ${profile.name}.`),
     };
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // Un fallo de la API no se indexa como "no existe": un título neutro evita
   // que un 429 puntual deje un perfil inexistente en los buscadores.
   return {
-    title: result.status === 'missing' ? 'Perfil no encontrado · Whityouly' : 'Perfil · Whityouly',
+    title: result.status === 'missing' ? 'Perfil no encontrado — Whityouly' : 'Perfil — Whityouly',
   };
 }
 
@@ -42,8 +42,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
   // sobre el perfil. Se ofrece reintentar en lugar de un 404 que no es cierto.
   if (result.status === 'unavailable') {
     return (
-      <div className="wy">
-        <section className="auth-screen">
+      <ProfileShell>
+        <section className="screen">
           <div className="auth-card card center">
             <div className="status-icon err">
               <Icon name="x" />
@@ -62,7 +62,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </a>
           </div>
         </section>
-      </div>
+      </ProfileShell>
     );
   }
 
@@ -70,17 +70,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const joinDate = formatJoinDate(profile.createdAt);
 
   return (
-    <div className="wy">
-      <div style={{ maxWidth: 820, margin: '0 auto', padding: '22px 16px' }}>
-        <div className="landing-top" style={{ marginBottom: 16 }}>
-          <Link href="/feed" className="secondary" style={{ textDecoration: 'none' }}>
-            <Icon name="home" /> Volver al inicio
-          </Link>
-          <span className="brand" style={{ width: 150, height: 40 }}>
-            <span className="brand-crop" role="img" aria-label="Withyouly" />
-          </span>
-        </div>
-
+    <ProfileShell>
+      <section className="screen">
         <section className="profile-card card">
           <div className="profile-top">
             <Avatar
@@ -117,7 +108,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         </section>
 
         {profile.stats ? (
-          <div className="profile-stats">
+          <div className="profile-stats card pad">
             <div>
               <b>{profile.stats.followers}</b>
               <span>Seguidores</span>
@@ -167,7 +158,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <Icon name="lock" /> En Withyouly se escribe bajo un seudónimo. Nunca se muestra el correo
           ni ningún dato que vincule este perfil con una identidad real.
         </p>
-      </div>
-    </div>
+      </section>
+    </ProfileShell>
   );
 }

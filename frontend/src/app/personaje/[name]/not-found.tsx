@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import Icon from '@/components/wy/Icon';
+import ProfileShell from '@/components/wy/ProfileShell';
 
 export default function ProfileNotFound() {
   return (
-    <div className="wy">
-      <section className="auth-screen">
+    <ProfileShell>
+      <section className="screen">
         <div className="auth-card card center">
           <div className="status-icon err">
             <Icon name="x" />
@@ -15,7 +16,7 @@ export default function ProfileNotFound() {
             privado.
           </p>
           <Link
-            href="/"
+            href="/feed"
             className="primary"
             style={{ display: 'grid', placeItems: 'center', textDecoration: 'none' }}
           >
@@ -23,6 +24,6 @@ export default function ProfileNotFound() {
           </Link>
         </div>
       </section>
-    </div>
+    </ProfileShell>
   );
 }
