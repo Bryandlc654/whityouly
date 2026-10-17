@@ -139,6 +139,22 @@ export default function ExplorePage() {
     });
   }, [router]);
 
+  // La búsqueda del encabezado llega aquí como parámetros de la URL.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const initialQ = params.get('q');
+    const initialTab = params.get('tab');
+    const category = params.get('category');
+    const emotion = params.get('emotion');
+    const tag = params.get('tag');
+
+    if (initialQ) setQ(initialQ);
+    if (category) setSelCat(category);
+    if (emotion) setSelEmo(emotion);
+    if (tag) setSelTag(tag);
+    if (initialTab === 'personajes' || initialTab === 'historias') setTab(initialTab);
+  }, []);
+
   const run = useCallback(async (cursor?: string) => {
     setBusy(true);
     setError('');

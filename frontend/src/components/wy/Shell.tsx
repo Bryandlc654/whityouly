@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { useState, type ReactNode } from 'react';
 import Icon from './Icon';
 import type { IconName } from './icons';
-import SearchOverlay from './SearchOverlay';
+import HeaderSearch from './HeaderSearch';
+import StoryViewer from './StoryViewer';
 
 export type WyRoute =
   | 'home'
@@ -48,28 +49,19 @@ function TopBar({
   avatarUrl,
   onNavigate,
   onOpenAccount,
-  onOpenSearch,
+  onOpenStory,
   unreadNotifications = 0,
 }: Pick<
   FrameProps,
   'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'unreadNotifications'
-> & { onOpenSearch: () => void }) {
+> & { onOpenStory: (storyId: string, title: string) => void }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
         <button className="brand" type="button" onClick={() => onNavigate('home')} aria-label="Ir al inicio">
           <span className="brand-crop" role="img" aria-label="Withyouly" />
         </button>
-        <button
-          className="searchbox"
-          type="button"
-          onClick={onOpenSearch}
-          aria-label="Buscar"
-          aria-haspopup="dialog"
-        >
-          <Icon name="search" />
-          <span>Buscar relatos, emociones o seudónimos</span>
-        </button>
+        <HeaderSearch onOpenStory={onOpenStory} />
         <div className="top-actions">
           <button
             className="icon-btn"
@@ -197,7 +189,7 @@ export default function WyFrame({
   unreadNotifications = 0,
   children,
 }: FrameProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchReader, setSearchReader] = useState<{ id: string; title: string } | null>(null);
 
   return (
     <div className="wy">
@@ -206,7 +198,7 @@ export default function WyFrame({
         avatarUrl={avatarUrl}
         onNavigate={onNavigate}
         onOpenAccount={onOpenAccount}
-        onOpenSearch={() => setSearchOpen(true)}
+        onOpenStory={(storyId, title) => setSearchReader({ id: storyId, title })}
         unreadNotifications={unreadNotifications}
       />
       <div className="app-shell">
@@ -219,7 +211,15 @@ export default function WyFrame({
         </aside>
       </div>
       <BottomNav activeRoute={activeRoute} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
-      {searchOpen ? <SearchOverlay onClose={() => setSearchOpen(false)} /> : null}
+      {searchReader ? (
+        <div className="modal-layer">
+          <StoryViewer
+            storyId={searchReader.id}
+            title={searchReader.title}
+            onClose={() => setSearchReader(null)}
+          />
+        </div>
+      ) : null}
       {overlay ? <div className="modal-layer">{overlay}</div> : null}
       {sheet ? <div className="sheet-layer">{sheet}</div> : null}
       <div className={`toast ${toast ? 'show' : ''}`} role="status">
