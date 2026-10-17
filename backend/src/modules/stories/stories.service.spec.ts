@@ -75,6 +75,7 @@ describe('StoriesService', () => {
       mediaAsset: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
       analyticsEvent: { create: vi.fn().mockResolvedValue({}) },
       follower: { count: vi.fn().mockResolvedValue(0), findMany: vi.fn().mockResolvedValue([]) },
+      report: { findFirst: vi.fn(), create: vi.fn().mockResolvedValue({ id: 'rep-1' }) },
     };
 
     (prisma as { $transaction?: unknown }).$transaction = vi.fn((callback: (tx: unknown) => unknown) =>
@@ -560,5 +561,61 @@ describe('StoriesService', () => {
 
     const feed = await service.getFeed('user-1');
     expect(feed.items[0].id).toBe('t2');
+  });
+
+  describe('reportStory', () => {
+    it('notifica 404 si el relato no existe o está dado de baja', async () => {
+      prisma.story.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.reportStory('user-1', 'story-1', { reason: 'OFFENSIVE' } as any),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.report.create).not.toHaveBeenCalled();
+    });
+
+    it('rechaza reportar el propio relato', async () => {
+      prisma.story.findFirst.mockResolvedValue({
+        id: 'story-1',
+        character: { userId: 'user-1' },
+      });
+
+      await expect(
+        service.reportStory('user-1', 'story-1', { reason: 'OFFENSIVE' } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.report.create).not.toHaveBeenCalled();
+    });
+
+    it('rechaza un reporte duplicado', async () => {
+      prisma.story.findFirst.mockResolvedValue({
+        id: 'story-1',
+        character: { userId: 'owner-1' },
+      });
+      prisma.report.findFirst.mockResolvedValue({ id: 'rep-0' });
+
+      await expect(
+        service.reportStory('user-1', 'story-1', { reason: 'OFFENSIVE' } as any),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.report.create).not.toHaveBeenCalled();
+    });
+
+    it('registra el reporte de un relato ajeno', async () => {
+      prisma.story.findFirst.mockResolvedValue({
+        id: 'story-1',
+        character: { userId: 'owner-1' },
+      });
+      prisma.report.findFirst.mockResolvedValue(null);
+
+      const result = await service.reportStory('user-1', 'story-1', { reason: 'OFFENSIVE' } as any);
+
+      expect(prisma.report.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          reporterUserId: 'user-1',
+          reportedType: 'STORY',
+          reportedId: 'story-1',
+          reason: 'OFFENSIVE',
+        }),
+      });
+      expect(result).toEqual({ reported: true });
+    });
   });
 });

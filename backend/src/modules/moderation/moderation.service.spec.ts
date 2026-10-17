@@ -271,6 +271,113 @@ describe('ModerationService', () => {
     });
   });
 
+  describe('updateReport', () => {
+    it('marca el reporte como resuelto con fecha', async () => {
+      prisma.report.findUnique.mockResolvedValue({ id: 'r1', status: 'PENDING' });
+      prisma.report.update.mockResolvedValue({});
+
+      const result = await service.updateReport('admin-1', 'r1', { status: 'RESOLVED' });
+
+      expect(prisma.report.update).toHaveBeenCalledWith({
+        where: { id: 'r1' },
+        data: expect.objectContaining({ status: 'RESOLVED', resolvedAt: expect.any(Date) }),
+      });
+      expect(result).toEqual({ id: 'r1', status: 'RESOLVED' });
+    });
+
+    it('limpia la fecha de resolución al volver a en revisión', async () => {
+      prisma.report.findUnique.mockResolvedValue({ id: 'r1', status: 'RESOLVED' });
+      prisma.report.update.mockResolvedValue({});
+
+      await service.updateReport('admin-1', 'r1', { status: 'IN_REVIEW' });
+
+      expect(prisma.report.update).toHaveBeenCalledWith({
+        where: { id: 'r1' },
+        data: expect.objectContaining({ status: 'IN_REVIEW', resolvedAt: null }),
+      });
+    });
+
+    it('devuelve 404 si el reporte no existe', async () => {
+      prisma.report.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateReport('admin-1', 'r1', { status: 'RESOLVED' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('listMyAppeals', () => {
+    it('devuelve las apelaciones del usuario con resumen del objetivo', async () => {
+      prisma.appeal.findMany.mockResolvedValue([
+        {
+          id: 'a1',
+          targetType: 'STORY',
+          targetId: 's1',
+          reportId: 'r1',
+          message: 'Mi relato no incumple las normas',
+          status: 'PENDING',
+          createdAt: new Date('2026-10-01T10:00:00Z'),
+          resolvedAt: null,
+          resolutionNote: null,
+          appellantUserId: 'user-1',
+        },
+      ]);
+      prisma.story.findMany.mockResolvedValue([
+        { id: 's1', title: 'Relato', status: 'HIDDEN', character: { name: 'Autor' } },
+      ]);
+      prisma.character.findMany.mockResolvedValue([{ userId: 'user-1', name: 'Yo' }]);
+
+      const result = await service.listMyAppeals('user-1', { limit: 10 });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({
+        id: 'a1',
+        targetType: 'STORY',
+        status: 'PENDING',
+        target: expect.objectContaining({ title: 'Relato' }),
+      });
+      expect(result.nextCursor).toBeNull();
+    });
+  });
+
+  describe('listAppeals', () => {
+    it('devuelve las apelaciones con el nombre del apelante', async () => {
+      prisma.appeal.findMany.mockResolvedValue([
+        {
+          id: 'a9',
+          targetType: 'COMMENT',
+          targetId: 'c1',
+          reportId: null,
+          message: 'Comentario mío, apelo la decisión',
+          status: 'PENDING',
+          createdAt: new Date('2026-10-02T10:00:00Z'),
+          resolvedAt: null,
+          resolutionNote: null,
+          appellantUserId: 'user-5',
+        },
+      ]);
+      prisma.comment.findMany.mockResolvedValue([
+        {
+          id: 'c1',
+          content: 'Un comentario',
+          status: 'HIDDEN',
+          storyId: 's1',
+          character: { name: 'Autor' },
+        },
+      ]);
+      prisma.character.findMany.mockResolvedValue([{ userId: 'user-5', name: 'Apelante' }]);
+
+      const result = await service.listAppeals({ limit: 10 });
+
+      expect(result.items[0]).toMatchObject({
+        id: 'a9',
+        targetType: 'COMMENT',
+        appellantCharacterName: 'Apelante',
+        target: expect.objectContaining({ storyId: 's1' }),
+      });
+    });
+  });
+
   describe('listReports', () => {
     it('devuelve reportes con resumen del objetivo y nombre del reportante', async () => {
       prisma.report.findMany.mockResolvedValue([
