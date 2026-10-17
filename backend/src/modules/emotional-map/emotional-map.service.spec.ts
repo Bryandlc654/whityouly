@@ -156,6 +156,26 @@ describe('EmotionalMapService', () => {
     }
   });
 
+  it('agrupa por día local usando el desfase tal como lo da Date.getTimezoneOffset()', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-17T10:00:00.000Z'));
+
+    try {
+      // 22:45Z del 16 es, en UTC+2 (getTimezoneOffset() = -120), el 17 local.
+      prisma.emotionalLog.findMany.mockResolvedValue([
+        { loggedAt: new Date('2026-10-16T22:45:00.000Z'), intensity: 6, emotion: emotionRow },
+      ]);
+
+      const summary = await service.summary('user-1', { days: 2, tzOffsetMinutes: -120 });
+
+      expect(summary.days.map((day) => day.date)).toEqual(['2026-10-16', '2026-10-17']);
+      expect(summary.days[1].entries).toBe(1);
+      expect(summary.days[0].entries).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('no deja editar un registro de otra persona', async () => {
     prisma.emotionalLog.findUnique.mockResolvedValue({ id: 'log-1', userId: 'otro' });
 

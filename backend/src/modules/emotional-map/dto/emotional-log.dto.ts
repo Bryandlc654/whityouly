@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -98,11 +99,10 @@ export class UpdateEmotionalLogDto {
 export class ListEmotionalLogsQueryDto {
   @ApiPropertyOptional({ description: 'Id del último registro recibido; devuelve los siguientes.' })
   @IsOptional()
-  @IsString()
-  @MaxLength(64)
+  @IsUUID(undefined, { message: 'El cursor no es válido' })
   cursor?: string;
 
-  @ApiPropertyOptional({ default: 20, description: 'Entre 1 y 50. El servicio ajusta el tope.' })
+  @ApiPropertyOptional({ default: 30, description: 'Entre 1 y 100. El servicio ajusta el tope.' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

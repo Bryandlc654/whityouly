@@ -59,18 +59,24 @@ export interface UpdateEmotionalLogInput {
 
 /**
  * El registro rápido usa franjas del día en vez de una hora exacta. Se traducen
- * a una hora local razonable; «Todo el día» conserva la hora actual.
+ * a una hora local razonable; «Todo el día» conserva la hora actual. Si la hora
+ * de la franja aún no ha llegado (p. ej. «Noche» a mediodía), se usa la hora
+ * actual: el backend rechaza cualquier registro con fecha futura.
  */
 export function daypartToLoggedAt(daypart: string, now: Date = new Date()): string {
   const date = new Date(now);
   const hour = daypart === 'Mañana' ? 9 : daypart === 'Tarde' ? 15 : daypart === 'Noche' ? 21 : date.getHours();
   date.setHours(hour, 0, 0, 0);
-  return date.toISOString();
+  return (date.getTime() > now.getTime() ? now : date).toISOString();
 }
 
-/** Minutos de desfase con UTC; el backend agrupa el mapa por día local. */
+/**
+ * Desfase del huso horario en minutos, en la convención que espera el backend
+ * (la misma que `Date.getTimezoneOffset()`): minutos de UTC menos la hora local.
+ * Agrupa el mapa por día local.
+ */
 export function timezoneOffsetMinutes(date: Date = new Date()): number {
-  return -date.getTimezoneOffset();
+  return date.getTimezoneOffset();
 }
 
 async function request<T>(
