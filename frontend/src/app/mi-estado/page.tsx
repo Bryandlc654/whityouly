@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
@@ -20,6 +20,7 @@ import {
   updateEmotionalLog,
   type EmotionalLog,
   type EmotionalSummary,
+  type EmotionalTrend,
 } from '@/lib/emotionalMap';
 
 type RangeDays = 7 | 30 | 90;
@@ -31,6 +32,73 @@ const RANGES: { id: RangeDays; label: string }[] = [
 ];
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+const WEEKDAY_LABELS: Record<string, string> = {
+  mon: 'Lun',
+  tue: 'Mar',
+  wed: 'Mié',
+  thu: 'Jue',
+  fri: 'Vie',
+  sat: 'Sáb',
+  sun: 'Dom',
+};
+const WEEKDAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAYPART_LABELS: Record<string, string> = {
+  madrugada: 'Madrugada',
+  manana: 'Mañana',
+  tarde: 'Tarde',
+  noche: 'Noche',
+};
+const DAYPART_ORDER = ['madrugada', 'manana', 'tarde', 'noche'];
+
+/** Color con transparencia para las celdas del mapa de momentos. */
+function hexToRgba(hex: string | null | undefined, alpha: number): string {
+  const fallback = `rgba(104, 71, 245, ${alpha})`;
+  if (!hex) return fallback;
+  const value = hex.replace('#', '');
+  if (value.length !== 6) return fallback;
+  const red = Number.parseInt(value.slice(0, 2), 16);
+  const green = Number.parseInt(value.slice(2, 4), 16);
+  const blue = Number.parseInt(value.slice(4, 6), 16);
+  if ([red, green, blue].some((channel) => Number.isNaN(channel))) return fallback;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+/** Texto de la evolución: la intensidad sube, baja o se mantiene. */
+function describeTrend(trend: EmotionalTrend | undefined): {
+  title: string;
+  detail: string;
+  direction: EmotionalTrend['direction'];
+} {
+  if (!trend || trend.previousEntries === 0 || trend.previousAverageIntensity === null || trend.delta === null) {
+    return {
+      title: 'Aún sin comparación',
+      detail: 'Cuando haya registros del periodo anterior verás aquí cómo cambia tu energía emocional.',
+      direction: 'stable',
+    };
+  }
+
+  const change =
+    trend.topEmotionChanged && trend.previousTopEmotion
+      ? ` Tu emoción más frecuente cambió: antes era «${trend.previousTopEmotion.name}».`
+      : '';
+  const from = trend.previousAverageIntensity;
+  const to = Math.round((from + trend.delta) * 10) / 10;
+
+  if (trend.direction === 'stable') {
+    return {
+      title: 'Se mantiene estable',
+      detail: `Tu intensidad media sigue parecida: ${to}/10 frente a ${from}/10 del periodo anterior.${change}`,
+      direction: 'stable',
+    };
+  }
+
+  return {
+    title: trend.direction === 'up' ? 'Energía al alza' : 'Energía a la baja',
+    detail: `Tu intensidad media ${trend.direction === 'up' ? 'subió' : 'bajó'} ${Math.abs(trend.delta)} puntos: de ${from}/10 a ${to}/10.${change}`,
+    direction: trend.direction,
+  };
+}
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -321,6 +389,17 @@ export default function EmotionalMapPage() {
   const dominant = summary?.emotions[0] ?? null;
   const name = character?.name ?? '';
 
+  const weekdayMoments = summary?.weekdays ?? [];
+  const daypartMoments = summary?.dayparts ?? [];
+  const heatmap = summary?.heatmap ?? [];
+  const maxMomentEntries = Math.max(1, ...weekdayMoments.map((moment) => moment.entries));
+  const heatmapMax = Math.max(1, ...heatmap.map((cell) => cell.entries));
+  const topEmotionCount = dominant?.count ?? 1;
+  const trendInfo = describeTrend(summary?.trend);
+  const busiestCell = heatmap
+    .filter((cell) => cell.entries > 0)
+    .sort((a, b) => b.entries - a.entries)[0] ?? null;
+
   return (
     <WyFrame
       characterInitials={initialsOf(character?.name)}
@@ -470,6 +549,18 @@ export default function EmotionalMapPage() {
             </div>
           ) : null}
 
+          {summary && summary.totalEntries > 0 ? (
+            <div className={`trend trend-${trendInfo.direction}`}>
+              <span className="trend-icon" aria-hidden>
+                {trendInfo.direction === 'up' ? '↑' : trendInfo.direction === 'down' ? '↓' : '→'}
+              </span>
+              <div>
+                <b>{trendInfo.title}</b>
+                <p className="muted small">{trendInfo.detail}</p>
+              </div>
+            </div>
+          ) : null}
+
           {dominant ? (
             <div className="insight">
               <b>{dominant.name}</b> es la emoción más frecuente del periodo ({dominant.count}{' '}
@@ -479,13 +570,27 @@ export default function EmotionalMapPage() {
           ) : null}
 
           {summary && summary.emotions.length > 0 ? (
-            <div className="legend" style={{ marginTop: 14, flexWrap: 'wrap' }}>
-              {summary.emotions.slice(0, 6).map((emotion) => (
-                <span key={emotion.name}>
-                  <i style={{ background: emotion.colorHex ?? 'var(--purple)' }} />
-                  {emotion.name} · {emotion.count}
-                </span>
-              ))}
+            <div className="rank" aria-label="Emociones más frecuentes">
+              {summary.emotions.slice(0, 6).map((emotion) => {
+                const share =
+                  summary.totalEntries > 0 ? Math.round((emotion.count / summary.totalEntries) * 100) : 0;
+                const width = Math.round((emotion.count / topEmotionCount) * 100);
+                const color = emotion.colorHex ?? 'var(--purple)';
+                return (
+                  <div className="rank-row" key={emotion.name}>
+                    <span className="rank-name">
+                      <i style={{ background: color }} />
+                      {emotion.name}
+                    </span>
+                    <span className="rank-bar">
+                      <b style={{ width: `${width}%`, background: color }} />
+                    </span>
+                    <span className="rank-value">
+                      {emotion.count} · {share}%
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
         </div>
@@ -551,6 +656,105 @@ export default function EmotionalMapPage() {
                     </div>
                   ))
                 )}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {summary && summary.totalEntries > 0 ? (
+          <div className="card chart-card">
+            <div className="chart-head">
+              <div>
+                <h2>Momentos recurrentes</h2>
+                <p>Cuándo sueles registrar emociones: día de la semana y franja del día.</p>
+              </div>
+            </div>
+
+            <div className="moment-grid" aria-label="Registros por día de la semana">
+              {weekdayMoments.map((moment) => (
+                <div
+                  className="moment-col"
+                  key={moment.key}
+                  title={`${WEEKDAY_LABELS[moment.key] ?? moment.key}: ${moment.entries} ${moment.entries === 1 ? 'registro' : 'registros'}`}
+                  style={{ '--h': `${(moment.entries / maxMomentEntries) * 100}%` } as CSSProperties}
+                >
+                  <b>{moment.entries}</b>
+                  <i
+                    style={{
+                      background: moment.topEmotion?.colorHex
+                        ? `linear-gradient(${moment.topEmotion.colorHex}, ${moment.topEmotion.colorHex}cc)`
+                        : undefined,
+                    }}
+                  />
+                  <small>{WEEKDAY_LABELS[moment.key] ?? moment.key}</small>
+                </div>
+              ))}
+            </div>
+
+            <div className="daypart-row">
+              {daypartMoments.map((moment) => (
+                <div className="daypart-chip" key={moment.key}>
+                  <span className="daypart-label">{DAYPART_LABELS[moment.key] ?? moment.key}</span>
+                  <b>{moment.entries}</b>
+                  <span className="muted small">
+                    {moment.topEmotion
+                      ? `${moment.topEmotion.name}${moment.averageIntensity !== null ? ` · ${moment.averageIntensity}/10` : ''}`
+                      : 'Sin registros'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="heatmap" role="img" aria-label="Mapa de calor de día de la semana por franja del día">
+              <span className="heatmap-corner" aria-hidden />
+              {WEEKDAY_ORDER.map((weekday) => (
+                <span className="heatmap-head" key={weekday}>
+                  {WEEKDAY_LABELS[weekday]}
+                </span>
+              ))}
+              {DAYPART_ORDER.map((daypart) => (
+                <Fragment key={daypart}>
+                  <span className="heatmap-rowlabel">{DAYPART_LABELS[daypart]}</span>
+                  {WEEKDAY_ORDER.map((weekday) => {
+                    const cell = heatmap.find(
+                      (item) => item.weekday === weekday && item.daypart === daypart,
+                    );
+                    const entries = cell?.entries ?? 0;
+                    const alpha = entries > 0 ? 0.25 + 0.75 * (entries / heatmapMax) : 0;
+                    const color = cell?.topEmotion?.colorHex ?? null;
+                    return (
+                      <span
+                        className="heatmap-cell"
+                        key={weekday}
+                        title={`${WEEKDAY_LABELS[weekday]} · ${DAYPART_LABELS[daypart]}: ${
+                          entries === 0
+                            ? 'sin registros'
+                            : `${entries} ${entries === 1 ? 'registro' : 'registros'}${
+                                cell?.topEmotion ? ` · ${cell.topEmotion.name}` : ''
+                              }`
+                        }`}
+                        style={entries > 0 ? { background: hexToRgba(color, alpha) } : undefined}
+                      />
+                    );
+                  })}
+                </Fragment>
+              ))}
+            </div>
+            <div className="heatmap-legend">
+              <span>Menos registros</span>
+              <span>A más registros</span>
+            </div>
+
+            {busiestCell ? (
+              <div className="insight">
+                Sueles registrar más los <b>{WEEKDAY_LABELS[busiestCell.weekday] ?? busiestCell.weekday}</b> por
+                la <b>{DAYPART_LABELS[busiestCell.daypart] ?? busiestCell.daypart}</b>
+                {busiestCell.topEmotion ? (
+                  <>
+                    , sobre todo <b>{busiestCell.topEmotion.name}</b>
+                  </>
+                ) : null}
+                .
               </div>
             ) : null}
           </div>

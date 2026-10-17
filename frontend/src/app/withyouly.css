@@ -183,6 +183,35 @@
 .wy .line-chart .axis-labels{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:space-around;padding:0 6px 8px;font-size:10px;color:var(--muted);transform:translateY(28px)}
 .wy .insight{margin-top:20px;padding:13px;border-radius:13px;background:#f5f2ff;color:#514775;font-size:12px;line-height:1.45}
 .wy .emotion-select{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px;color:#5c6273}
+.wy .trend{margin-top:14px;display:flex;gap:12px;align-items:flex-start;padding:13px;border-radius:13px;background:#f5f2ff}
+.wy .trend-icon{flex:0 0 auto;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;background:#e5ddff;color:var(--purple)}
+.wy .trend b{display:block;font-size:13px}
+.wy .trend p{margin:3px 0 0}
+.wy .trend-up .trend-icon{background:#e7f6ee;color:#2f9e6b}
+.wy .trend-down .trend-icon{background:#fdeee6;color:#c9683f}
+.wy .trend-stable .trend-icon{background:#eef0f6;color:#5d6373}
+.wy .rank{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+.wy .rank-row{display:grid;grid-template-columns:minmax(84px,1.2fr) 2fr auto;align-items:center;gap:10px;font-size:11px}
+.wy .rank-name{display:flex;align-items:center;gap:6px;font-weight:800;color:#4e5465}
+.wy .rank-name i{width:9px;height:9px;border-radius:50%;background:var(--purple)}
+.wy .rank-bar{height:8px;border-radius:999px;background:#f0eef7;overflow:hidden}
+.wy .rank-bar b{display:block;height:100%;border-radius:999px;background:var(--purple)}
+.wy .rank-value{color:var(--muted);white-space:nowrap}
+.wy .moment-grid{display:flex;align-items:flex-end;gap:9px;height:140px;margin-top:18px;padding:12px 6px 0;border-bottom:1px solid var(--line)}
+.wy .moment-col{flex:1;height:100%;position:relative;display:flex;align-items:flex-end;justify-content:center}
+.wy .moment-col i{width:min(30px,74%);height:var(--h);border-radius:8px 8px 0 0;background:linear-gradient(#8261fa,#6546ec)}
+.wy .moment-col b{position:absolute;bottom:calc(var(--h) + 6px);font-size:10px;color:#5d6373}
+.wy .moment-col small{position:absolute;top:calc(100% + 7px);font-size:10px;color:var(--muted)}
+.wy .daypart-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px}
+.wy .daypart-chip{flex:1;min-width:112px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.wy .daypart-chip .daypart-label{font-size:11px;color:var(--muted)}
+.wy .daypart-chip b{font-size:17px}
+.wy .heatmap{display:grid;grid-template-columns:62px repeat(7,1fr);gap:5px;margin-top:34px;align-items:center}
+.wy .heatmap-corner{height:1px}
+.wy .heatmap-head{text-align:center;font-size:10px;color:var(--muted)}
+.wy .heatmap-rowlabel{font-size:10px;color:var(--muted)}
+.wy .heatmap-cell{height:30px;border-radius:7px;background:#f4f3f9;border:1px solid #eee9f4}
+.wy .heatmap-legend{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:10px}
 .wy .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:15px}
 .wy .calendar .weekday{text-align:center;font-size:10px;color:var(--muted);padding:3px}
 .wy .day{aspect-ratio:1;border:1px solid transparent;border-radius:10px;background:var(--c,#f6f5f8);padding:6px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -372,6 +401,10 @@
 .wy .mood-hero button{font-size:12px;padding:10px}
 .wy .chart-card{padding:16px}
 .wy .bar-chart{gap:6px;height:170px}
+.wy .moment-grid{gap:5px;height:120px}
+.wy .daypart-chip{min-width:96px}
+.wy .heatmap{grid-template-columns:52px repeat(7,1fr);gap:4px}
+.wy .heatmap-cell{height:26px}
 .wy .chart-head{display:block}
 .wy .legend{margin-top:8px}
 .wy .calendar{gap:4px}

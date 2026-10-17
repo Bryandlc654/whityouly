@@ -182,6 +182,98 @@ describe('EmotionalMapService', () => {
         count: 2,
         averageIntensity: 7,
       });
+
+      // Momentos recurrentes: viernes y franja de la mañana son los más activos.
+      expect(summary.weekdays.map((day) => day.key)).toEqual([
+        'mon',
+        'tue',
+        'wed',
+        'thu',
+        'fri',
+        'sat',
+        'sun',
+      ]);
+      expect(summary.weekdays[4]).toEqual({
+        key: 'fri',
+        entries: 2,
+        averageIntensity: 7,
+        topEmotion: { name: 'Esperanza', colorHex: '#37a978' },
+      });
+      expect(summary.weekdays[3].entries).toBe(1);
+      expect(summary.dayparts.map((part) => part.key)).toEqual([
+        'madrugada',
+        'manana',
+        'tarde',
+        'noche',
+      ]);
+      expect(summary.dayparts[1]).toEqual({
+        key: 'manana',
+        entries: 2,
+        averageIntensity: 6,
+        topEmotion: { name: 'Esperanza', colorHex: '#37a978' },
+      });
+      expect(summary.dayparts[3].entries).toBe(1);
+
+      // Mapa de momentos: cruce día × franja (28 celdas).
+      expect(summary.heatmap).toHaveLength(28);
+      expect(summary.heatmap.find((cell) => cell.weekday === 'fri' && cell.daypart === 'noche')).toEqual({
+        weekday: 'fri',
+        daypart: 'noche',
+        entries: 1,
+        averageIntensity: 6,
+        topEmotion: { name: 'Esperanza', colorHex: '#37a978' },
+      });
+      expect(summary.heatmap.find((cell) => cell.weekday === 'mon' && cell.daypart === 'madrugada')).toEqual({
+        weekday: 'mon',
+        daypart: 'madrugada',
+        entries: 0,
+        averageIntensity: null,
+        topEmotion: null,
+      });
+
+      // Sin periodo anterior no hay evolución que medir.
+      expect(summary.trend).toEqual({
+        previousAverageIntensity: null,
+        delta: null,
+        direction: 'stable',
+        previousEntries: 0,
+        previousTopEmotion: null,
+        topEmotionChanged: false,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('compara con el periodo anterior para medir la evolución', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-16T12:00:00.000Z'));
+
+    try {
+      prisma.emotionalLog.findMany.mockResolvedValue([
+        // Periodo actual (últimos 3 días): intensidad media 8.
+        { loggedAt: new Date('2026-10-16T09:00:00.000Z'), intensity: 8, emotion: emotionRow },
+        { loggedAt: new Date('2026-10-15T09:00:00.000Z'), intensity: 8, emotion: emotionRow },
+        // Periodo anterior: intensidad media 4.
+        {
+          loggedAt: new Date('2026-10-13T09:00:00.000Z'),
+          intensity: 4,
+          emotion: { id: 'emo-2', name: 'Tristeza', colorHex: '#4b83e5' },
+        },
+      ]);
+
+      const summary = await service.summary('user-1', { days: 3, tzOffsetMinutes: 0 });
+
+      expect(summary.totalEntries).toBe(2);
+      expect(summary.averageIntensity).toBe(8);
+      expect(summary.trend).toEqual({
+        previousAverageIntensity: 4,
+        delta: 4,
+        direction: 'up',
+        previousEntries: 1,
+        previousTopEmotion: { name: 'Tristeza', colorHex: '#4b83e5' },
+        topEmotionChanged: true,
+      });
     } finally {
       vi.useRealTimers();
     }
@@ -202,6 +294,9 @@ describe('EmotionalMapService', () => {
       expect(summary.days.map((day) => day.date)).toEqual(['2026-10-16', '2026-10-17']);
       expect(summary.days[1].entries).toBe(1);
       expect(summary.days[0].entries).toBe(0);
+      // 00:45 local cae en la madrugada del sábado 17.
+      expect(summary.dayparts[0].entries).toBe(1);
+      expect(summary.weekdays[5].entries).toBe(1);
     } finally {
       vi.useRealTimers();
     }

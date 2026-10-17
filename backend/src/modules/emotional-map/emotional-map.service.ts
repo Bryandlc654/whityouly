@@ -38,6 +38,15 @@ const SUMMARY_MAX_ROWS = 5000;
 
 const DAY_MS = 24 * 60 * 60_000;
 
+// Patrones recurrentes: día de la semana (lunes primero) y franja del día de
+// seis horas. El frontend traduce estas claves a etiquetas legibles.
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAYPART_KEYS = ['madrugada', 'manana', 'tarde', 'noche'];
+
+// Cambio de intensidad media, en puntos, a partir del cual la tendencia deja de
+// considerarse estable.
+const TREND_THRESHOLD = 0.3;
+
 const LOG_SELECT = {
   id: true,
   intensity: true,
@@ -48,6 +57,18 @@ const LOG_SELECT = {
 } satisfies Prisma.EmotionalLogSelect;
 
 type LogRow = Prisma.EmotionalLogGetPayload<{ select: typeof LOG_SELECT }>;
+
+type SummaryRow = {
+  loggedAt: Date;
+  intensity: number;
+  emotion: { name: string; colorHex: string | null };
+};
+
+interface MomentAccumulator {
+  sum: number;
+  count: number;
+  emotions: Map<string, { count: number; colorHex: string | null }>;
+}
 
 interface EmotionView {
   id: string;
@@ -78,6 +99,40 @@ export interface EmotionBucket {
   averageIntensity: number | null;
 }
 
+/**
+ * Patrón recurrente: cómo se repiten los registros en una dimensión concreta
+ * (día de la semana o franja del día), con la emoción que más aparece.
+ */
+export interface MomentBucket {
+  key: string;
+  entries: number;
+  averageIntensity: number | null;
+  topEmotion: { name: string; colorHex: string | null } | null;
+}
+
+/** Celda del cruce día de la semana × franja del día para el mapa de momentos. */
+export interface MomentCell {
+  weekday: string;
+  daypart: string;
+  entries: number;
+  averageIntensity: number | null;
+  topEmotion: { name: string; colorHex: string | null } | null;
+}
+
+/**
+ * Comparación del periodo elegido con el inmediatamente anterior, del mismo
+ * tamaño. La intensidad no es buena ni mala en sí misma: solo indica si la
+ * energía emocional sube, baja o se mantiene.
+ */
+export interface EmotionalTrend {
+  previousAverageIntensity: number | null;
+  delta: number | null;
+  direction: 'up' | 'down' | 'stable';
+  previousEntries: number;
+  previousTopEmotion: { name: string; colorHex: string | null } | null;
+  topEmotionChanged: boolean;
+}
+
 export interface EmotionalSummary {
   range: { days: number; from: Date; to: Date };
   totalEntries: number;
@@ -85,6 +140,10 @@ export interface EmotionalSummary {
   currentStreak: number;
   days: DayBucket[];
   emotions: EmotionBucket[];
+  weekdays: MomentBucket[];
+  dayparts: MomentBucket[];
+  heatmap: MomentCell[];
+  trend: EmotionalTrend;
 }
 
 /**
@@ -151,7 +210,9 @@ export class EmotionalMapService {
 
   /**
    * Serie agregada para la pantalla del mapa: un punto por día local (con la
-   * emoción dominante), el reparto de emociones del periodo y la racha actual.
+   * emoción dominante), el reparto de emociones del periodo, los patrones
+   * recurrentes (día de la semana y franja) y la evolución frente al periodo
+   * anterior. Todo se calcula en memoria sobre una ventana acotada.
    */
   async summary(userId: string, query: EmotionalSummaryQueryDto): Promise<EmotionalSummary> {
     const days = Math.min(Math.max(query.days ?? 90, 1), 366);
@@ -162,9 +223,11 @@ export class EmotionalMapService {
     const localToday = new Date(now.getTime() - tz * 60_000);
     localToday.setUTCHours(0, 0, 0, 0);
     const from = new Date(localToday.getTime() - (days - 1) * DAY_MS + tz * 60_000);
+    // Ventana anterior, del mismo tamaño, para medir la evolución.
+    const previousFrom = new Date(from.getTime() - days * DAY_MS);
 
     const rows = await this.prisma.emotionalLog.findMany({
-      where: { userId, loggedAt: { gte: from } },
+      where: { userId, loggedAt: { gte: previousFrom } },
       orderBy: [{ loggedAt: 'desc' }, { id: 'desc' }],
       take: SUMMARY_MAX_ROWS,
       select: {
@@ -174,7 +237,12 @@ export class EmotionalMapService {
       },
     });
 
-    const dayKey = (value: Date) => new Date(value.getTime() - tz * 60_000).toISOString().slice(0, 10);
+    const currentRows = rows.filter((row) => row.loggedAt >= from);
+    const previousRows = rows.filter((row) => row.loggedAt < from);
+
+    // La fecha y la hora locales se obtienen restando el desfase del huso.
+    const localOf = (value: Date) => new Date(value.getTime() - tz * 60_000);
+    const dayKey = (value: Date) => localOf(value).toISOString().slice(0, 10);
 
     interface DayAccumulator {
       sum: number;
@@ -184,9 +252,12 @@ export class EmotionalMapService {
 
     const byDay = new Map<string, DayAccumulator>();
     const byEmotion = new Map<string, { count: number; sum: number; colorHex: string | null }>();
+    const byWeekday = new Map<string, MomentAccumulator>();
+    const byDaypart = new Map<string, MomentAccumulator>();
+    const byCell = new Map<string, MomentAccumulator>();
     let totalSum = 0;
 
-    for (const row of rows) {
+    for (const row of currentRows) {
       const key = dayKey(row.loggedAt);
 
       const day = byDay.get(key) ?? { sum: 0, count: 0, emotions: new Map() };
@@ -211,6 +282,13 @@ export class EmotionalMapService {
       emotion.colorHex = emotion.colorHex ?? row.emotion.colorHex;
       byEmotion.set(row.emotion.name, emotion);
 
+      const shifted = localOf(row.loggedAt);
+      const weekday = WEEKDAY_KEYS[(shifted.getUTCDay() + 6) % 7];
+      const daypart = DAYPART_KEYS[Math.floor(shifted.getUTCHours() / 6)];
+      this.bumpMoment(byWeekday, weekday, row);
+      this.bumpMoment(byDaypart, daypart, row);
+      this.bumpMoment(byCell, `${weekday}|${daypart}`, row);
+
       totalSum += row.intensity;
     }
 
@@ -220,36 +298,35 @@ export class EmotionalMapService {
       const date = new Date(localToday.getTime() - offset * DAY_MS).toISOString().slice(0, 10);
       const accumulator = byDay.get(date);
 
-      let dominant: { name: string; colorHex: string | null } | null = null;
-      if (accumulator && accumulator.emotions.size > 0) {
-        const [name, data] = [...accumulator.emotions.entries()].sort(
-          (a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]),
-        )[0];
-        dominant = { name, colorHex: data.colorHex };
-      }
-
       buckets.push({
         date,
         entries: accumulator?.count ?? 0,
         averageIntensity: accumulator ? this.round(accumulator.sum / accumulator.count) : null,
-        emotion: dominant,
+        emotion: accumulator ? this.topEmotionOf(accumulator.emotions) : null,
       });
     }
 
+    const emotions = [...byEmotion.entries()]
+      .map(([name, data]) => ({
+        name,
+        colorHex: data.colorHex,
+        count: data.count,
+        averageIntensity: this.round(data.sum / data.count),
+      }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
     return {
       range: { days, from, to: now },
-      totalEntries: rows.length,
-      averageIntensity: rows.length > 0 ? this.round(totalSum / rows.length) : null,
+      totalEntries: currentRows.length,
+      averageIntensity:
+        currentRows.length > 0 ? this.round(totalSum / currentRows.length) : null,
       currentStreak: this.currentStreak(byDay, todayKey),
       days: buckets,
-      emotions: [...byEmotion.entries()]
-        .map(([name, data]) => ({
-          name,
-          colorHex: data.colorHex,
-          count: data.count,
-          averageIntensity: this.round(data.sum / data.count),
-        }))
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+      emotions,
+      weekdays: this.toMomentBuckets(WEEKDAY_KEYS, byWeekday),
+      dayparts: this.toMomentBuckets(DAYPART_KEYS, byDaypart),
+      heatmap: this.toHeatmap(byCell),
+      trend: this.buildTrend(currentRows, previousRows, emotions[0] ?? null),
     };
   }
 
@@ -414,6 +491,120 @@ export class EmotionalMapService {
 
   private round(value: number): number {
     return Math.round(value * 10) / 10;
+  }
+
+  private bumpMoment(
+    map: Map<string, MomentAccumulator>,
+    key: string,
+    row: SummaryRow,
+  ): void {
+    const acc = map.get(key) ?? { sum: 0, count: 0, emotions: new Map() };
+    acc.sum += row.intensity;
+    acc.count += 1;
+    const current = acc.emotions.get(row.emotion.name) ?? {
+      count: 0,
+      colorHex: row.emotion.colorHex,
+    };
+    current.count += 1;
+    current.colorHex = current.colorHex ?? row.emotion.colorHex;
+    acc.emotions.set(row.emotion.name, current);
+    map.set(key, acc);
+  }
+
+  /** Emoción que más aparece, con desempate alfabético estable. */
+  private topEmotionOf(
+    emotions: Map<string, { count: number; colorHex: string | null }>,
+  ): { name: string; colorHex: string | null } | null {
+    if (emotions.size === 0) {
+      return null;
+    }
+    const [name, data] = [...emotions.entries()].sort(
+      (a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]),
+    )[0];
+    return { name, colorHex: data.colorHex };
+  }
+
+  private toMomentBuckets(
+    keys: string[],
+    map: Map<string, MomentAccumulator>,
+  ): MomentBucket[] {
+    return keys.map((key) => {
+      const acc = map.get(key);
+      if (!acc || acc.count === 0) {
+        return { key, entries: 0, averageIntensity: null, topEmotion: null };
+      }
+      return {
+        key,
+        entries: acc.count,
+        averageIntensity: this.round(acc.sum / acc.count),
+        topEmotion: this.topEmotionOf(acc.emotions),
+      };
+    });
+  }
+
+  private toHeatmap(map: Map<string, MomentAccumulator>): MomentCell[] {
+    const cells: MomentCell[] = [];
+    for (const weekday of WEEKDAY_KEYS) {
+      for (const daypart of DAYPART_KEYS) {
+        const acc = map.get(`${weekday}|${daypart}`);
+        cells.push({
+          weekday,
+          daypart,
+          entries: acc?.count ?? 0,
+          averageIntensity: acc ? this.round(acc.sum / acc.count) : null,
+          topEmotion: acc ? this.topEmotionOf(acc.emotions) : null,
+        });
+      }
+    }
+    return cells;
+  }
+
+  private topEmotionFromRows(rows: SummaryRow[]): { name: string; colorHex: string | null } | null {
+    if (rows.length === 0) {
+      return null;
+    }
+    const counts = new Map<string, { count: number; colorHex: string | null }>();
+    for (const row of rows) {
+      const entry = counts.get(row.emotion.name) ?? { count: 0, colorHex: row.emotion.colorHex };
+      entry.count += 1;
+      entry.colorHex = entry.colorHex ?? row.emotion.colorHex;
+      counts.set(row.emotion.name, entry);
+    }
+    return this.topEmotionOf(counts);
+  }
+
+  private buildTrend(
+    currentRows: SummaryRow[],
+    previousRows: SummaryRow[],
+    currentTop: { name: string; colorHex: string | null } | null,
+  ): EmotionalTrend {
+    const averageOf = (rows: SummaryRow[]): number | null => {
+      if (rows.length === 0) {
+        return null;
+      }
+      return this.round(rows.reduce((sum, row) => sum + row.intensity, 0) / rows.length);
+    };
+
+    const currentAverage = averageOf(currentRows);
+    const previousAverage = averageOf(previousRows);
+    const previousTopEmotion = this.topEmotionFromRows(previousRows);
+
+    let delta: number | null = null;
+    let direction: EmotionalTrend['direction'] = 'stable';
+    if (currentAverage !== null && previousAverage !== null) {
+      delta = this.round(currentAverage - previousAverage);
+      direction = Math.abs(delta) < TREND_THRESHOLD ? 'stable' : delta > 0 ? 'up' : 'down';
+    }
+
+    return {
+      previousAverageIntensity: previousAverage,
+      delta,
+      direction,
+      previousEntries: previousRows.length,
+      previousTopEmotion,
+      topEmotionChanged:
+        currentTop !== null && previousTopEmotion !== null && currentTop.name !== previousTopEmotion.name,
+    };
   }
 
   private toView(row: LogRow): EmotionalLogView {

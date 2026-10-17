@@ -34,6 +34,32 @@ export interface EmotionalEmotionBucket {
   averageIntensity: number | null;
 }
 
+export interface EmotionalMomentBucket {
+  key: string;
+  entries: number;
+  averageIntensity: number | null;
+  topEmotion: { name: string; colorHex: string | null } | null;
+}
+
+export interface EmotionalMomentCell {
+  weekday: string;
+  daypart: string;
+  entries: number;
+  averageIntensity: number | null;
+  topEmotion: { name: string; colorHex: string | null } | null;
+}
+
+export type EmotionalTrendDirection = 'up' | 'down' | 'stable';
+
+export interface EmotionalTrend {
+  previousAverageIntensity: number | null;
+  delta: number | null;
+  direction: EmotionalTrendDirection;
+  previousEntries: number;
+  previousTopEmotion: { name: string; colorHex: string | null } | null;
+  topEmotionChanged: boolean;
+}
+
 export interface EmotionalSummary {
   range: { days: number; from: string; to: string };
   totalEntries: number;
@@ -41,6 +67,10 @@ export interface EmotionalSummary {
   currentStreak: number;
   days: EmotionalDayBucket[];
   emotions: EmotionalEmotionBucket[];
+  weekdays: EmotionalMomentBucket[];
+  dayparts: EmotionalMomentBucket[];
+  heatmap: EmotionalMomentCell[];
+  trend: EmotionalTrend;
 }
 
 export interface CreateEmotionalLogInput {
@@ -171,6 +201,39 @@ function parseDashboard(body: unknown): { items: EmotionalLog[]; nextCursor: str
   };
 }
 
+function parseMoment(value: unknown): EmotionalMomentBucket | null {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const key = asString(record.key);
+  if (!key) return null;
+  const topEmotion = (record.topEmotion ?? null) as Record<string, unknown> | null;
+  const name = topEmotion ? asString(topEmotion.name) : null;
+  return {
+    key,
+    entries: asNumber(record.entries) ?? 0,
+    averageIntensity: asNumber(record.averageIntensity),
+    topEmotion: name
+      ? { name, colorHex: topEmotion ? asString(topEmotion.colorHex) : null }
+      : null,
+  };
+}
+
+function parseTrend(value: unknown): EmotionalTrend {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const direction = asString(record.direction);
+  const previousTop = (record.previousTopEmotion ?? null) as Record<string, unknown> | null;
+  const previousName = previousTop ? asString(previousTop.name) : null;
+  return {
+    previousAverageIntensity: asNumber(record.previousAverageIntensity),
+    delta: asNumber(record.delta),
+    direction: direction === 'up' || direction === 'down' ? direction : 'stable',
+    previousEntries: asNumber(record.previousEntries) ?? 0,
+    previousTopEmotion: previousName
+      ? { name: previousName, colorHex: previousTop ? asString(previousTop.colorHex) : null }
+      : null,
+    topEmotionChanged: record.topEmotionChanged === true,
+  };
+}
+
 function parseSummary(body: unknown): EmotionalSummary | null {
   const record = (body ?? {}) as Record<string, unknown>;
   if (!Array.isArray(record.days) || !Array.isArray(record.emotions)) return null;
@@ -214,6 +277,34 @@ function parseSummary(body: unknown): EmotionalSummary | null {
         };
       })
       .filter((item): item is EmotionalEmotionBucket => item !== null),
+    weekdays: Array.isArray(record.weekdays)
+      ? record.weekdays.map(parseMoment).filter((item): item is EmotionalMomentBucket => item !== null)
+      : [],
+    dayparts: Array.isArray(record.dayparts)
+      ? record.dayparts.map(parseMoment).filter((item): item is EmotionalMomentBucket => item !== null)
+      : [],
+    heatmap: Array.isArray(record.heatmap)
+      ? record.heatmap
+          .map((item): EmotionalMomentCell | null => {
+            const cell = (item ?? {}) as Record<string, unknown>;
+            const weekday = asString(cell.weekday);
+            const daypart = asString(cell.daypart);
+            if (!weekday || !daypart) return null;
+            const topEmotion = (cell.topEmotion ?? null) as Record<string, unknown> | null;
+            const name = topEmotion ? asString(topEmotion.name) : null;
+            return {
+              weekday,
+              daypart,
+              entries: asNumber(cell.entries) ?? 0,
+              averageIntensity: asNumber(cell.averageIntensity),
+              topEmotion: name
+                ? { name, colorHex: topEmotion ? asString(topEmotion.colorHex) : null }
+                : null,
+            };
+          })
+          .filter((item): item is EmotionalMomentCell => item !== null)
+      : [],
+    trend: parseTrend(record.trend),
   };
 }
 
