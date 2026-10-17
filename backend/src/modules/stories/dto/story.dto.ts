@@ -21,6 +21,7 @@ import {
   STORY_CONTENT_MAX_LENGTH,
   STORY_TITLE_MAX_LENGTH,
 } from '../story-sanitize';
+import { REPORT_REASONS } from '../../comments/dto/comment.dto';
 
 export const VISIBILITIES = ['PUBLIC', 'FOLLOWERS', 'PRIVATE'] as const;
 export type VisibilityValue = (typeof VISIBILITIES)[number];
@@ -249,6 +250,12 @@ export class ListMyStoriesQueryDto {
   @IsOptional()
   @IsIn(['DRAFT', 'PUBLISHED'], { message: 'El estado no es válido' })
   status?: 'DRAFT' | 'PUBLISHED';
+}
+
+export class ReportStoryDto {
+  @ApiProperty({ enum: REPORT_REASONS, example: 'OFFENSIVE' })
+  @IsIn(REPORT_REASONS, { message: 'La razón del reporte no es válida' })
+  reason!: (typeof REPORT_REASONS)[number];
 }
 
 export class ListPublicStoriesQueryDto {

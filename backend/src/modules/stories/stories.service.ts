@@ -17,6 +17,7 @@ import {
   CreateStoryUpdateDto,
   ListMyStoriesQueryDto,
   ListPublicStoriesQueryDto,
+  ReportStoryDto,
   UpdateStoryDto,
   UpdateStoryUpdateDto,
   type VisibilityValue,
@@ -589,6 +590,43 @@ export class StoriesService {
     });
 
     return { id: storyId };
+  }
+
+  /**
+   * Reporta un relato ajeno. No cambia su visibilidad: la moderación es una
+   * decisión humana. El reporte solo queda registrado para su revisión.
+   */
+  async reportStory(userId: string, storyId: string, dto: ReportStoryDto) {
+    const story = await this.prisma.story.findFirst({
+      where: { id: storyId, status: { not: StoryStatus.DELETED } },
+      select: { id: true, character: { select: { userId: true } } },
+    });
+
+    if (!story) {
+      throw new NotFoundException('Ese relato no existe o ya no está disponible.');
+    }
+    if (story.character.userId === userId) {
+      throw new BadRequestException('No puedes reportar tu propio relato.');
+    }
+
+    const existing = await this.prisma.report.findFirst({
+      where: { reporterUserId: userId, reportedType: 'STORY', reportedId: storyId },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException('Ya reportaste este relato.');
+    }
+
+    await this.prisma.report.create({
+      data: {
+        reporterUserId: userId,
+        reportedType: 'STORY',
+        reportedId: storyId,
+        reason: dto.reason,
+      },
+    });
+
+    return { reported: true };
   }
 
   // --- Lectura (propietario) -----------------------------------------------

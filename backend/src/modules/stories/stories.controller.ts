@@ -26,6 +26,7 @@ import {
   CreateStoryUpdateDto,
   ListMyStoriesQueryDto,
   ListPublicStoriesQueryDto,
+  ReportStoryDto,
   UpdateStoryDto,
   UpdateStoryUpdateDto,
 } from './dto/story.dto';
@@ -149,5 +150,19 @@ export class StoriesController {
   @ApiOperation({ summary: 'Dar de baja un relato (baja lógica)' })
   remove(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.storiesService.remove(req.user.userId, id);
+  }
+
+  @Post(':id/report')
+  @Throttle({ default: { limit: 10, ttl: 60 * 60_000 } })
+  @ApiOperation({ summary: 'Reportar un relato de otra persona' })
+  @ApiResponse({ status: 400, description: 'No puedes reportar tu propio relato.' })
+  @ApiResponse({ status: 404, description: 'El relato no existe o ya no está disponible.' })
+  @ApiResponse({ status: 409, description: 'Ya reportaste este relato.' })
+  report(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReportStoryDto,
+  ) {
+    return this.storiesService.reportStory(req.user.userId, id, dto);
   }
 }

@@ -27,6 +27,8 @@ import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { EmotionalMapModule } from './modules/emotional-map/emotional-map.module';
+import { CommunityModule } from './modules/community/community.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { EmotionalMapModule } from './modules/emotional-map/emotional-map.module
     NotificationsModule,
     DiscoveryModule,
     EmotionalMapModule,
+    CommunityModule,
+    ModerationModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

@@ -48,6 +48,8 @@ model User {
   reports          Report[]
   notifications    Notification[]
   mediaAssets      MediaAsset[]
+  appeals          Appeal[]          @relation("AppealAppellant")
+  resolvedAppeals  Appeal[]          @relation("AppealResolver")
 
   @@map("users")
 }
@@ -582,7 +584,49 @@ model Report {
 
   reporter User @relation(fields: [reporterUserId], references: [id], onDelete: Cascade)
 
+  // La bandeja de moderación lista por estado y fecha; el chequeo de duplicados
+  // (misma persona, mismo objeto) y el índice por objetivo se resuelven por
+  // estos índices. Postgres no indexa las claves foráneas por su cuenta.
+  @@index([status, createdAt])
+  @@index([reporterUserId, reportedType, reportedId])
   @@map("reports")
+}
+
+enum AppealStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// Apelación de una persona cuya publicación fue moderada (ocultada). No es un
+// recurso del reporte: es la respuesta de su autor. Guarda el motivo, el estado
+// de la revisión y quién la resolvió. El objetivo es polimórfico
+// (`targetType` + `targetId`) porque relatos y comentarios comparten el flujo.
+model Appeal {
+  id              String       @id @default(uuid())
+  appellantUserId String
+  targetType      ReportedType
+  targetId        String
+  // Reporte que originó la moderación, si se conoce. Se conserva para dar
+  // contexto a quien revisa la apelación.
+  reportId        String?
+  message         String
+  status          AppealStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  resolvedAt      DateTime?
+  resolvedByUserId String?
+  resolutionNote  String?
+
+  appellantUser User  @relation("AppealAppellant", fields: [appellantUserId], references: [id], onDelete: Cascade)
+  resolvedBy    User? @relation("AppealResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  // La bandeja de revisión se lee por estado y fecha; la persona ve las suyas
+  // por autor y objetivo. Postgres no indexa las claves foráneas por su cuenta.
+  @@index([status, createdAt])
+  @@index([appellantUserId, createdAt])
+  @@index([targetType, targetId])
+  @@index([resolvedByUserId])
+  @@map("appeals")
 }
 
 model AnalyticsEvent {
