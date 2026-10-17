@@ -2,18 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
+import StoryTaxonomyFields from './StoryTaxonomyFields';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { updateStory, type MyStory, type StoryVisibility } from '@/lib/stories';
 
 const TITLE_MAX = 120;
 const MAX_EMOTIONS = 5;
 const MAX_TAGS = 10;
-
-const VISIBILITY_OPTIONS: { value: StoryVisibility; label: string }[] = [
-  { value: 'PUBLIC', label: 'Público' },
-  { value: 'FOLLOWERS', label: 'Seguidores' },
-  { value: 'PRIVATE', label: 'Privado' },
-];
 
 export interface EditableStory {
   id: string;
@@ -49,15 +44,6 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
       active = false;
     };
   }, []);
-
-  const toggle = (list: string[], setList: (next: string[]) => void, value: string, max: number) => {
-    if (list.includes(value)) {
-      setList(list.filter((item) => item !== value));
-      return;
-    }
-    if (list.length >= max) return;
-    setList([...list, value]);
-  };
 
   const canSubmit = title.trim().length >= 3 && !saving;
 
@@ -113,78 +99,19 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
         />
       </label>
 
-      <label className="field-label">Visibilidad</label>
-      <div className="segmented">
-        {VISIBILITY_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={visibility === option.value ? 'active' : undefined}
-            aria-pressed={visibility === option.value}
-            onClick={() => setVisibility(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      {catalog && catalog.categories.length > 0 ? (
-        <>
-          <label className="field-label">Categoría (una)</label>
-          <div className="chip-row">
-            {catalog.categories.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`chip ${category === item.name ? 'on' : ''}`}
-                aria-pressed={category === item.name}
-                onClick={() => setCategory(category === item.name ? null : item.name)}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
-        </>
-      ) : null}
-
-      {catalog && catalog.emotions.length > 0 ? (
-        <>
-          <label className="field-label">Emociones (hasta {MAX_EMOTIONS})</label>
-          <div className="chip-row">
-            {catalog.emotions.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`chip ${emotions.includes(item.name) ? 'on' : ''}`}
-                style={item.colorHex ? { borderColor: item.colorHex } : undefined}
-                aria-pressed={emotions.includes(item.name)}
-                onClick={() => toggle(emotions, setEmotions, item.name, MAX_EMOTIONS)}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
-        </>
-      ) : null}
-
-      {catalog && catalog.tags.length > 0 ? (
-        <>
-          <label className="field-label">Etiquetas (hasta {MAX_TAGS})</label>
-          <div className="chip-row">
-            {catalog.tags.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`chip ${tags.includes(item.name) ? 'on' : ''}`}
-                aria-pressed={tags.includes(item.name)}
-                onClick={() => toggle(tags, setTags, item.name, MAX_TAGS)}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
-        </>
-      ) : null}
+      <StoryTaxonomyFields
+        catalog={catalog}
+        visibility={visibility}
+        category={category}
+        emotions={emotions}
+        tags={tags}
+        onVisibility={setVisibility}
+        onCategory={setCategory}
+        onEmotions={setEmotions}
+        onTags={setTags}
+        maxEmotions={MAX_EMOTIONS}
+        maxTags={MAX_TAGS}
+      />
 
       <div className="modal-actions">
         <button className="ghost" type="button" onClick={onClose} disabled={saving}>

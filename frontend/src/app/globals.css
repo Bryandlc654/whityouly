@@ -780,6 +780,186 @@ body {
   border-top: 1px solid var(--line);
 }
 
+/* Selector de metadatos del relato: compacto, con emojis y plegable. */
+.wy .story-taxonomy {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.wy .opt-block {
+  display: grid;
+  gap: 9px;
+}
+
+.wy .opt-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #5c6172;
+}
+
+.wy .opt-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.wy .opt-count {
+  font-size: 10px;
+  font-weight: 850;
+  color: var(--purple);
+  background: var(--purple-3);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.wy .opt-segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wy .opt-segmented svg {
+  width: 15px;
+  height: 15px;
+}
+
+.wy .opt-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+
+.wy .opt-select:focus-within {
+  border-color: #c9bcff;
+  box-shadow: 0 0 0 3px rgba(104, 71, 245, 0.1);
+}
+
+.wy .opt-select-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.wy .opt-select select {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  font: inherit;
+  font-weight: 750;
+  color: var(--ink);
+  width: 100%;
+  height: 100%;
+  padding: 0 20px 0 0;
+  cursor: pointer;
+}
+
+.wy .opt-select > svg {
+  position: absolute;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.wy .emoji-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wy .emoji-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #5c6172;
+  border-radius: 999px;
+  padding: 7px 13px 7px 9px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.wy .emoji-chip-ico {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.wy .emoji-chip:hover {
+  background: var(--purple-3);
+}
+
+.wy .emoji-chip.on {
+  background: var(--purple-3);
+  border-color: var(--c, #c9bcff);
+  color: var(--purple);
+  box-shadow: inset 0 0 0 1px var(--c, transparent);
+}
+
+.wy .opt-collapse {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 13px;
+  padding: 12px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.wy .opt-collapse:hover {
+  background: #fbfaff;
+}
+
+.wy .opt-collapse-label {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 800;
+  color: #5c6172;
+}
+
+.wy .opt-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.wy .opt-chevron.open {
+  transform: rotate(180deg);
+}
+
+.wy .mini-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wy .mini-tag {
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--purple);
+  background: var(--purple-3);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
 /* Compositor en línea del feed: limpio y sin bordes. */
 .wy .composer-title {
   width: 100%;
