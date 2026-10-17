@@ -614,3 +614,39 @@
 .wy .follow-chip:active{transform:scale(.94)}
 .wy .follow-chip:disabled{opacity:.55;cursor:default;animation:none}
 @keyframes wy-follow-pop{0%{transform:scale(.55);opacity:.3}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+/* ---------------------------------------------------------------------------
+   Mi árbol (crecimiento privado)
+   --------------------------------------------------------------------------- */
+.wy .tree-hero{align-items:flex-start}
+.wy .tree-stage{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:18px;align-items:center;padding:18px}
+@media (max-width:640px){.wy .tree-stage{grid-template-columns:1fr}}
+.wy .tree-stage-art{display:flex;justify-content:center;align-items:flex-end;background:linear-gradient(180deg,#f7f5ff,#fff);border-radius:16px;padding:8px}
+.wy .tree-art{width:100%;max-width:220px;height:auto;filter:drop-shadow(0 8px 14px rgba(80,60,160,.14));animation:wy-tree-sway 6s ease-in-out infinite}
+@keyframes wy-tree-sway{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}
+.wy .tree-stage-info h2{margin:8px 0 4px;font-size:20px}
+.wy .tree-progress{height:10px;border-radius:999px;background:#efeaf9;overflow:hidden;margin:10px 0 8px}
+.wy .tree-progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7cc98a,#4f9d63);transition:width .4s ease}
+.wy .tree-paths{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.wy .tree-path{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fbfafd}
+.wy .tree-path.on{border-color:#bdf0cd;background:#f1fbf4}
+.wy .tree-path-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:999px;background:#efeaf9;color:var(--purple)}
+.wy .tree-path.on .tree-path-icon{background:#d8f3e0;color:#2f8a4e}
+.wy .tree-path b{display:block;font-size:13px}
+.wy .tree-path small{display:block;color:var(--muted);font-size:11px}
+.wy .tree-path-state{font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
+.wy .tree-path.on .tree-path-state{color:#2f8a4e}
+.wy .tree-ladder{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px;margin:16px 0 0;padding:0}
+.wy .tree-ladder-step{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1px solid var(--line);border-radius:14px;background:#fbfafd;text-align:center}
+.wy .tree-ladder-step.reached{border-color:#cdeccf;background:#f3fbf4}
+.wy .tree-ladder-step.current{border-color:var(--purple);box-shadow:0 0 0 3px rgba(104,71,245,.12)}
+.wy .tree-ladder-dot{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:#eceaf5;color:#7a7f92;font-size:11px;font-weight:800}
+.wy .tree-ladder-step.reached .tree-ladder-dot{background:#4f9d63;color:#fff}
+.wy .tree-ladder-step b{font-size:12px}
+.wy .tree-ladder-step small{color:var(--muted);font-size:10px}
+.wy .tree-parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.wy .tree-part{display:flex;flex-direction:column;gap:2px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fbfafd}
+.wy .tree-part-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:999px;background:#f0ecff;color:var(--purple);margin-bottom:4px}
+.wy .tree-part b{font-size:22px;color:var(--ink)}
+.wy .tree-part span{font-size:13px;font-weight:800}
+.wy .tree-part small{color:var(--muted);font-size:11px}
+.wy .action-link.on{color:#2f8a4e}

@@ -5,6 +5,7 @@ import { sanitizeContextNote } from './emotional-note';
 import { NOTE_MAX_LENGTH } from './dto/emotional-log.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QuotaService } from '../../common/quota/quota.service';
+import { TreeService } from '../tree/tree.service';
 
 describe('EmotionalMapService', () => {
   let service: EmotionalMapService;
@@ -34,6 +35,7 @@ describe('EmotionalMapService', () => {
         EmotionalMapService,
         { provide: PrismaService, useValue: prisma },
         { provide: QuotaService, useValue: quota },
+        { provide: TreeService, useValue: { award: vi.fn().mockResolvedValue(true) } },
       ],
     }).compile();
 

@@ -50,6 +50,7 @@ model User {
   mediaAssets      MediaAsset[]
   appeals          Appeal[]          @relation("AppealAppellant")
   resolvedAppeals  Appeal[]          @relation("AppealResolver")
+  treeDrops        TreeDrop[]
 
   @@map("users")
 }
@@ -129,6 +130,7 @@ model Character {
   // acompañante...). Se separa del destinatario: `Notification.userId` es quien
   // recibe y `actorCharacterId` es quien lo originó.
   notificationsTriggered Notification[] @relation("NotificationActor")
+  helpfulMarks CommentHelpful[]
 
   // El barrido de avatares huérfanos busca por `avatarUrl`. Sin índice, esa
   // comprobación recorre la tabla de personajes entera en cada pasada.
@@ -396,6 +398,7 @@ model Comment {
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
+  helpfulMarks CommentHelpful[]
 
   // El listado de comentarios de un relato filtra por relato y ordena por fecha.
   // Las tendencias agrupan comentarios de la última ventana por estado y fecha.
@@ -627,6 +630,50 @@ model Appeal {
   @@index([targetType, targetId])
   @@index([resolvedByUserId])
   @@map("appeals")
+}
+
+// Tu árbol: crecimiento emocional privado. Una gota por camino y día, con el
+// objetivo de premiar la constancia y no el volumen. El árbol nunca retrocede:
+// las gotas solo se suman, así que ninguna consulta resta por ausencia.
+enum TreePath {
+  SELF_KNOWLEDGE
+  CARE_EXPRESSION
+  ACCOMPANIMENT
+}
+
+/// Una gota de crecimiento conseguida un día por un camino. La clave única
+/// (persona, camino, día) garantiza "máximo una gota por camino al día" aunque
+/// la acción se repita: el segundo intento del día no crea fila nueva.
+model TreeDrop {
+  id         String   @id @default(uuid())
+  userId     String
+  path       TreePath
+  day        DateTime @db.Date
+  // Acción que la originó, solo para trazabilidad (no se expone al cliente).
+  sourceType String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, path, day])
+  @@index([userId, day])
+  @@map("tree_drops")
+}
+
+/// Marca "Me ayudó" de un comentario, una por personaje. Alimenta las "Flores"
+/// del árbol del autor del comentario y no se puede aplicar al propio.
+model CommentHelpful {
+  id          String   @id @default(uuid())
+  commentId   String
+  characterId String
+  createdAt   DateTime @default(now())
+
+  comment   Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, characterId])
+  @@index([characterId, createdAt])
+  @@map("comment_helpfuls")
 }
 
 model AnalyticsEvent {

@@ -5,9 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TreePath } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { TreeService } from '../tree/tree.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
@@ -26,6 +27,7 @@ export class CompanionshipsService {
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
     private readonly notifications: NotificationsService,
+    private readonly tree: TreeService,
   ) {}
 
   async supportStory(userId: string, storyId: string): Promise<{ supporting: true; count: number }> {
@@ -58,6 +60,9 @@ export class CompanionshipsService {
         entityType: NOTIFICATION_ENTITY.STORY,
         entityId: storyId,
       });
+
+      // Camino de acompañamiento: una interacción respetuosa da una gota al día.
+      await this.tree.award(userId, TreePath.ACCOMPANIMENT, 'companionship_story');
     }
 
     const count = await this.prisma.companionship.count({ where: { targetStoryId: storyId } });
@@ -115,6 +120,8 @@ export class CompanionshipsService {
         entityType: NOTIFICATION_ENTITY.CHARACTER,
         entityId: target.id,
       });
+
+      await this.tree.award(userId, TreePath.ACCOMPANIMENT, 'companionship_character');
     }
 
     const count = await this.prisma.companionship.count({ where: { targetCharacterId: target.id } });

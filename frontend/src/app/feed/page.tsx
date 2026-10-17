@@ -372,6 +372,9 @@ export default function FeedPage() {
       case 'pulso':
         router.push('/pulso');
         break;
+      case 'tree':
+        router.push('/mi-arbol');
+        break;
       case 'notifications':
         setNotificationsOpen(true);
         break;

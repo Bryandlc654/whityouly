@@ -306,6 +306,9 @@ export default function EmotionalMapPage() {
       case 'pulso':
         router.push('/pulso');
         break;
+      case 'tree':
+        router.push('/mi-arbol');
+        break;
       default:
         notify('Esta sección llega con los próximos módulos.');
     }

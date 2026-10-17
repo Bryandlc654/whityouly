@@ -8,9 +8,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationStatus, Prisma, StoryStatus } from '@prisma/client';
+import { NotificationStatus, Prisma, StoryStatus, TreePath } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QuotaService } from '../../common/quota/quota.service';
+import { TreeService } from '../tree/tree.service';
 import { env } from '../../config/env';
 import {
   CreateStoryDto,
@@ -123,6 +124,7 @@ export class StoriesService {
     private readonly prisma: PrismaService,
     private readonly quota: QuotaService,
     private readonly notifications: NotificationsService,
+    private readonly tree: TreeService,
   ) {}
 
   // --- Escritura (propietario) ---------------------------------------------
@@ -185,6 +187,9 @@ export class StoriesService {
       characterId,
       storyId: story.id,
     });
+
+    // Camino de cuidado o expresión: escribir un relato da una gota al día.
+    await this.tree.award(userId, TreePath.CARE_EXPRESSION, 'story');
 
     return this.toOwnerView(story);
   }
@@ -307,6 +312,9 @@ export class StoriesService {
     });
 
     await this.notifyStoryFollowers(userId, story.characterId, storyId);
+
+    // Continuar un relato (reflexión/etapa nueva) también es cuidado o expresión.
+    await this.tree.award(userId, TreePath.CARE_EXPRESSION, 'story_update');
 
     return this.toStageView(stage);
   }

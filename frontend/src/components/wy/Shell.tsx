@@ -13,6 +13,7 @@ export type WyRoute =
   | 'following'
   | 'mood'
   | 'pulso'
+  | 'tree'
   | 'profile'
   | 'help'
   | 'notifications';
@@ -24,6 +25,7 @@ const NAV: { label: string; icon: IconName; route: WyRoute }[] = [
   { label: 'Siguiendo', icon: 'users', route: 'following' },
   { label: 'Mi estado', icon: 'pulse', route: 'mood' },
   { label: 'Pulso', icon: 'sparkle', route: 'pulso' },
+  { label: 'Mi árbol', icon: 'trend', route: 'tree' },
   { label: 'Perfil', icon: 'user', route: 'profile' },
 ];
 

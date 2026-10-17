@@ -123,6 +123,9 @@ export default function AccountPage() {
       case 'pulso':
         router.push('/pulso');
         break;
+      case 'tree':
+        router.push('/mi-arbol');
+        break;
       case 'my-stories':
         router.push('/mis-relatos');
         break;

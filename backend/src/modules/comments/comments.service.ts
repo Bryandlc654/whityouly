@@ -6,9 +6,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, CommentStatus } from '@prisma/client';
+import { Prisma, CommentStatus, TreePath } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { TreeService } from '../tree/tree.service';
 import { sanitizeCommentContent } from './comment-sanitize';
 import {
   CreateCommentDto,
@@ -31,6 +32,7 @@ const COMMENT_SELECT = {
   createdAt: true,
   updatedAt: true,
   character: { select: { name: true, avatarUrl: true } },
+  _count: { select: { helpfulMarks: true } },
 } satisfies Prisma.CommentSelect;
 
 interface CommentRow {
@@ -42,6 +44,7 @@ interface CommentRow {
   createdAt: Date;
   updatedAt: Date;
   character: { name: string; avatarUrl: string | null };
+  _count?: { helpfulMarks: number } | null;
 }
 
 @Injectable()
@@ -52,6 +55,7 @@ export class CommentsService {
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
     private readonly notifications: NotificationsService,
+    private readonly tree: TreeService,
   ) {}
 
   async create(userId: string, storyId: string, dto: CreateCommentDto) {
@@ -101,7 +105,10 @@ export class CommentsService {
       parentAuthorUserId,
     });
 
-    return this.toView(comment, character.id);
+    // Camino de acompañamiento: comentar es una interacción respetuosa.
+    await this.tree.award(userId, TreePath.ACCOMPANIMENT, 'comment');
+
+    return this.toView(comment, character.id, new Set());
   }
 
   /**
@@ -179,11 +186,75 @@ export class CommentsService {
       where: { storyId, status: CommentStatus.ACTIVE },
     });
 
+    // Qué comentarios de esta página ha marcado el lector como "me ayudó".
+    const helpfulByMe = await this.resolveHelpfulMarks(
+      viewer?.id ?? null,
+      items.map((row) => row.id),
+    );
+
     return {
-      items: items.map((row) => this.toView(row, viewer?.id ?? null)),
+      items: items.map((row) => this.toView(row, viewer?.id ?? null, helpfulByMe)),
       nextCursor: hasMore ? items[items.length - 1].id : null,
       commentCount,
     };
+  }
+
+  /**
+   * Marca o desmarca un comentario como "Me ayudó". No se puede marcar el
+   * propio; alimenta las "Flores" del árbol del autor del comentario.
+   */
+  async toggleHelpful(userId: string, commentId: string) {
+    const character = await this.requireCommenterCharacter(userId);
+
+    const comment = await this.prisma.comment.findFirst({
+      where: { id: commentId, status: CommentStatus.ACTIVE },
+      select: { id: true, characterId: true },
+    });
+    if (!comment) {
+      throw new NotFoundException('Ese comentario no existe o ya no está disponible.');
+    }
+    if (comment.characterId === character.id) {
+      throw new BadRequestException('No puedes marcar tu propio comentario como "me ayudó".');
+    }
+
+    const existing = await this.prisma.commentHelpful.findUnique({
+      where: { commentId_characterId: { commentId, characterId: character.id } },
+      select: { id: true },
+    });
+
+    let helpful: boolean;
+    if (existing) {
+      await this.prisma.commentHelpful.delete({ where: { id: existing.id } });
+      helpful = false;
+    } else {
+      await this.prisma.commentHelpful
+        .create({ data: { commentId, characterId: character.id } })
+        .catch((error) => {
+          // P2002 = ya existía (petición concurrente): marcar dos veces no suma.
+          if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+            throw error;
+          }
+        });
+      helpful = true;
+      await this.tree.award(userId, TreePath.ACCOMPANIMENT, 'comment_helpful');
+    }
+
+    const count = await this.prisma.commentHelpful.count({ where: { commentId } });
+    return { helpful, count };
+  }
+
+  private async resolveHelpfulMarks(
+    viewerCharacterId: string | null,
+    commentIds: string[],
+  ): Promise<Set<string>> {
+    if (!viewerCharacterId || commentIds.length === 0) {
+      return new Set();
+    }
+    const marks = await this.prisma.commentHelpful.findMany({
+      where: { characterId: viewerCharacterId, commentId: { in: commentIds } },
+      select: { commentId: true },
+    });
+    return new Set(marks.map((mark) => mark.commentId));
   }
 
   async edit(userId: string, commentId: string, dto: EditCommentDto) {
@@ -207,7 +278,7 @@ export class CommentsService {
       select: COMMENT_SELECT,
     });
 
-    return this.toView(updated, updated.characterId);
+    return this.toView(updated, updated.characterId, new Set());
   }
 
   async remove(userId: string, commentId: string) {
@@ -292,7 +363,7 @@ export class CommentsService {
     return { ...comment, authorUserId: comment.character.userId };
   }
 
-  private toView(row: CommentRow, viewerCharacterId: string | null) {
+  private toView(row: CommentRow, viewerCharacterId: string | null, helpfulByMe: Set<string>) {
     // Los comentarios no activos (borrados) se sirven sin contenido.
     const deleted = row.status !== CommentStatus.ACTIVE;
 
@@ -303,6 +374,8 @@ export class CommentsService {
       parentId: row.parentId,
       author: { name: row.character.name, avatarUrl: row.character.avatarUrl },
       isOwn: row.characterId === viewerCharacterId,
+      helpfulCount: row._count?.helpfulMarks ?? 0,
+      helpfulByMe: helpfulByMe.has(row.id),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

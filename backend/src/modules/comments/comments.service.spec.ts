@@ -4,6 +4,7 @@ import { CommentsService } from './comments.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { TreeService } from '../tree/tree.service.js';
 
 function commentRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -39,6 +40,13 @@ describe('CommentsService', () => {
         findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({}),
       },
+      commentHelpful: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'h1' }),
+        delete: vi.fn().mockResolvedValue({}),
+        count: vi.fn().mockResolvedValue(0),
+      },
       analyticsEvent: { create: vi.fn().mockResolvedValue({}) },
     };
 
@@ -58,6 +66,7 @@ describe('CommentsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: StoriesService, useValue: storiesService },
         { provide: NotificationsService, useValue: notifications },
+        { provide: TreeService, useValue: { award: vi.fn().mockResolvedValue(true) } },
       ],
     }).compile();
 
@@ -220,5 +229,59 @@ describe('CommentsService', () => {
     await expect(service.report('user-1', 'c1', { reason: 'SPAM' })).rejects.toBeInstanceOf(
       ConflictException,
     );
+  });
+
+  describe('toggleHelpful', () => {
+    it('marca el comentario ajeno como "me ayudó"', async () => {
+      prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+      prisma.comment.findFirst.mockResolvedValue({ id: 'c1', characterId: 'char-2' });
+      prisma.commentHelpful.findUnique.mockResolvedValue(null);
+      prisma.commentHelpful.count.mockResolvedValue(1);
+
+      const result = await service.toggleHelpful('user-1', 'c1');
+
+      expect(prisma.commentHelpful.create).toHaveBeenCalledWith({
+        data: { commentId: 'c1', characterId: 'char-1' },
+      });
+      expect(result).toEqual({ helpful: true, count: 1 });
+    });
+
+    it('retira la marca si ya existía', async () => {
+      prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+      prisma.comment.findFirst.mockResolvedValue({ id: 'c1', characterId: 'char-2' });
+      prisma.commentHelpful.findUnique.mockResolvedValue({ id: 'h1' });
+      prisma.commentHelpful.count.mockResolvedValue(0);
+
+      const result = await service.toggleHelpful('user-1', 'c1');
+
+      expect(prisma.commentHelpful.delete).toHaveBeenCalledWith({ where: { id: 'h1' } });
+      expect(result).toEqual({ helpful: false, count: 0 });
+    });
+
+    it('no permite marcar el propio comentario', async () => {
+      prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+      prisma.comment.findFirst.mockResolvedValue({ id: 'c1', characterId: 'char-1' });
+
+      await expect(service.toggleHelpful('user-1', 'c1')).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('no marca un comentario que no existe', async () => {
+      prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+      prisma.comment.findFirst.mockResolvedValue(null);
+
+      await expect(service.toggleHelpful('user-1', 'c1')).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  it('el listado expone el conteo y si el lector marcó "me ayudó"', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.comment.findMany.mockResolvedValue([commentRow({ _count: { helpfulMarks: 3 } })]);
+    prisma.comment.count.mockResolvedValue(1);
+    prisma.commentHelpful.findMany.mockResolvedValue([{ commentId: 'c1' }]);
+
+    const result = await service.list('user-1', 'story-1', {});
+
+    expect(result.items[0].helpfulCount).toBe(3);
+    expect(result.items[0].helpfulByMe).toBe(true);
   });
 });

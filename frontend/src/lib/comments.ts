@@ -14,6 +14,8 @@ export interface StoryComment {
   parentId: string | null;
   author: CommentAuthor;
   isOwn: boolean;
+  helpfulCount: number;
+  helpfulByMe: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,6 +65,11 @@ function parseComment(value: unknown): StoryComment | null {
       avatarUrl: safeUrl(authorRecord.avatarUrl),
     },
     isOwn: record.isOwn === true,
+    helpfulCount:
+      typeof record.helpfulCount === 'number' && Number.isFinite(record.helpfulCount)
+        ? record.helpfulCount
+        : 0,
+    helpfulByMe: record.helpfulByMe === true,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
   };
@@ -186,6 +193,24 @@ export function reportComment(id: string, reason: ReportReason): Promise<LoadRes
     (body) => {
       const record = (body ?? {}) as Record<string, unknown>;
       return { reported: record.reported === true };
+    },
+  );
+}
+
+/** Marca o desmarca un comentario como "Me ayudó" (alimenta las flores del árbol). */
+export function toggleHelpful(
+  id: string,
+): Promise<LoadResult<{ helpful: boolean; count: number }>> {
+  return request(
+    `/comments/${encodeURIComponent(id)}/helpful`,
+    { method: 'POST' },
+    'No se pudo marcar el comentario.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      return {
+        helpful: record.helpful === true,
+        count: typeof record.count === 'number' ? record.count : 0,
+      };
     },
   );
 }

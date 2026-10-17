@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -74,6 +76,19 @@ export class CommentsController {
   @ApiResponse({ status: 403, description: 'El comentario no es tuyo.' })
   remove(@Req() req: AuthenticatedRequest, @Param('commentId', ParseUUIDPipe) commentId: string) {
     return this.commentsService.remove(req.user.userId, commentId);
+  }
+
+  @Post(':commentId/helpful')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Marcar o desmarcar un comentario como "Me ayudó"' })
+  @ApiResponse({ status: 400, description: 'No puedes marcar tu propio comentario.' })
+  @ApiResponse({ status: 404, description: 'El comentario no existe o ya no está disponible.' })
+  toggleHelpful(
+    @Req() req: AuthenticatedRequest,
+    @Param('commentId', ParseUUIDPipe) commentId: string,
+  ) {
+    return this.commentsService.toggleHelpful(req.user.userId, commentId);
   }
 
   @Post(':commentId/report')

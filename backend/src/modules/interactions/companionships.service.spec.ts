@@ -4,6 +4,7 @@ import { CompanionshipsService } from './companionships.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { TreeService } from '../tree/tree.service.js';
 
 describe('CompanionshipsService', () => {
   let service: CompanionshipsService;
@@ -44,6 +45,7 @@ describe('CompanionshipsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: StoriesService, useValue: storiesService },
         { provide: NotificationsService, useValue: notifications },
+        { provide: TreeService, useValue: { award: vi.fn().mockResolvedValue(true) } },
       ],
     }).compile();
 

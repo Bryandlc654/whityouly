@@ -9,6 +9,7 @@ import {
   editComment,
   listComments,
   reportComment,
+  toggleHelpful,
   REPORT_REASONS,
   type ReportReason,
   type StoryComment,
@@ -129,7 +130,27 @@ export default function CommentSection({ storyId, onNotify }: Props) {
 
     setReportFor(null);
     if (result.status === 'ok') {
-      notify('Reporte enviado a revisión.');
+      notify('Reporte enviado a revisi��n.');
+      return;
+    }
+    setError(result.message);
+  };
+
+  const markHelpful = async (id: string) => {
+    setBusy(true);
+    setError('');
+    const result = await toggleHelpful(id);
+    setBusy(false);
+
+    if (result.status === 'ok') {
+      setComments((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, helpfulByMe: result.data.helpful, helpfulCount: result.data.count }
+            : item,
+        ),
+      );
+      notify(result.data.helpful ? 'Marcado como «Me ayudó».' : 'Marca retirada.');
       return;
     }
     setError(result.message);
@@ -213,13 +234,25 @@ export default function CommentSection({ storyId, onNotify }: Props) {
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                className="action-link danger"
-                onClick={() => setReportFor(reporting ? null : comment.id)}
-              >
-                <Icon name="flag" /> Reportar
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={`action-link${comment.helpfulByMe ? ' on' : ''}`}
+                  onClick={() => void markHelpful(comment.id)}
+                  disabled={busy}
+                  aria-pressed={comment.helpfulByMe}
+                >
+                  <Icon name={comment.helpfulByMe ? 'heart' : 'sparkle'} /> Me ayudó
+                  {comment.helpfulCount > 0 ? ` · ${comment.helpfulCount}` : ''}
+                </button>
+                <button
+                  type="button"
+                  className="action-link danger"
+                  onClick={() => setReportFor(reporting ? null : comment.id)}
+                >
+                  <Icon name="flag" /> Reportar
+                </button>
+              </>
             )}
           </div>
         ) : null}

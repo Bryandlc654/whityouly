@@ -6,9 +6,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TreePath } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QuotaService } from '../../common/quota/quota.service';
+import { TreeService } from '../tree/tree.service';
 import { sanitizeContextNote } from './emotional-note';
 import {
   CreateEmotionalLogDto,
@@ -156,6 +157,7 @@ export class EmotionalMapService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly quota: QuotaService,
+    private readonly tree: TreeService,
   ) {}
 
   async create(userId: string, dto: CreateEmotionalLogDto): Promise<EmotionalLogView> {
@@ -182,6 +184,9 @@ export class EmotionalMapService {
       },
       select: LOG_SELECT,
     });
+
+    // Camino de autoconocimiento: registrar cómo te sientes da una gota al día.
+    await this.tree.award(userId, TreePath.SELF_KNOWLEDGE, 'emotional_log');
 
     return this.toView(row);
   }
