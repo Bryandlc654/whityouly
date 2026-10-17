@@ -155,6 +155,9 @@ export default function FollowingPage() {
       case 'mood':
         router.push('/mi-estado');
         break;
+      case 'pulso':
+        router.push('/pulso');
+        break;
       default:
         notify('Esta sección llega con los próximos módulos.');
     }

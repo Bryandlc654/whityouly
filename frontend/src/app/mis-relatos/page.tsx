@@ -22,9 +22,37 @@ import {
   unpublishStory,
   type MyStory,
   type MyStoryListItem,
+  type StoryStatus,
 } from '@/lib/stories';
+import {
+  APPEAL_MESSAGE_MAX_LENGTH,
+  APPEAL_MESSAGE_MIN_LENGTH,
+  createAppeal,
+  listMyAppeals,
+  type Appeal,
+} from '@/lib/moderation';
 
 type StatusFilter = 'ALL' | 'DRAFT' | 'PUBLISHED';
+
+// Estados en los que un relato propio está oculto (moderado) y, por tanto, se
+// puede apelar. Coincide con las condiciones del backend.
+const APPEALABLE_STATUSES: StoryStatus[] = ['HIDDEN', 'MODERATED', 'REPORTED'];
+
+function isAppealable(status: StoryStatus): boolean {
+  return APPEALABLE_STATUSES.includes(status);
+}
+
+function statusLabel(status: StoryStatus): string {
+  if (status === 'PUBLISHED') return 'Publicado';
+  if (status === 'HIDDEN' || status === 'MODERATED' || status === 'REPORTED') return 'Oculto por moderación';
+  return 'Borrador';
+}
+
+const APPEAL_STATUS_LABELS: Record<Appeal['status'], string> = {
+  PENDING: 'Apelación en revisión',
+  ACCEPTED: 'Apelación aceptada',
+  REJECTED: 'Apelación rechazada',
+};
 
 const FILTERS: { id: StatusFilter; label: string }[] = [
   { id: 'ALL', label: 'Todos' },
@@ -68,6 +96,12 @@ export default function MyStoriesPage() {
   const [filter, setFilter] = useState<StatusFilter>('ALL');
 
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Apelaciones: por relato, para saber si ya hay una pendiente o resuelta.
+  const [appeals, setAppeals] = useState<Record<string, Appeal>>({});
+  const [appealFor, setAppealFor] = useState<string | null>(null);
+  const [appealDraft, setAppealDraft] = useState('');
+  const [appealBusy, setAppealBusy] = useState(false);
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [metaStory, setMetaStory] = useState<EditableStory | null>(null);
@@ -135,6 +169,51 @@ export default function MyStoriesPage() {
     if (!loading) void loadStories(filter);
   }, [filter, loading, loadStories]);
 
+  const loadAppeals = useCallback(async () => {
+    const result = await listMyAppeals({ limit: 50 });
+    if (result.status !== 'ok') return;
+    const map: Record<string, Appeal> = {};
+    for (const appeal of result.data.items) {
+      if (appeal.targetType !== 'STORY') continue;
+      const current = map[appeal.targetId];
+      // Nos quedamos con la apelación más reciente de cada relato.
+      if (!current || appeal.createdAt > current.createdAt) {
+        map[appeal.targetId] = appeal;
+      }
+    }
+    setAppeals(map);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) void loadAppeals();
+  }, [loading, loadAppeals]);
+
+  const openAppeal = (storyId: string) => {
+    setAppealFor(storyId);
+    setAppealDraft('');
+  };
+
+  const submitAppeal = async (storyId: string) => {
+    const message = appealDraft.trim();
+    if (message.length < APPEAL_MESSAGE_MIN_LENGTH) {
+      notify(`Cuéntanos un poco más (mínimo ${APPEAL_MESSAGE_MIN_LENGTH} caracteres).`);
+      return;
+    }
+
+    setAppealBusy(true);
+    const result = await createAppeal('STORY', storyId, message);
+    setAppealBusy(false);
+
+    if (result.status === 'ok') {
+      setAppeals((prev) => ({ ...prev, [storyId]: result.data }));
+      setAppealFor(null);
+      setAppealDraft('');
+      notify('Apelación enviada. La revisaremos pronto.');
+      return;
+    }
+    notify(result.message);
+  };
+
   const logout = useCallback(async () => {
     await endSession();
     router.push('/login');
@@ -170,6 +249,9 @@ export default function MyStoriesPage() {
         break;
       case 'mood':
         router.push('/mi-estado');
+        break;
+      case 'pulso':
+        router.push('/pulso');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');
@@ -347,8 +429,16 @@ export default function MyStoriesPage() {
                     {story.featuredAt ? (
                       <span className="status-pill featured">Destacado</span>
                     ) : null}
-                    <span className={`status-pill ${story.status === 'PUBLISHED' ? 'published' : 'draft'}`}>
-                      {story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}
+                    <span
+                      className={`status-pill ${
+                        story.status === 'PUBLISHED'
+                          ? 'published'
+                          : isAppealable(story.status)
+                            ? 'featured'
+                            : 'draft'
+                      }`}
+                    >
+                      {statusLabel(story.status)}
                     </span>
                   </div>
                 </div>
@@ -406,15 +496,26 @@ export default function MyStoriesPage() {
                   >
                     <Icon name="sparkle" /> {story.featuredAt ? 'Quitar destacado' : 'Destacar'}
                   </button>
-                  <button
-                    className="action-link"
-                    type="button"
-                    disabled={busyId === story.id}
-                    onClick={() => void toggleStatus(story)}
-                  >
-                    <Icon name={story.status === 'PUBLISHED' ? 'lock' : 'globe'} />
-                    {story.status === 'PUBLISHED' ? 'Volver a borrador' : 'Publicar'}
-                  </button>
+                  {isAppealable(story.status) ? (
+                    <button
+                      className="action-link"
+                      type="button"
+                      disabled={appealBusy || Boolean(appeals[story.id])}
+                      onClick={() => openAppeal(story.id)}
+                    >
+                      <Icon name="flag" /> Apelar
+                    </button>
+                  ) : (
+                    <button
+                      className="action-link"
+                      type="button"
+                      disabled={busyId === story.id}
+                      onClick={() => void toggleStatus(story)}
+                    >
+                      <Icon name={story.status === 'PUBLISHED' ? 'lock' : 'globe'} />
+                      {story.status === 'PUBLISHED' ? 'Volver a borrador' : 'Publicar'}
+                    </button>
+                  )}
                   <button
                     className="action-link danger"
                     type="button"
@@ -424,6 +525,65 @@ export default function MyStoriesPage() {
                     <Icon name="trash" /> Dar de baja
                   </button>
                 </div>
+
+                {isAppealable(story.status) ? (
+                  <div className="appeal-block">
+                    {appeals[story.id] ? (
+                      <div className="appeal-status">
+                        <strong>{APPEAL_STATUS_LABELS[appeals[story.id].status]}</strong>
+                        <p className="muted small" style={{ margin: '4px 0 0' }}>
+                          {appeals[story.id].message}
+                        </p>
+                        {appeals[story.id].resolutionNote ? (
+                          <p className="muted small" style={{ margin: '4px 0 0' }}>
+                            Respuesta de moderación: {appeals[story.id].resolutionNote}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : appealFor === story.id ? (
+                      <div className="appeal-form">
+                        <label className="field-label" htmlFor={`appeal-${story.id}`}>
+                          Cuéntanos por qué deberíamos revisarlo
+                        </label>
+                        <textarea
+                          id={`appeal-${story.id}`}
+                          className="field"
+                          rows={3}
+                          maxLength={APPEAL_MESSAGE_MAX_LENGTH}
+                          value={appealDraft}
+                          onChange={(event) => setAppealDraft(event.target.value)}
+                          placeholder="Explica por qué tu relato no incumple las normas de la comunidad."
+                        />
+                        <div className="appeal-actions">
+                          <button
+                            className="primary"
+                            type="button"
+                            disabled={appealBusy}
+                            onClick={() => void submitAppeal(story.id)}
+                          >
+                            {appealBusy ? 'Enviando…' : 'Enviar apelación'}
+                          </button>
+                          <button
+                            className="text-link"
+                            type="button"
+                            disabled={appealBusy}
+                            onClick={() => {
+                              setAppealFor(null);
+                              setAppealDraft('');
+                            }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="muted small" style={{ margin: '8px 0 0' }}>
+                        Este relato está oculto por moderación. Si crees que es un error, puedes apelar
+                        con el botón «Apelar».
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

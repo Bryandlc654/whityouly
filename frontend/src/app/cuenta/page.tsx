@@ -14,14 +14,16 @@ import type { IconName } from '@/components/wy/icons';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import PreferencesSection from '@/components/account/PreferencesSection';
 import SecuritySection from '@/components/account/SecuritySection';
+import PrivacySection from '@/components/account/PrivacySection';
 import FilesSection from '@/components/account/FilesSection';
 import DeleteAccountSection from '@/components/account/DeleteAccountSection';
 
-type Tab = 'preferencias' | 'seguridad' | 'archivos' | 'baja';
+type Tab = 'preferencias' | 'seguridad' | 'privacidad' | 'archivos' | 'baja';
 
 const TABS: { id: Tab; label: string; icon: IconName; danger?: boolean }[] = [
   { id: 'preferencias', label: 'Preferencias', icon: 'settings' },
   { id: 'seguridad', label: 'Seguridad', icon: 'shield' },
+  { id: 'privacidad', label: 'Privacidad', icon: 'lock' },
   { id: 'archivos', label: 'Archivos', icon: 'book' },
   { id: 'baja', label: 'Baja', icon: 'trash', danger: true },
 ];
@@ -118,6 +120,9 @@ export default function AccountPage() {
       case 'mood':
         router.push('/mi-estado');
         break;
+      case 'pulso':
+        router.push('/pulso');
+        break;
       case 'my-stories':
         router.push('/mis-relatos');
         break;
@@ -208,6 +213,14 @@ export default function AccountPage() {
 
             {tab === 'preferencias' && <PreferencesSection account={account} onSaved={setAccount} />}
             {tab === 'seguridad' && <SecuritySection account={account} />}
+            {tab === 'privacidad' && (
+              <PrivacySection
+                settings={character?.privacySettings}
+                onSaved={(settings) =>
+                  setCharacter((prev) => (prev ? { ...prev, privacySettings: settings } : prev))
+                }
+              />
+            )}
             {tab === 'archivos' && <FilesSection usage={account.usage} />}
             {tab === 'baja' && <DeleteAccountSection />}
 

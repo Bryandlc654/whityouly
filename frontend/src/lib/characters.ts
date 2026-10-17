@@ -1,4 +1,6 @@
 import { API_URL } from './api';
+import { authFetch } from './auth';
+import type { PrivacySettings } from '@/components/feed/types';
 import type { LoadResult } from './account';
 
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -259,4 +261,62 @@ export function formatJoinDate(value: string | null): string | null {
     month: 'long',
     year: 'numeric',
   }).format(new Date(value));
+}
+
+/**
+ * Protección de la información personal: guarda los ajustes de privacidad del
+ * personaje. Solo se envían las claves presentes para no pisar el resto.
+ */
+export function saveCharacterPrivacy(
+  settings: Partial<PrivacySettings>,
+): Promise<LoadResult<PrivacySettings>> {
+  return savePrivacyRequest(settings);
+}
+
+async function savePrivacyRequest(
+  settings: Partial<PrivacySettings>,
+): Promise<LoadResult<PrivacySettings>> {
+  let response: Response;
+  try {
+    response = await authFetch(`${API_URL}/characters/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ privacySettings: settings }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      /* sin cuerpo */
+    }
+    const record = (body ?? {}) as Record<string, unknown>;
+    const message = record.message;
+    return {
+      status: 'error',
+      message:
+        Array.isArray(message) && message.length > 0
+          ? message.join(' ')
+          : 'No se pudieron guardar tus ajustes de privacidad.',
+    };
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | { privacySettings?: unknown }
+    | null;
+  const raw = (payload?.privacySettings ?? {}) as Record<string, unknown>;
+
+  return {
+    status: 'ok',
+    data: {
+      profileVisibility: raw.profileVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+      showAvatar: typeof raw.showAvatar === 'boolean' ? raw.showAvatar : true,
+      showBio: typeof raw.showBio === 'boolean' ? raw.showBio : true,
+    },
+  };
 }

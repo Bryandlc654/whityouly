@@ -204,6 +204,9 @@ export default function ExplorePage() {
       case 'mood':
         router.push('/mi-estado');
         break;
+      case 'pulso':
+        router.push('/pulso');
+        break;
       case 'notifications':
         setNotificationsOpen(true);
         break;

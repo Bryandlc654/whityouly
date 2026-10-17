@@ -17,7 +17,8 @@ import StoryForm from '@/components/wy/StoryForm';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
 import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
-import { getFeed, type FollowingStory } from '@/lib/stories';
+import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
+import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
 import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import NotificationsPanel from '@/components/wy/NotificationsPanel';
@@ -330,9 +331,31 @@ export default function FeedPage() {
         { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => void toggleFollowStory(storyId) },
         { label: 'Guardar relato', icon: 'bookmark', onClick: () => void toggleSave(storyId) },
         { label: 'Compartir enlace', icon: 'share', onClick: () => notify('Enlace copiado') },
-        { label: 'Reportar contenido', icon: 'flag', danger: true, onClick: () => notify('Reporte enviado a revisión prioritaria') },
+        {
+          label: 'Reportar contenido',
+          icon: 'flag',
+          danger: true,
+          onClick: () => openReportMenu(storyId),
+        },
       ],
     });
+  };
+
+  const openReportMenu = (storyId: string) => {
+    setSheet({
+      title: '¿Por qué lo reportas?',
+      rows: REPORT_REASONS.map((reason) => ({
+        label: REPORT_REASON_LABELS[reason],
+        icon: 'flag' as const,
+        onClick: () => void submitStoryReport(storyId, reason),
+      })),
+    });
+  };
+
+  const submitStoryReport = async (storyId: string, reason: ReportReason) => {
+    setSheet(null);
+    const result = await reportStory(storyId, reason);
+    notify(result.status === 'ok' ? 'Reporte enviado a revisión.' : result.message);
   };
 
   const navigate = (route: WyRoute) => {
@@ -345,6 +368,9 @@ export default function FeedPage() {
         break;
       case 'mood':
         router.push('/mi-estado');
+        break;
+      case 'pulso':
+        router.push('/pulso');
         break;
       case 'notifications':
         setNotificationsOpen(true);

@@ -1,5 +1,6 @@
 import { API_URL } from './api';
 import { authFetch } from './auth';
+import type { ReportReason } from './comments';
 import type { LoadResult } from './account';
 
 export type StoryVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE';
@@ -374,6 +375,25 @@ export function unpublishStory(id: string): Promise<LoadResult<MyStory>> {
     { method: 'POST' },
     'No se pudo volver a borrador.',
     (body) => parseStory(body),
+  );
+}
+
+/**
+ * Reporta un relato ajeno. La API rechaza auto-reportes y reportes duplicados,
+ * así que el mensaje de error se muestra tal cual llega.
+ */
+export function reportStory(
+  id: string,
+  reason: ReportReason,
+): Promise<LoadResult<{ reported: boolean }>> {
+  return authedRequest(
+    `/stories/${encodeURIComponent(id)}/report`,
+    jsonInit('POST', { reason }),
+    'No se pudo reportar el relato.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      return { reported: record.reported === true };
+    },
   );
 }
 

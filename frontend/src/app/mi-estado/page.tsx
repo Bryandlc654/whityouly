@@ -303,6 +303,9 @@ export default function EmotionalMapPage() {
         break;
       case 'mood':
         break;
+      case 'pulso':
+        router.push('/pulso');
+        break;
       default:
         notify('Esta sección llega con los próximos módulos.');
     }
