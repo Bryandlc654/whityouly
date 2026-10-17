@@ -138,6 +138,11 @@ function tint(colorHex: string | null | undefined, fallback: string): string {
   return colorHex ? `${colorHex}33` : fallback;
 }
 
+function moodEmoji(name: string | undefined | null): string {
+  if (!name) return '📝';
+  return MOOD_EMOJI[name] ?? '📝';
+}
+
 export default function EmotionalMapPage() {
   const router = useRouter();
 
@@ -444,9 +449,13 @@ export default function EmotionalMapPage() {
         />
       }
     >
-      <section className="screen">
+      <section className="screen mood-page">
+        {/* Cabecera */}
         <div className="card mood-hero">
-          <div>
+          <div className="mood-hero-copy">
+            <span className="privacy-badge">
+              <Icon name="lock" /> Solo tú puedes verlo
+            </span>
             <h1>Mi mapa emocional</h1>
             <p>
               {loading
@@ -456,33 +465,70 @@ export default function EmotionalMapPage() {
                   : 'Tu diario privado de estados de ánimo.'}
             </p>
           </div>
-          <button type="button" onClick={() => openCreate()}>
+          <button className="mood-hero-cta" type="button" onClick={() => openCreate()}>
             <Icon name="plus" /> Registrar cómo me siento
           </button>
         </div>
 
+        {/* Resumen rápido */}
         {!loading ? (
-          <div className="card" style={{ padding: 16 }}>
-            <div className="period-row">
-              <div>
-                <span className="privacy-badge">
-                  <Icon name="lock" /> Solo tú puedes verlo
-                </span>
-              </div>
-              <span className="muted small">
-                {summary
-                  ? `Racha de ${summary.currentStreak} ${summary.currentStreak === 1 ? 'día' : 'días'} · Promedio ${summary.averageIntensity ?? '—'}/10`
-                  : 'Sin datos todavía'}
+          <div className="mood-stats" aria-label="Resumen de tu diario">
+            <div className="mood-stat">
+              <span className="mood-stat-icon">
+                <Icon name="pulse" />
               </span>
+              <div>
+                <b>{summary?.totalEntries ?? 0}</b>
+                <small>Registros en {range} días</small>
+              </div>
+            </div>
+            <div className="mood-stat">
+              <span className="mood-stat-icon">
+                <Icon name="calendar" />
+              </span>
+              <div>
+                <b>{summary?.currentStreak ?? 0}</b>
+                <small>{summary?.currentStreak === 1 ? 'Día de racha' : 'Días de racha'}</small>
+              </div>
+            </div>
+            <div className="mood-stat">
+              <span className="mood-stat-icon">
+                <Icon name="trend" />
+              </span>
+              <div>
+                <b>{summary?.averageIntensity ?? '—'}</b>
+                <small>Intensidad media /10</small>
+              </div>
+            </div>
+            <div className="mood-stat">
+              <span
+                className="mood-stat-icon mood-stat-emoji"
+                style={{
+                  background: tint(dominant?.colorHex, '#f0ecff'),
+                  color: '#3b3357',
+                }}
+              >
+                {moodEmoji(dominant?.name)}
+              </span>
+              <div>
+                <b>{dominant?.name ?? '—'}</b>
+                <small>Emoción dominante</small>
+              </div>
             </div>
           </div>
         ) : null}
 
+        {/* Intensidad y tendencia */}
         <div className="card chart-card">
           <div className="chart-head">
-            <div>
-              <h2>Intensidad emocional</h2>
-              <p>Promedio diario de tus registros en 1 a 10.</p>
+            <div className="mood-section-title">
+              <span className="mood-section-icon">
+                <Icon name="trend" />
+              </span>
+              <div>
+                <h2>Intensidad emocional</h2>
+                <p>Promedio diario de tus registros en una escala de 1 a 10.</p>
+              </div>
             </div>
             <div className="segmented" role="tablist" aria-label="Rango de tiempo">
               {RANGES.map((item) => (
@@ -500,7 +546,7 @@ export default function EmotionalMapPage() {
           </div>
 
           {summaryError ? (
-            <div className="auth-error" role="alert" style={{ marginTop: 12 }}>
+            <div className="auth-error" role="alert" style={{ marginTop: 14 }}>
               {summaryError}
               <button className="text-link" type="button" onClick={() => void loadSummary(range)} style={{ marginLeft: 8 }}>
                 Reintentar
@@ -566,16 +612,31 @@ export default function EmotionalMapPage() {
               </div>
             </div>
           ) : null}
+        </div>
 
-          {dominant ? (
-            <div className="insight">
-              <b>{dominant.name}</b> es la emoción más frecuente del periodo ({dominant.count}{' '}
-              {dominant.count === 1 ? 'registro' : 'registros'}). Tu intensidad media es{' '}
-              <b>{summary?.averageIntensity ?? '—'}/10</b>.
+        {/* Emociones del periodo */}
+        {summary && summary.emotions.length > 0 ? (
+          <div className="card chart-card">
+            <div className="chart-head">
+              <div className="mood-section-title">
+                <span className="mood-section-icon">
+                  <Icon name="sparkle" />
+                </span>
+                <div>
+                  <h2>Emociones del periodo</h2>
+                  <p>Las que más registraste en los últimos {range} días.</p>
+                </div>
+              </div>
             </div>
-          ) : null}
 
-          {summary && summary.emotions.length > 0 ? (
+            {dominant ? (
+              <div className="insight">
+                <b>{dominant.name}</b> es tu emoción más frecuente ({dominant.count}{' '}
+                {dominant.count === 1 ? 'registro' : 'registros'}). Tu intensidad media es{' '}
+                <b>{summary.averageIntensity ?? '—'}/10</b>.
+              </div>
+            ) : null}
+
             <div className="rank" aria-label="Emociones más frecuentes">
               {summary.emotions.slice(0, 6).map((emotion) => {
                 const share =
@@ -598,15 +659,21 @@ export default function EmotionalMapPage() {
                 );
               })}
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
+        {/* Calendario */}
         {summary && summary.days.length > 0 ? (
           <div className="card chart-card">
             <div className="chart-head">
-              <div>
-                <h2>Tu calendario</h2>
-                <p>El color de cada día refleja tu emoción dominante. Toca un día para ver el detalle.</p>
+              <div className="mood-section-title">
+                <span className="mood-section-icon">
+                  <Icon name="calendar" />
+                </span>
+                <div>
+                  <h2>Tu calendario</h2>
+                  <p>El color de cada día refleja tu emoción dominante. Toca un día para ver el detalle.</p>
+                </div>
               </div>
             </div>
 
@@ -652,12 +719,17 @@ export default function EmotionalMapPage() {
                 ) : (
                   dayLogs.map((log) => (
                     <div className="timeline-item" key={log.id}>
+                      <span className="timeline-emoji">{moodEmoji(log.emotion.name)}</span>
                       <time>{formatTime(log.loggedAt)}</time>
                       <div>
                         <b>
-                          {MOOD_EMOJI[log.emotion.name] ?? '•'} {log.emotion.name} · {log.intensity}/10
+                          {log.emotion.name} · {log.intensity}/10
                         </b>
-                        {log.contextNote ? <p className="muted small" style={{ margin: '3px 0 0' }}>{log.contextNote}</p> : null}
+                        {log.contextNote ? (
+                          <p className="muted small" style={{ margin: '3px 0 0' }}>
+                            {log.contextNote}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   ))
@@ -667,12 +739,18 @@ export default function EmotionalMapPage() {
           </div>
         ) : null}
 
+        {/* Momentos recurrentes */}
         {summary && summary.totalEntries > 0 ? (
           <div className="card chart-card">
             <div className="chart-head">
-              <div>
-                <h2>Momentos recurrentes</h2>
-                <p>Cuándo sueles registrar emociones: día de la semana y franja del día.</p>
+              <div className="mood-section-title">
+                <span className="mood-section-icon">
+                  <Icon name="pulse" />
+                </span>
+                <div>
+                  <h2>Momentos recurrentes</h2>
+                  <p>Cuándo sueles registrar emociones: día de la semana y franja del día.</p>
+                </div>
               </div>
             </div>
 
@@ -766,11 +844,17 @@ export default function EmotionalMapPage() {
           </div>
         ) : null}
 
+        {/* Mis registros */}
         <div className="card chart-card">
           <div className="chart-head">
-            <div>
-              <h2>Mis registros</h2>
-              <p>Lo más reciente de tu diario emocional.</p>
+            <div className="mood-section-title">
+              <span className="mood-section-icon">
+                <Icon name="book" />
+              </span>
+              <div>
+                <h2>Mis registros</h2>
+                <p>Lo más reciente de tu diario emocional.</p>
+              </div>
             </div>
             <select
               className="emotion-select"
@@ -788,7 +872,7 @@ export default function EmotionalMapPage() {
           </div>
 
           {logsError ? (
-            <div className="auth-error" role="alert" style={{ marginTop: 12 }}>
+            <div className="auth-error" role="alert" style={{ marginTop: 14 }}>
               {logsError}
               <button className="text-link" type="button" onClick={() => void loadRecentLogs()} style={{ marginLeft: 8 }}>
                 Reintentar
@@ -815,39 +899,47 @@ export default function EmotionalMapPage() {
             )
           ) : null}
 
-          {visibleLogs.map((log) => (
-            <div className="timeline-item" key={log.id}>
-              <time>{formatTime(log.loggedAt)}</time>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                <div>
-                  <b>
-                    {MOOD_EMOJI[log.emotion.name] ?? '•'} {log.emotion.name} · {log.intensity}/10
-                  </b>
-                  {log.contextNote ? (
-                    <p className="muted small" style={{ margin: '3px 0 0' }}>
-                      {log.contextNote}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="comment-actions">
-                  <button type="button" disabled={busyId === log.id} onClick={() => openEdit(log)}>
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busyId === log.id}
-                    onClick={() => void removeLog(log)}
-                    style={{ color: '#a94a4a' }}
+          {visibleLogs.length > 0 ? (
+            <div className="log-list">
+              {visibleLogs.map((log) => (
+                <div className="log-row" key={log.id}>
+                  <span
+                    className="log-emoji"
+                    style={{ background: tint(log.emotion.colorHex, '#f0ecff') }}
+                    aria-hidden
                   >
-                    Eliminar
-                  </button>
+                    {moodEmoji(log.emotion.name)}
+                  </span>
+                  <div className="log-main">
+                    <div className="log-head">
+                      <b>{log.emotion.name}</b>
+                      <span className="log-intensity">{log.intensity}/10</span>
+                    </div>
+                    {log.contextNote ? <p className="log-note">{log.contextNote}</p> : null}
+                    <time className="log-time">
+                      {formatDayLong(log.loggedAt.slice(0, 10))} · {formatTime(log.loggedAt)}
+                    </time>
+                  </div>
+                  <div className="log-actions">
+                    <button type="button" disabled={busyId === log.id} onClick={() => openEdit(log)}>
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={busyId === log.id}
+                      onClick={() => void removeLog(log)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : null}
 
           {nextCursor ? (
-            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="mood-loadmore">
               <button
                 className="btn-outline"
                 type="button"
