@@ -22,6 +22,7 @@ import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import NotificationsPanel from '@/components/wy/NotificationsPanel';
 import type { DemoStory } from '@/components/wy/feedData';
+import { createEmotionalLog, daypartToLoggedAt } from '@/lib/emotionalMap';
 
 interface FeedEntry extends DemoStory {
   isOwn: boolean;
@@ -95,7 +96,10 @@ export default function FeedPage() {
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
   const [moodValue, setMoodValue] = useState(7);
+  const [moodNote, setMoodNote] = useState('');
   const [moodDaypart, setMoodDaypart] = useState('Todo el día');
+  const [moodSaving, setMoodSaving] = useState(false);
+  const [moodError, setMoodError] = useState('');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -210,7 +214,32 @@ export default function FeedPage() {
 
   const openMood = (name = 'Esperanza') => {
     setMoodName(name);
+    setMoodNote('');
+    setMoodError('');
     setMoodOpen(true);
+  };
+
+  const saveMood = async () => {
+    setMoodSaving(true);
+    setMoodError('');
+
+    const result = await createEmotionalLog({
+      emotion: moodName,
+      intensity: moodValue,
+      contextNote: moodNote.trim() || undefined,
+      loggedAt: daypartToLoggedAt(moodDaypart),
+    });
+
+    setMoodSaving(false);
+
+    if (result.status !== 'ok') {
+      setMoodError(result.message);
+      return;
+    }
+
+    setMoodOpen(false);
+    setMoodNote('');
+    notify(`${moodName} ${moodValue}/10 guardado de forma privada`);
   };
 
   const toggleFollowAuthor = async (authorName: string) => {
@@ -315,7 +344,7 @@ export default function FeedPage() {
         router.push('/siguiendo');
         break;
       case 'mood':
-        openMood();
+        router.push('/mi-estado');
         break;
       case 'notifications':
         setNotificationsOpen(true);
@@ -454,15 +483,16 @@ export default function FeedPage() {
           <MoodModal
             name={moodName}
             value={moodValue}
+            note={moodNote}
             daypart={moodDaypart}
+            saving={moodSaving}
+            error={moodError}
             onChangeName={setMoodName}
             onChangeValue={setMoodValue}
+            onChangeNote={setMoodNote}
             onChangeDaypart={setMoodDaypart}
             onClose={() => setMoodOpen(false)}
-            onSave={() => {
-              setMoodOpen(false);
-              notify(`${moodName} ${moodValue}/10 guardado de forma privada`);
-            }}
+            onSave={() => void saveMood()}
           />
         ) : null
       }
@@ -473,7 +503,7 @@ export default function FeedPage() {
           onToggleSummary={() => setSummaryHidden((value) => !value)}
           onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
           onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={openMood}
+          onMood={() => router.push('/mi-estado')}
         />
       }
     >

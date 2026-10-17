@@ -153,7 +153,7 @@ export default function FollowingPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        notify('Mi estado emocional llega con el módulo del diario.');
+        router.push('/mi-estado');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');
@@ -229,7 +229,7 @@ export default function FollowingPage() {
           onToggleSummary={() => setSummaryHidden((value) => !value)}
           onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
           onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={() => notify('Mi estado emocional llega con el módulo del diario.')}
+          onMood={() => router.push('/mi-estado')}
         />
       }
     >

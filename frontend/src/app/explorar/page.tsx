@@ -202,7 +202,7 @@ export default function ExplorePage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case 'mood':
-        notify('Mi estado emocional llega con el módulo del diario.');
+        router.push('/mi-estado');
         break;
       case 'notifications':
         setNotificationsOpen(true);
@@ -384,7 +384,7 @@ export default function ExplorePage() {
             setSelCat(category);
             setTab('historias');
           }}
-          onMood={() => notify('Mi estado emocional llega con el módulo del diario.')}
+          onMood={() => router.push('/mi-estado')}
         />
       }
     >

@@ -116,7 +116,7 @@ export default function AccountPage() {
         router.push('/feed');
         break;
       case 'mood':
-        notify('Mi estado emocional llega con el módulo del diario.');
+        router.push('/mi-estado');
         break;
       case 'my-stories':
         router.push('/mis-relatos');
@@ -151,7 +151,7 @@ export default function AccountPage() {
           onToggleSummary={() => setSummaryHidden((value) => !value)}
           onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
           onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={() => notify('Mi estado emocional llega con el módulo del diario.')}
+          onMood={() => router.push('/mi-estado')}
         />
       }
     >

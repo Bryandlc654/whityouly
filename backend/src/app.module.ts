@@ -26,6 +26,7 @@ import { InteractionsModule } from './modules/interactions/interactions.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { DiscoveryModule } from './modules/discovery/discovery.module';
+import { EmotionalMapModule } from './modules/emotional-map/emotional-map.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { DiscoveryModule } from './modules/discovery/discovery.module';
     BookmarksModule,
     NotificationsModule,
     DiscoveryModule,
+    EmotionalMapModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],
