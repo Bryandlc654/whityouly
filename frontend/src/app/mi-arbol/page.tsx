@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
@@ -25,6 +25,33 @@ const PARTS: { key: keyof TreeView['parts']; label: string; hint: string; icon: 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
   return name.trim().slice(0, 2).toUpperCase();
+}
+
+function SectionHead({
+  icon,
+  title,
+  sub,
+  right,
+}: {
+  icon: IconName;
+  title: string;
+  sub: string;
+  right?: ReactNode;
+}) {
+  return (
+    <div className="chart-head">
+      <div className="tree-section-title">
+        <span className="tree-section-icon">
+          <Icon name={icon} />
+        </span>
+        <div>
+          <h2>{title}</h2>
+          <p>{sub}</p>
+        </div>
+      </div>
+      {right}
+    </div>
+  );
 }
 
 export default function MiArbolPage() {
@@ -126,7 +153,8 @@ export default function MiArbolPage() {
 
   const stageIndex = tree?.stage.reached ? tree.stage.index : 0;
   const stageLabel = tree?.stage.reached ? tree.stage.label : 'Semilla';
-  const remaining = tree && tree.stage.nextDrops !== null ? tree.stage.nextDrops - tree.totalDrops : 0;
+  const remaining = tree && tree.stage.nextDrops !== null ? Math.max(0, tree.stage.nextDrops - tree.totalDrops) : 0;
+  const progressPct = tree ? Math.round(tree.stage.progress * 100) : 0;
 
   return (
     <WyFrame
@@ -147,15 +175,29 @@ export default function MiArbolPage() {
         />
       }
     >
-      <section className="screen">
-        <div className="card mood-hero tree-hero">
-          <div>
+      <section className="screen tree-page">
+        {/* Cabecera */}
+        <div className="card tree-hero">
+          <div className="tree-hero-copy">
+            <span className="privacy-badge">
+              <Icon name="lock" /> Tu crecimiento es privado
+            </span>
             <h1>Mi árbol</h1>
-            <p>Tu crecimiento es privado. Crece cuando te conoces, te cuidas y acompañas.</p>
+            <p>Crece cuando te conoces, te cuidas y acompañas. No se marchita ni retrocede: si descansas, solo reposa.</p>
           </div>
-          <span className="privacy-badge">
-            <Icon name="lock" /> Solo tú puedes verlo
-          </span>
+          {tree ? (
+            <div className="tree-hero-today" aria-label={`${tree.today.earned} de ${tree.today.max} gotas hoy`}>
+              <span className="tree-hero-dots" aria-hidden>
+                {tree.today.paths.map((path) => (
+                  <i key={path.key} className={path.earned ? 'on' : undefined} />
+                ))}
+              </span>
+              <b>
+                {tree.today.earned}/{tree.today.max}
+              </b>
+              <small>gotas hoy</small>
+            </div>
+          ) : null}
         </div>
 
         {error ? (
@@ -169,48 +211,53 @@ export default function MiArbolPage() {
 
         {loading && !tree ? <p className="muted small">Cargando tu árbol…</p> : null}
 
+        {/* Etapa actual */}
         {tree ? (
           <div className="card tree-stage">
-            <div className="tree-stage-art">
+            <div className="tree-stage-visual">
               <TreeArt stage={stageIndex} className="tree-art" />
+              <span className="tree-stage-chip">{stageLabel}</span>
             </div>
-            <div className="tree-stage-info">
-              <span className="tag hope">{stageLabel}</span>
+            <div className="tree-stage-detail">
+              <span className="tree-eyebrow">Etapa {stageIndex + 1} de {tree.stages.length}</span>
               <h2>
                 {tree.totalDrops} {tree.totalDrops === 1 ? 'gota' : 'gotas'} de crecimiento
               </h2>
-              <p className="muted small">
-                {tree.stage.nextLabel
-                  ? `A ${Math.max(0, remaining)} ${Math.max(0, remaining) === 1 ? 'gota' : 'gotas'} de ${tree.stage.nextLabel}.`
-                  : 'Tu árbol ha llegado a su forma más plena.'}
-              </p>
               <div className="tree-progress" aria-hidden>
-                <i style={{ width: `${Math.round(tree.stage.progress * 100)}%` }} />
+                <i style={{ width: `${progressPct}%` }} />
+              </div>
+              <div className="tree-progress-meta">
+                <span className="muted small">{stageLabel}</span>
+                <span className="muted small">{tree.stage.nextLabel ?? 'Forma plena'}</span>
               </div>
               <p className="muted small">
-                El árbol no retrocede ni se marchita: si descansas, solo reposa.
+                {tree.stage.nextLabel
+                  ? `A ${remaining} ${remaining === 1 ? 'gota' : 'gotas'} de ${tree.stage.nextLabel}.`
+                  : 'Tu árbol ha llegado a su forma más plena.'}
               </p>
             </div>
           </div>
         ) : null}
 
+        {/* Hoy */}
         {tree ? (
-          <div className="card chart-card">
-            <div className="chart-head">
-              <div>
-                <h2>Hoy</h2>
-                <p>Tres caminos para crecer. Máximo una gota por cada uno al día.</p>
-              </div>
-              {tree.today.complete ? (
-                <span className="tag hope">
-                  <Icon name="check" /> Camino completo
-                </span>
-              ) : (
-                <span className="muted small">
-                  {tree.today.earned}/{tree.today.max} gotas hoy
-                </span>
-              )}
-            </div>
+          <div className="card tree-panel">
+            <SectionHead
+              icon="plus"
+              title="Hoy"
+              sub="Tres caminos para crecer. Máximo una gota por cada uno al día."
+              right={
+                tree.today.complete ? (
+                  <span className="tag hope">
+                    <Icon name="check" /> Camino completo
+                  </span>
+                ) : (
+                  <span className="tree-count-pill">
+                    {tree.today.earned}/{tree.today.max} gotas
+                  </span>
+                )
+              }
+            />
 
             <div className="tree-paths">
               {tree.today.paths.map((path) => (
@@ -218,7 +265,7 @@ export default function MiArbolPage() {
                   <span className="tree-path-icon">
                     <Icon name={path.earned ? 'check' : 'plus'} />
                   </span>
-                  <div>
+                  <div className="tree-path-text">
                     <b>{path.label}</b>
                     <small>{path.hint}</small>
                   </div>
@@ -229,14 +276,14 @@ export default function MiArbolPage() {
           </div>
         ) : null}
 
+        {/* Etapas */}
         {tree ? (
-          <div className="card chart-card">
-            <div className="chart-head">
-              <div>
-                <h2>De semilla a fruto</h2>
-                <p>Cada etapa necesita gotas de cuidado, en días distintos.</p>
-              </div>
-            </div>
+          <div className="card tree-panel">
+            <SectionHead
+              icon="trend"
+              title="De semilla a fruto"
+              sub="Cada etapa necesita gotas de cuidado, en días distintos."
+            />
             <ol className="tree-ladder">
               {tree.stages.map((stage, index) => (
                 <li
@@ -245,32 +292,38 @@ export default function MiArbolPage() {
                     stageIndex === index && tree.stage.reached ? ' current' : ''
                   }`}
                 >
-                  <span className="tree-ladder-dot">{index + 1}</span>
+                  <span className="tree-ladder-dot">
+                    {stage.reached ? <Icon name="check" /> : index + 1}
+                  </span>
                   <b>{stage.label}</b>
-                  <small>{stage.drops} {stage.drops === 1 ? 'gota' : 'gotas'}</small>
+                  <small>
+                    {stage.drops} {stage.drops === 1 ? 'gota' : 'gotas'}
+                  </small>
                 </li>
               ))}
             </ol>
           </div>
         ) : null}
 
+        {/* Partes del árbol */}
         {tree ? (
-          <div className="card chart-card">
-            <div className="chart-head">
-              <div>
-                <h2>Lo que cuenta tu árbol</h2>
-                <p>Partes que crecen con tu cuidado y tu acompañamiento.</p>
-              </div>
-            </div>
+          <div className="card tree-panel">
+            <SectionHead
+              icon="sparkle"
+              title="Lo que cuenta tu árbol"
+              sub="Partes que crecen con tu cuidado y tu acompañamiento."
+            />
             <div className="tree-parts">
               {PARTS.map((part) => (
                 <div key={part.key} className="tree-part">
                   <span className="tree-part-icon">
                     <Icon name={part.icon} />
                   </span>
-                  <b>{tree.parts[part.key]}</b>
-                  <span>{part.label}</span>
-                  <small>{part.hint}</small>
+                  <div className="tree-part-body">
+                    <b>{tree.parts[part.key]}</b>
+                    <span>{part.label}</span>
+                    <small>{part.hint}</small>
+                  </div>
                 </div>
               ))}
             </div>

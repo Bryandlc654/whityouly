@@ -617,39 +617,95 @@
 /* ---------------------------------------------------------------------------
    Mi �rbol (crecimiento privado)
    --------------------------------------------------------------------------- */
-.wy .tree-hero{align-items:flex-start}
-.wy .tree-stage{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:18px;align-items:center;padding:18px}
-@media (max-width:640px){.wy .tree-stage{grid-template-columns:1fr}}
-.wy .tree-stage-art{display:flex;justify-content:center;align-items:flex-end;background:linear-gradient(180deg,#f7f5ff,#fff);border-radius:16px;padding:8px}
-.wy .tree-art{width:100%;max-width:220px;height:auto;filter:drop-shadow(0 8px 14px rgba(80,60,160,.14));animation:wy-tree-sway 6s ease-in-out infinite}
-@keyframes wy-tree-sway{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}
-.wy .tree-stage-info h2{margin:8px 0 4px;font-size:20px}
-.wy .tree-progress{height:10px;border-radius:999px;background:#efeaf9;overflow:hidden;margin:10px 0 8px}
-.wy .tree-progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7cc98a,#4f9d63);transition:width .4s ease}
-.wy .tree-paths{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-.wy .tree-path{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fbfafd}
+.wy .tree-page{gap:18px}
+.wy .tree-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:22px 24px;border-radius:20px;background:linear-gradient(135deg,#178a5f 0%,#2fae7b 58%,#63c79a 100%);color:#fff;position:relative;overflow:hidden;box-shadow:0 16px 36px rgba(23,138,95,.26)}
+.wy .tree-hero:after{content:"";position:absolute;top:-70px;right:-50px;width:230px;height:230px;border-radius:50%;background:rgba(255,255,255,.14);pointer-events:none}
+.wy .tree-hero-copy{position:relative;z-index:1;min-width:0}
+.wy .tree-hero h1{margin:8px 0 0;font-size:26px;letter-spacing:-.01em;color:#fff}
+.wy .tree-hero p{margin:6px 0 0;max-width:56ch;color:#e6fff4;font-size:14px;line-height:1.5}
+.wy .tree-hero .privacy-badge{background:rgba(255,255,255,.2);color:#fff;margin:0}
+.wy .tree-hero-today{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;z-index:1;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:12px 18px;min-width:112px}
+.wy .tree-hero-today b{font-size:22px;line-height:1;color:#fff}
+.wy .tree-hero-today small{color:#dffdf0;font-size:11px;font-weight:700}
+.wy .tree-hero-dots{display:flex;gap:5px;margin-bottom:2px}
+.wy .tree-hero-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.6)}
+.wy .tree-hero-dots i.on{background:#fff}
+
+/* Etapa actual */
+.wy .tree-page .tree-stage{display:grid;grid-template-columns:minmax(190px,250px) 1fr;gap:22px;align-items:center;padding:22px 24px;border-radius:20px}
+.wy .tree-stage-visual{position:relative;display:flex;justify-content:center;align-items:flex-end;background:radial-gradient(120% 90% at 50% 100%,#eef9f2 0%,#f8fbff 70%,#fff 100%);border:1px solid var(--line);border-radius:18px;padding:12px 12px 0;overflow:hidden}
+.wy .tree-stage-visual:before{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:70%;height:14px;border-radius:50%;background:rgba(45,120,80,.1);filter:blur(2px)}
+.wy .tree-stage-chip{position:absolute;top:12px;left:12px;background:#fff;border:1px solid #cdeccf;color:#2f8a4e;border-radius:999px;padding:4px 11px;font-size:11px;font-weight:850}
+.wy .tree-art{width:100%;max-width:210px;height:auto;position:relative;z-index:1;filter:drop-shadow(0 10px 16px rgba(45,110,75,.16));animation:wy-tree-sway 6s ease-in-out infinite}
+@keyframes wy-tree-sway{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
+.wy .tree-stage-detail{min-width:0}
+.wy .tree-eyebrow{display:inline-block;text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:850;color:#2f8a4e;background:#eafaf1;border-radius:999px;padding:4px 10px}
+.wy .tree-stage-detail h2{margin:10px 0 12px;font-size:23px;letter-spacing:-.01em}
+.wy .tree-progress{height:12px;border-radius:999px;background:#eef1f0;overflow:hidden}
+.wy .tree-progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7cc98a,#2fae7b);transition:width .5s ease}
+.wy .tree-progress-meta{display:flex;justify-content:space-between;margin:7px 0 12px}
+.wy .tree-progress-meta span:last-child{color:#2f8a4e;font-weight:750}
+
+/* Paneles */
+.wy .tree-page .tree-panel{padding:20px 22px;border-radius:20px}
+.wy .tree-section-title{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.wy .tree-section-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:#eafaf1;color:#2f8a4e;flex:0 0 36px}
+.wy .tree-section-icon svg{width:18px;height:18px}
+.wy .tree-section-title h2{font-size:17px;margin:0}
+.wy .tree-section-title p{font-size:12px;color:var(--muted);margin:3px 0 0}
+.wy .tree-page .chart-head{align-items:center}
+.wy .tree-count-pill{font-size:11px;font-weight:850;color:#2f8a4e;background:#eafaf1;border-radius:999px;padding:5px 11px}
+
+/* Caminos de hoy */
+.wy .tree-paths{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.wy .tree-path{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:13px;align-items:center;padding:13px 15px;border:1px solid var(--line);border-radius:15px;background:#fbfafd;transition:border-color .14s ease,background .14s ease}
 .wy .tree-path.on{border-color:#bdf0cd;background:#f1fbf4}
-.wy .tree-path-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:999px;background:#efeaf9;color:var(--purple)}
+.wy .tree-path-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:11px;background:#f0ecff;color:var(--purple);flex:0 0 34px}
 .wy .tree-path.on .tree-path-icon{background:#d8f3e0;color:#2f8a4e}
-.wy .tree-path b{display:block;font-size:13px}
-.wy .tree-path small{display:block;color:var(--muted);font-size:11px}
-.wy .tree-path-state{font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
+.wy .tree-path-text{min-width:0}
+.wy .tree-path-text b{display:block;font-size:14px}
+.wy .tree-path-text small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.wy .tree-path-state{font-size:11px;font-weight:850;color:var(--muted);white-space:nowrap}
 .wy .tree-path.on .tree-path-state{color:#2f8a4e}
-.wy .tree-ladder{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px;margin:16px 0 0;padding:0}
-.wy .tree-ladder-step{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1px solid var(--line);border-radius:14px;background:#fbfafd;text-align:center}
+
+/* Escalera de etapas */
+.wy .tree-ladder{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin:16px 0 0;padding:0}
+.wy .tree-ladder-step{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 8px;border:1px solid var(--line);border-radius:15px;background:#fbfafd;text-align:center}
 .wy .tree-ladder-step.reached{border-color:#cdeccf;background:#f3fbf4}
-.wy .tree-ladder-step.current{border-color:var(--purple);box-shadow:0 0 0 3px rgba(104,71,245,.12)}
-.wy .tree-ladder-dot{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:#eceaf5;color:#7a7f92;font-size:11px;font-weight:800}
-.wy .tree-ladder-step.reached .tree-ladder-dot{background:#4f9d63;color:#fff}
+.wy .tree-ladder-step.current{border-color:#2fae7b;box-shadow:0 0 0 3px rgba(47,174,123,.14)}
+.wy .tree-ladder-dot{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:#eceaf5;color:#7a7f92;font-size:11px;font-weight:850}
+.wy .tree-ladder-dot svg{width:14px;height:14px}
+.wy .tree-ladder-step.reached .tree-ladder-dot{background:#2fae7b;color:#fff}
+.wy .tree-ladder-step.current .tree-ladder-dot{background:#178a5f;color:#fff}
 .wy .tree-ladder-step b{font-size:12px}
 .wy .tree-ladder-step small{color:var(--muted);font-size:10px}
-.wy .tree-parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
-.wy .tree-part{display:flex;flex-direction:column;gap:2px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fbfafd}
-.wy .tree-part-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:999px;background:#f0ecff;color:var(--purple);margin-bottom:4px}
-.wy .tree-part b{font-size:22px;color:var(--ink)}
-.wy .tree-part span{font-size:13px;font-weight:800}
-.wy .tree-part small{color:var(--muted);font-size:11px}
+
+/* Partes del árbol */
+.wy .tree-parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin-top:16px}
+.wy .tree-part{display:flex;align-items:center;gap:13px;padding:15px;border:1px solid var(--line);border-radius:15px;background:#fbfafd}
+.wy .tree-part-icon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:#f0ecff;color:var(--purple);flex:0 0 40px}
+.wy .tree-part-icon svg{width:20px;height:20px}
+.wy .tree-part-body{min-width:0}
+.wy .tree-part-body b{display:block;font-size:22px;line-height:1.05;color:var(--ink)}
+.wy .tree-part-body span{display:block;font-size:13px;font-weight:800}
+.wy .tree-part-body small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
 .wy .action-link.on{color:#2f8a4e}
+
+@media (max-width:820px){
+  .wy .tree-page .tree-stage{grid-template-columns:1fr}
+  .wy .tree-stage-visual{max-width:260px;margin:0 auto}
+}
+@media (max-width:640px){
+  .wy .tree-page{gap:13px}
+  .wy .tree-hero{flex-direction:column;gap:16px;padding:18px}
+  .wy .tree-hero h1{font-size:22px}
+  .wy .tree-hero-today{align-self:stretch;flex-direction:row;justify-content:center;gap:8px;padding:10px}
+  .wy .tree-hero-today b{font-size:19px}
+  .wy .tree-page .tree-stage,.wy .tree-page .tree-panel{padding:16px}
+  .wy .tree-stage-detail h2{font-size:20px}
+  .wy .tree-path{grid-template-columns:auto minmax(0,1fr);gap:11px}
+  .wy .tree-path-state{grid-column:1 / -1;text-align:right}
+}
 
 /* ---------------------------------------------------------------------------
    Mi estado � refinamiento visual (acotado a .mood-page)
