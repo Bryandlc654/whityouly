@@ -31,7 +31,6 @@ const RANGES: { id: RangeDays; label: string }[] = [
 ];
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-const MAX_BARS = 30;
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -312,8 +311,12 @@ export default function EmotionalMapPage() {
 
   const bars = useMemo(() => {
     if (!summary) return [];
-    return summary.days.slice(-MAX_BARS);
+    // El gráfico cubre todo el periodo elegido, igual que el resumen.
+    return summary.days;
   }, [summary]);
+
+  // Con muchos días no se puede etiquetar cada barra; se muestran unas pocas.
+  const barLabelEvery = Math.max(1, Math.ceil(bars.length / 12));
 
   const dominant = summary?.emotions[0] ?? null;
   const name = character?.name ?? '';
@@ -427,10 +430,28 @@ export default function EmotionalMapPage() {
           ) : null}
 
           {bars.some((day) => day.entries > 0) ? (
-            <div className="bar-chart">
-              {bars.map((day) => (
-                <div className="bar-col" key={day.date}>
-                  {day.averageIntensity !== null ? <b>{day.averageIntensity}</b> : null}
+            <div
+              className="bar-chart"
+              style={
+                bars.length > 31
+                  ? { gap: 3, overflowX: 'auto', paddingBottom: 4 }
+                  : undefined
+              }
+            >
+              {bars.map((day, index) => (
+                <div
+                  className="bar-col"
+                  key={day.date}
+                  style={bars.length > 31 ? { minWidth: 8 } : undefined}
+                  title={
+                    day.averageIntensity !== null
+                      ? `${formatDayLong(day.date)}: ${day.averageIntensity}/10`
+                      : `${formatDayLong(day.date)}: sin registros`
+                  }
+                >
+                  {day.averageIntensity !== null && index % barLabelEvery === 0 ? (
+                    <b>{day.averageIntensity}</b>
+                  ) : null}
                   <i
                     style={
                       {
@@ -441,7 +462,9 @@ export default function EmotionalMapPage() {
                       } as CSSProperties
                     }
                   />
-                  <small>{shortDay(day.date)}</small>
+                  {index % barLabelEvery === 0 || index === bars.length - 1 ? (
+                    <small>{shortDay(day.date)}</small>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -564,16 +587,22 @@ export default function EmotionalMapPage() {
           ) : null}
 
           {!logsError && visibleLogs.length === 0 ? (
-            <div className="empty card" style={{ marginTop: 14, boxShadow: 'none' }}>
-              <div className="empty-icon">
-                <Icon name="pulse" />
+            emotionFilter !== 'ALL' && logs.length > 0 ? (
+              <p className="muted small" style={{ marginTop: 14 }}>
+                No hay registros de «{emotionFilter}» entre los cargados. Carga más o elige otra emoción.
+              </p>
+            ) : (
+              <div className="empty card" style={{ marginTop: 14, boxShadow: 'none' }}>
+                <div className="empty-icon">
+                  <Icon name="pulse" />
+                </div>
+                <h2>Tu diario está en blanco</h2>
+                <p>Registrar cómo te sientes toma unos segundos y solo lo ves tú.</p>
+                <button className="primary" type="button" style={{ padding: '12px 18px' }} onClick={() => openCreate()}>
+                  Registrar mi primer estado
+                </button>
               </div>
-              <h2>Tu diario está en blanco</h2>
-              <p>Registrar cómo te sientes toma unos segundos y solo lo ves tú.</p>
-              <button className="primary" type="button" style={{ padding: '12px 18px' }} onClick={() => openCreate()}>
-                Registrar mi primer estado
-              </button>
-            </div>
+            )
           ) : null}
 
           {visibleLogs.map((log) => (
@@ -608,13 +637,12 @@ export default function EmotionalMapPage() {
           ))}
 
           {nextCursor ? (
-            <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <button
                 className="btn-outline"
                 type="button"
-                disabled={loadingMore || emotionFilter !== 'ALL'}
+                disabled={loadingMore}
                 onClick={() => {
-                  if (emotionFilter !== 'ALL') return;
                   setLoadingMore(true);
                   void listEmotionalLogs({ cursor: nextCursor, limit: 20 })
                     .then((result) => {
@@ -630,6 +658,11 @@ export default function EmotionalMapPage() {
               >
                 {loadingMore ? 'Cargando…' : 'Ver más'}
               </button>
+              {emotionFilter !== 'ALL' ? (
+                <span className="muted small">
+                  Filtrado por «{emotionFilter}»: carga más para ver registros antiguos de esa emoción.
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>

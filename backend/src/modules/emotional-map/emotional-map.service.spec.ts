@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EmotionalMapService } from './emotional-map.service';
+import { sanitizeContextNote } from './emotional-note';
+import { NOTE_MAX_LENGTH } from './dto/emotional-log.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QuotaService } from '../../common/quota/quota.service';
 
@@ -18,6 +20,7 @@ describe('EmotionalMapService', () => {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
+        findFirst: vi.fn().mockResolvedValue({ id: 'log-1' }),
         findUnique: vi.fn().mockResolvedValue({ id: 'log-1', userId: 'user-1' }),
         update: vi.fn(),
         delete: vi.fn().mockResolvedValue({}),
@@ -116,6 +119,34 @@ describe('EmotionalMapService', () => {
     );
   });
 
+  it('pagina desde un cursor válido del propio usuario', async () => {
+    prisma.emotionalLog.findFirst.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111' });
+    prisma.emotionalLog.findMany.mockResolvedValue([]);
+
+    await service.list('user-1', { cursor: '11111111-1111-4111-8111-111111111111', limit: 5 });
+
+    expect(prisma.emotionalLog.findFirst).toHaveBeenCalledWith({
+      where: { id: '11111111-1111-4111-8111-111111111111', userId: 'user-1' },
+      select: { id: true },
+    });
+    expect(prisma.emotionalLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: { id: '11111111-1111-4111-8111-111111111111' },
+        skip: 1,
+      }),
+    );
+  });
+
+  it('ignora un cursor que ya no existe y vuelve a la primera página', async () => {
+    prisma.emotionalLog.findFirst.mockResolvedValue(null);
+    prisma.emotionalLog.findMany.mockResolvedValue([]);
+
+    await service.list('user-1', { cursor: '22222222-2222-4222-8222-222222222222', limit: 5 });
+
+    expect(prisma.emotionalLog.findMany.mock.calls[0][0]).not.toHaveProperty('cursor');
+    expect(prisma.emotionalLog.findMany.mock.calls[0][0]).not.toHaveProperty('skip');
+  });
+
   it('agrega el mapa por día local, emoción dominante y racha', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-16T12:00:00.000Z'));
@@ -209,5 +240,24 @@ describe('EmotionalMapService', () => {
 
     expect(prisma.emotionalLog.delete).toHaveBeenCalledWith({ where: { id: 'log-1' } });
     expect(result).toEqual({ id: 'log-1' });
+  });
+});
+
+describe('sanitizeContextNote', () => {
+  it('borra caracteres invisibles y colapsa espacios', () => {
+    expect(sanitizeContextNote('  Me sentí\u200b escuchada.  ')).toBe('Me sentí escuchada.');
+  });
+
+  it('conserva saltos de línea simples y corta los triples', () => {
+    expect(sanitizeContextNote('uno\n\ndos\n\n\n\ntres')).toBe('uno\n\ndos\n\ntres');
+  });
+
+  it('recorta sin partir un emoji (par subrogado)', () => {
+    const note = '🙂'.repeat(NOTE_MAX_LENGTH + 10);
+    const sanitized = sanitizeContextNote(note);
+
+    expect(Array.from(sanitized)).toHaveLength(NOTE_MAX_LENGTH);
+    expect(sanitized).toBe('🙂'.repeat(NOTE_MAX_LENGTH));
+    expect(() => encodeURIComponent(sanitized)).not.toThrow();
   });
 });

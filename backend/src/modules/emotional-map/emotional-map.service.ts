@@ -130,12 +130,13 @@ export class EmotionalMapService {
   async list(userId: string, query: ListEmotionalLogsQueryDto) {
     const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
     const loggedAt = this.rangeFilter(query.from, query.to);
+    const cursor = await this.resolveCursor(userId, query.cursor);
 
     const rows = await this.prisma.emotionalLog.findMany({
       where: { userId, ...(loggedAt ? { loggedAt } : {}) },
       orderBy: [{ loggedAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: LOG_SELECT,
     });
 
@@ -308,6 +309,24 @@ export class EmotionalMapService {
     }
 
     return emotion;
+  }
+
+  /**
+   * Un cursor que ya no existe (el registro se borró entre páginas) dejaría la
+   * consulta en una página vacía. Se comprueba primero y, si falta, se ignora
+   * para volver al principio en lugar de cortar la paginación.
+   */
+  private async resolveCursor(userId: string, cursor?: string): Promise<string | undefined> {
+    if (!cursor) {
+      return undefined;
+    }
+
+    const anchor = await this.prisma.emotionalLog.findFirst({
+      where: { id: cursor, userId },
+      select: { id: true },
+    });
+
+    return anchor ? anchor.id : undefined;
   }
 
   private async findOwned(userId: string, id: string): Promise<{ id: string }> {
