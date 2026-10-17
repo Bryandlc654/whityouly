@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
@@ -24,6 +24,7 @@ import {
 import { unreadNotificationsCount } from '@/lib/notifications';
 import NotificationsPanel from '@/components/wy/NotificationsPanel';
 import Avatar from '@/components/wy/Avatar';
+import { CATEGORY_EMOJI, EMOTION_EMOJI } from '@/components/wy/StoryTaxonomyFields';
 
 type Tab = 'historias' | 'personajes';
 
@@ -46,6 +47,16 @@ function relativeTime(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
 }
 
+/** «3 📖 · 5 👥» en vez de «3 relatos · 5 seguidores». */
+function PersonStats({ stories, followers }: { stories: number; followers: number }) {
+  return (
+    <span className="explore-stats">
+      <span>{stories} 📖</span>
+      <span>{followers} 👥</span>
+    </span>
+  );
+}
+
 export default function ExplorePage() {
   const router = useRouter();
 
@@ -58,6 +69,7 @@ export default function ExplorePage() {
   const [selCat, setSelCat] = useState<string | null>(null);
   const [selEmo, setSelEmo] = useState<string | null>(null);
   const [selTag, setSelTag] = useState<string | null>(null);
+  const [showTags, setShowTags] = useState(false);
 
   const [stories, setStories] = useState<FollowingStory[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -232,11 +244,13 @@ export default function ExplorePage() {
     notify(result.message);
   };
 
+  const hasFilters = Boolean(selCat || selEmo || selTag);
+
   const renderFeatured = (items: FeaturedStory[]) => {
     if (items.length === 0) return null;
     return (
       <div className="feed-group">
-        <h2 className="feed-group-title">Contenido destacado</h2>
+        <h2 className="feed-group-title">✨ Destacado</h2>
         <div className="featured-strip">
           {items.map((story) => (
             <article key={story.id} className="card featured-card">
@@ -251,7 +265,9 @@ export default function ExplorePage() {
                 {story.categories[0] ? (
                   <>
                     <span className="dot" aria-hidden />
-                    <span>{story.categories[0]}</span>
+                    <span>
+                      {CATEGORY_EMOJI[story.categories[0]] ?? '🏷️'} {story.categories[0]}
+                    </span>
                   </>
                 ) : null}
               </p>
@@ -262,7 +278,7 @@ export default function ExplorePage() {
               ) : null}
               <div className="story-row-actions">
                 <button className="action-link" type="button" onClick={() => void openStory(story.id)}>
-                  <Icon name="book" /> Leer historia
+                  <Icon name="book" /> Leer
                 </button>
               </div>
             </article>
@@ -276,13 +292,13 @@ export default function ExplorePage() {
     if (items.length === 0) return null;
     return (
       <div className="feed-group" style={{ marginTop: 16 }}>
-        <h2 className="feed-group-title">Tendencias</h2>
+        <h2 className="feed-group-title">🔥 Tendencias</h2>
         <div className="stack">
           {items.slice(0, 6).map((story) => (
             <article key={story.id} className="card story-row">
               <div className="story-row-head">
                 <h2>{story.title}</h2>
-                <span className="status-pill featured">{story.trendScore} hoy</span>
+                <span className="status-pill featured">🔥 {story.trendScore}</span>
               </div>
               <p className="story-row-meta">
                 <Icon name="user" />
@@ -290,14 +306,16 @@ export default function ExplorePage() {
                 {story.categories[0] ? (
                   <>
                     <span className="dot" aria-hidden />
-                    <span>{story.categories[0]}</span>
+                    <span>
+                      {CATEGORY_EMOJI[story.categories[0]] ?? '🏷️'} {story.categories[0]}
+                    </span>
                   </>
                 ) : null}
               </p>
               {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
               <div className="story-row-actions">
                 <button className="action-link" type="button" onClick={() => void openStory(story.id)}>
-                  <Icon name="book" /> Leer historia
+                  <Icon name="book" /> Leer
                 </button>
               </div>
             </article>
@@ -311,7 +329,7 @@ export default function ExplorePage() {
     if (items.length === 0) return null;
     return (
       <div className="feed-group" style={{ marginTop: 16 }}>
-        <h2 className="feed-group-title">Personajes recomendados</h2>
+        <h2 className="feed-group-title">🌟 Personajes</h2>
         <div className="stack">
           {items.map((person) => (
             <button
@@ -329,12 +347,9 @@ export default function ExplorePage() {
               </div>
               <div className="recommend-meta">
                 {person.sharedInterests > 0 ? (
-                  <span className="chip on">{person.sharedInterests} interés{person.sharedInterests === 1 ? '' : 'es'} en común</span>
+                  <span className="chip on">✨ {person.sharedInterests} en común</span>
                 ) : null}
-                <span className="hint">
-                  {person.stories} {person.stories === 1 ? 'relato' : 'relatos'} · {person.followers}{' '}
-                  {person.followers === 1 ? 'seguidor' : 'seguidores'}
-                </span>
+                <PersonStats stories={person.stories} followers={person.followers} />
               </div>
             </button>
           ))}
@@ -394,7 +409,7 @@ export default function ExplorePage() {
         />
       }
     >
-      <section className="screen">
+      <section className="screen explore-page">
         <div className="welcome-row">
           <div>
             <h1>Explorar</h1>
@@ -414,74 +429,139 @@ export default function ExplorePage() {
           />
         </div>
 
-        <div className="segmented">
-          <button type="button" className={tab === 'historias' ? 'active' : undefined} onClick={() => setTab('historias')}>
-            Historias
+        <div className="segmented" role="tablist" aria-label="Tipo de búsqueda">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'historias'}
+            className={tab === 'historias' ? 'active' : undefined}
+            onClick={() => setTab('historias')}
+          >
+            📖 Historias
           </button>
-          <button type="button" className={tab === 'personajes' ? 'active' : undefined} onClick={() => setTab('personajes')}>
-            Personajes
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'personajes'}
+            className={tab === 'personajes' ? 'active' : undefined}
+            onClick={() => setTab('personajes')}
+          >
+            👤 Personajes
           </button>
         </div>
 
         {tab === 'historias' && taxo ? (
-          <>
+          <div className="card explore-filters">
+            <div className="explore-filter-head">
+              <span className="explore-filter-title">Filtros</span>
+              {hasFilters ? (
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => {
+                    setSelCat(null);
+                    setSelEmo(null);
+                    setSelTag(null);
+                  }}
+                >
+                  Limpiar
+                </button>
+              ) : null}
+            </div>
+
             {taxo.categories.length > 0 ? (
-              <div>
-                <p className="hint" style={{ margin: '6px 0 4px' }}>Categoría</p>
-                <div className="chip-row">
-                  {taxo.categories.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`chip ${selCat === item.name ? 'on' : ''}`}
-                      onClick={() => setSelCat(selCat === item.name ? null : item.name)}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
+              <div className="opt-block">
+                <span className="opt-label">🏷️ Categoría</span>
+                <div className="emoji-chips" role="group" aria-label="Categoría">
+                  {taxo.categories.map((item) => {
+                    const on = selCat === item.name;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`emoji-chip${on ? ' on' : ''}`}
+                        aria-pressed={on}
+                        onClick={() => setSelCat(on ? null : item.name)}
+                      >
+                        <span className="emoji-chip-ico" aria-hidden>
+                          {CATEGORY_EMOJI[item.name] ?? '🏷️'}
+                        </span>
+                        {item.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
+
             {taxo.emotions.length > 0 ? (
-              <div>
-                <p className="hint" style={{ margin: '6px 0 4px' }}>Emoción</p>
-                <div className="chip-row">
-                  {taxo.emotions.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`chip ${selEmo === item.name ? 'on' : ''}`}
-                      onClick={() => setSelEmo(selEmo === item.name ? null : item.name)}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
+              <div className="opt-block">
+                <span className="opt-label">💗 Emoción</span>
+                <div className="emoji-chips" role="group" aria-label="Emoción">
+                  {taxo.emotions.map((item) => {
+                    const on = selEmo === item.name;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`emoji-chip${on ? ' on' : ''}`}
+                        style={on && item.colorHex ? ({ '--c': item.colorHex } as CSSProperties) : undefined}
+                        aria-pressed={on}
+                        onClick={() => setSelEmo(on ? null : item.name)}
+                      >
+                        <span className="emoji-chip-ico" aria-hidden>
+                          {EMOTION_EMOJI[item.name] ?? '💗'}
+                        </span>
+                        {item.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
+
             {taxo.tags.length > 0 ? (
-              <div>
-                <p className="hint" style={{ margin: '6px 0 4px' }}>Etiqueta</p>
-                <div className="chip-row">
-                  {taxo.tags.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`chip ${selTag === item.name ? 'on' : ''}`}
-                      onClick={() => setSelTag(selTag === item.name ? null : item.name)}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
-                </div>
+              <div className="opt-block">
+                <button
+                  type="button"
+                  className="opt-collapse"
+                  aria-expanded={showTags}
+                  onClick={() => setShowTags((value) => !value)}
+                >
+                  <span className="opt-collapse-label">🎯 Etiquetas</span>
+                  {selTag ? <span className="opt-count">1</span> : null}
+                  <Icon name="chevron" className={`opt-chevron${showTags ? ' open' : ''}`} />
+                </button>
+
+                {!showTags && selTag ? (
+                  <div className="mini-tags">
+                    <span className="mini-tag">{selTag}</span>
+                  </div>
+                ) : null}
+
+                {showTags ? (
+                  <div className="chip-row" style={{ marginTop: 10 }} role="group" aria-label="Etiqueta">
+                    {taxo.tags.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`chip${selTag === item.name ? ' on' : ''}`}
+                        aria-pressed={selTag === item.name}
+                        onClick={() => setSelTag(selTag === item.name ? null : item.name)}
+                      >
+                        {item.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : null}
-          </>
+          </div>
         ) : null}
 
         {busy ? <p className="muted small">Buscando…</p> : null}
 
-        {!q && !selCat && !selEmo && !selTag ? (
+        {!q && !hasFilters ? (
           <>
             {renderFeatured(featured)}
             {renderTrends(trends)}
@@ -510,28 +590,23 @@ export default function ExplorePage() {
                       <b>{person.name}</b>
                       {person.tagline ? <p className="hint" style={{ margin: 0 }}>{person.tagline}</p> : null}
                     </div>
-                    <span className="hint">
-                      {person.stories} {person.stories === 1 ? 'relato' : 'relatos'} · {person.followers}{' '}
-                      {person.followers === 1 ? 'seguidor' : 'seguidores'}
-                    </span>
+                    <PersonStats stories={person.stories} followers={person.followers} />
                   </div>
                 </button>
               ))}
             </div>
+          ) : !q && !busy ? (
+            <div className="empty card">
+              <div className="empty-icon"><Icon name="users" /></div>
+              <h2>Busca a alguien</h2>
+              <p>Escribe un seudónimo para encontrar personas con las que conectar.</p>
+            </div>
           ) : (
-            !q && !busy ? (
-              <div className="empty card">
-                <div className="empty-icon"><Icon name="users" /></div>
-                <h2>Busca a alguien</h2>
-                <p>Escribe un seudónimo para encontrar personas con las que conectar.</p>
-              </div>
-            ) : (
-              <div className="empty card">
-                <div className="empty-icon"><Icon name="search" /></div>
-                <h2>Sin resultados</h2>
-                <p>Prueba con otro nombre.</p>
-              </div>
-            )
+            <div className="empty card">
+              <div className="empty-icon"><Icon name="search" /></div>
+              <h2>Sin resultados</h2>
+              <p>Prueba con otro nombre.</p>
+            </div>
           )
         ) : null}
 
@@ -550,7 +625,9 @@ export default function ExplorePage() {
                     {story.categories[0] ? (
                       <>
                         <span className="dot" aria-hidden />
-                        <span>{story.categories[0]}</span>
+                        <span>
+                          {CATEGORY_EMOJI[story.categories[0]] ?? '🏷️'} {story.categories[0]}
+                        </span>
                       </>
                     ) : null}
                   </p>
@@ -562,7 +639,7 @@ export default function ExplorePage() {
                       disabled={viewBusy}
                       onClick={() => void openStory(story.id)}
                     >
-                      <Icon name="book" /> Leer historia
+                      <Icon name="book" /> Leer
                     </button>
                   </div>
                 </article>

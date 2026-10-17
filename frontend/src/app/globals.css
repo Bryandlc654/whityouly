@@ -960,6 +960,48 @@ body {
   padding: 4px 10px;
 }
 
+/* Explorar: filtros compactos y metadatos con emoji. */
+.wy .explore-page {
+  gap: 16px;
+}
+
+.wy .explore-page .explore-filters {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.wy .explore-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wy .explore-filter-title {
+  font-size: 13px;
+  font-weight: 850;
+  color: #5c6172;
+}
+
+.wy .explore-page .segmented button {
+  white-space: nowrap;
+}
+
+.wy .explore-page .feed-group-title {
+  margin: 2px 0 10px;
+}
+
+.wy .explore-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
 /* Compositor en línea del feed: limpio y sin bordes. */
 .wy .composer-title {
   width: 100%;
