@@ -29,6 +29,7 @@ import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { EmotionalMapModule } from './modules/emotional-map/emotional-map.module';
 import { CommunityModule } from './modules/community/community.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { TreeModule } from './modules/tree/tree.module';
 
 @Module({
@@ -53,6 +54,7 @@ import { TreeModule } from './modules/tree/tree.module';
     EmotionalMapModule,
     CommunityModule,
     ModerationModule,
+    ReportsModule,
     TreeModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({

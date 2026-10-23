@@ -284,6 +284,7 @@ export default function EmotionalMapPage() {
         { label: 'Ir al Feed', icon: 'home', onClick: () => router.push('/feed') },
         { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
+        { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],

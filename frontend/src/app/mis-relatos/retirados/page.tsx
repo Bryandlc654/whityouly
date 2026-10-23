@@ -128,6 +128,7 @@ export default function WithdrawnStoriesPage() {
           icon: 'edit',
           onClick: () => router.push('/perfil/editar'),
         },
+        { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
         {
           label: 'Configuración de la cuenta',
           icon: 'settings',

@@ -232,6 +232,7 @@ export default function MyStoriesPage() {
           onClick: () => router.push('/mis-relatos/retirados'),
         },
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
+        { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],

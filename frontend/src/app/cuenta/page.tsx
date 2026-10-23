@@ -251,6 +251,22 @@ export default function AccountPage() {
               Tu correo se usa solo para iniciar sesión y recuperar la cuenta: nunca aparece en tu
               perfil público. La comunidad ve únicamente tu seudónimo{name ? ` ${name}` : ''}.
             </p>
+
+            <section className="card pad row-between" aria-labelledby="mis-reportes-title">
+              <div>
+                <b id="mis-reportes-title">Estado de mis reportes</b>
+                <p className="hint" style={{ margin: '4px 0 0' }}>
+                  Consulta qué ocurrió con el contenido que reportaste.
+                </p>
+              </div>
+              <button
+                className="secondary"
+                type="button"
+                onClick={() => router.push('/mis-reportes')}
+              >
+                <Icon name="flag" /> Ver mis reportes
+              </button>
+            </section>
           </>
         ) : null}
       </section>
