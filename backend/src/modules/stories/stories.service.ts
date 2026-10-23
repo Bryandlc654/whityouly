@@ -18,6 +18,7 @@ import {
   CreateStoryUpdateDto,
   ListMyStoriesQueryDto,
   ListPublicStoriesQueryDto,
+  ListWithdrawnQueryDto,
   ReportStoryDto,
   UpdateStoryDto,
   UpdateStoryUpdateDto,
@@ -91,6 +92,7 @@ const STORY_DETAIL_SELECT = {
   visibility: true,
   status: true,
   featuredAt: true,
+  withdrawnAt: true,
   createdAt: true,
   updatedAt: true,
   character: { select: { name: true, avatarUrl: true } },
@@ -107,6 +109,7 @@ const STORY_LIST_SELECT = {
   visibility: true,
   status: true,
   featuredAt: true,
+  withdrawnAt: true,
   createdAt: true,
   updatedAt: true,
   categories: { select: { category: { select: { name: true } } } },
@@ -531,6 +534,83 @@ export class StoriesService {
     return this.getOwnedDetail(userId, storyId);
   }
 
+  /**
+   * Retira un relato publicado sin borrarlo. Se conservan etapas, medios,
+   * comentarios y vínculos; el resto de la app deja de mostrarlo. Es la acción
+   * reversible que precede a una baja definitiva.
+   */
+  async withdraw(userId: string, storyId: string) {
+    const story = await this.findOwnedStory(userId, storyId);
+
+    if (story.status !== StoryStatus.PUBLISHED) {
+      throw new ConflictException('Solo se pueden retirar relatos publicados.');
+    }
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: {
+        status: StoryStatus.WITHDRAWN,
+        withdrawnAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    return this.getOwnedDetail(userId, storyId);
+  }
+
+  /**
+   * Restaura un relato retirado a publicado. No envía avisos: la persona ya
+   * conocía el relato y restaurar no debe generar ruido en sus seguidores.
+   */
+  async restore(userId: string, storyId: string) {
+    const story = await this.findOwnedStory(userId, storyId);
+
+    if (story.status !== StoryStatus.WITHDRAWN) {
+      throw new ConflictException('Solo se pueden restaurar relatos retirados.');
+    }
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: {
+        status: StoryStatus.PUBLISHED,
+        withdrawnAt: null,
+        updatedAt: new Date(),
+      },
+    });
+
+    return this.getOwnedDetail(userId, storyId);
+  }
+
+  /** Bandeja de relatos retirados, paginada por cursor. */
+  async listWithdrawn(userId: string, query: ListWithdrawnQueryDto) {
+    const character = await this.prisma.character.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!character) {
+      return { items: [], nextCursor: null };
+    }
+
+    const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+
+    const rows = await this.prisma.story.findMany({
+      where: { characterId: character.id, status: StoryStatus.WITHDRAWN },
+      orderBy: [{ withdrawnAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      select: STORY_LIST_SELECT,
+    });
+
+    const hasMore = rows.length > take;
+    const items = hasMore ? rows.slice(0, take) : rows;
+
+    return {
+      items: items.map((row) => this.toOwnerListView(row)),
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+    };
+  }
+
   /** Destaca el relato en el perfil público. Solo relatos publicados. */
   async feature(userId: string, storyId: string) {
     const story = await this.findOwnedStory(userId, storyId);
@@ -559,13 +639,22 @@ export class StoriesService {
   }
 
   /**
-   * Baja lógica: el relato deja de mostrarse y de poder editarse, pero la fila
-   * se conserva para moderación y para no romper interacciones existentes. Se
-   * liberan los archivos adjuntos para que la biblioteca no quede bloqueada.
+   * Baja definitiva: el relato deja de mostrarse y de poder editarse, pero la
+   * fila se conserva para moderación y para no romper interacciones existentes.
+   * Se liberan los archivos adjuntos para que la biblioteca no quede bloqueada.
+   *
+   * Para no borrar por accidente algo visible se exige retirarlo o que sea un
+   * borrador. Los estados de moderación se resuelven por su propio flujo.
    */
   async remove(userId: string, storyId: string) {
     // La comprobación de propiedad lanza 404 si el relato no es del usuario.
-    await this.findOwnedStory(userId, storyId);
+    const story = await this.findOwnedStory(userId, storyId);
+
+    if (story.status !== StoryStatus.DRAFT && story.status !== StoryStatus.WITHDRAWN) {
+      throw new ConflictException(
+        'Retira el relato antes de eliminarlo definitivamente.',
+      );
+    }
 
     await this.prisma.$transaction(async (tx) => {
       const attached = await tx.storyUpdate.findMany({
@@ -593,7 +682,7 @@ export class StoriesService {
 
       await tx.story.update({
         where: { id: storyId },
-        data: { status: StoryStatus.DELETED, updatedAt: new Date() },
+        data: { status: StoryStatus.DELETED, withdrawnAt: null, updatedAt: new Date() },
       });
     });
 
@@ -606,7 +695,10 @@ export class StoriesService {
    */
   async reportStory(userId: string, storyId: string, dto: ReportStoryDto) {
     const story = await this.prisma.story.findFirst({
-      where: { id: storyId, status: { not: StoryStatus.DELETED } },
+      where: {
+        id: storyId,
+        status: { notIn: [StoryStatus.DELETED, StoryStatus.WITHDRAWN] },
+      },
       select: { id: true, character: { select: { userId: true } } },
     });
 
@@ -656,7 +748,9 @@ export class StoriesService {
     const rows = await this.prisma.story.findMany({
       where: {
         characterId: character.id,
-        ...(query.status ? { status: query.status } : { status: { not: StoryStatus.DELETED } }),
+        ...(query.status
+          ? { status: query.status }
+          : { status: { notIn: [StoryStatus.DELETED, StoryStatus.WITHDRAWN] } }),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
@@ -721,12 +815,22 @@ export class StoriesService {
 
   async getPublic(storyId: string) {
     const story = await this.prisma.story.findFirst({
-      where: { id: storyId, status: StoryStatus.PUBLISHED, visibility: 'PUBLIC' },
+      where: {
+        id: storyId,
+        status: { in: [StoryStatus.PUBLISHED, StoryStatus.WITHDRAWN] },
+        visibility: 'PUBLIC',
+      },
       select: STORY_DETAIL_SELECT,
     });
 
     if (!story) {
       throw new NotFoundException('Ese relato no existe o no es público.');
+    }
+
+    // Un enlace compartido a un relato retirado no expone texto, imagen ni
+    // audio: solo la identidad pública del autor y el aviso de retiro.
+    if (story.status === StoryStatus.WITHDRAWN) {
+      return this.toWithdrawnView(story);
     }
 
     // La lectura no espera a la analítica: es la ruta más visitada y no debe
@@ -768,7 +872,17 @@ export class StoriesService {
    * uno inexistente, para no revelar que existe.
    */
   async getViewable(userId: string, storyId: string) {
-    await this.assertStoryVisible(userId, storyId);
+    try {
+      await this.assertStoryVisible(userId, storyId);
+    } catch (error) {
+      // Un relato retirado ya no se puede comentar ni seguir, pero quien lo
+      // tenía en un enlace debe ver el aviso de retiro, sin su contenido.
+      if (error instanceof NotFoundException) {
+        const tombstone = await this.findWithdrawnTombstone(userId, storyId);
+        if (tombstone) return tombstone;
+      }
+      throw error;
+    }
 
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },
@@ -779,6 +893,48 @@ export class StoriesService {
     }
 
     return this.toOwnerView(story);
+  }
+
+  /**
+   * Ficha mínima de un relato retirado para quien ya podía verlo. No incluye
+   * etapas, medios, etiquetas ni contadores de interacción.
+   */
+  private async findWithdrawnTombstone(userId: string, storyId: string) {
+    const story = await this.prisma.story.findFirst({
+      where: { id: storyId, status: StoryStatus.WITHDRAWN },
+      select: {
+        id: true,
+        status: true,
+        visibility: true,
+        characterId: true,
+        withdrawnAt: true,
+        createdAt: true,
+        updatedAt: true,
+        character: { select: { name: true, avatarUrl: true } },
+      },
+    });
+
+    if (!story || story.status !== StoryStatus.WITHDRAWN) {
+      return null;
+    }
+
+    if (story.visibility === 'PRIVATE') {
+      return null;
+    }
+
+    if (story.visibility === 'FOLLOWERS') {
+      const following = await this.prisma.follower.count({
+        where: {
+          follower: { userId },
+          followingCharacterId: story.characterId,
+        },
+      });
+      if (following === 0) {
+        return null;
+      }
+    }
+
+    return this.toWithdrawnView(story);
   }
 
   /**
@@ -1299,6 +1455,37 @@ export class StoriesService {
 
   // --- Vistas ---------------------------------------------------------------
 
+  private toWithdrawnView(story: {
+    id: string;
+    visibility: string;
+    withdrawnAt?: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    character?: { name: string; avatarUrl: string | null } | null;
+  }) {
+    return {
+      id: story.id,
+      title: 'Relato retirado por su autor',
+      visibility: story.visibility,
+      status: 'WITHDRAWN' as const,
+      featuredAt: null,
+      withdrawnAt: story.withdrawnAt ?? null,
+      author: story.character
+        ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
+        : null,
+      categories: [],
+      emotions: [],
+      tags: [],
+      updates: [],
+      supportCount: 0,
+      commentCount: 0,
+      followerCount: 0,
+      createdAt: story.createdAt,
+      updatedAt: story.updatedAt,
+      withdrawn: true,
+    };
+  }
+
   private toStageView(stage: StageRow) {
     return {
       id: stage.id,
@@ -1316,6 +1503,7 @@ export class StoriesService {
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
+    withdrawnAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
     character?: { name: string; avatarUrl: string | null } | null;
@@ -1331,6 +1519,7 @@ export class StoriesService {
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
+      withdrawnAt: story.withdrawnAt ?? null,
       author: story.character
         ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
         : null,
@@ -1355,6 +1544,7 @@ export class StoriesService {
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
+    withdrawnAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
     categories: { category: { name: string } }[];
@@ -1370,6 +1560,7 @@ export class StoriesService {
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
+      withdrawnAt: story.withdrawnAt ?? null,
       categories: story.categories.map(({ category }) => category.name),
       emotions: story.emotions.map(({ emotion }) => ({
         name: emotion.name,

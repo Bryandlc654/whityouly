@@ -26,6 +26,7 @@ import {
   CreateStoryUpdateDto,
   ListMyStoriesQueryDto,
   ListPublicStoriesQueryDto,
+  ListWithdrawnQueryDto,
   ReportStoryDto,
   UpdateStoryDto,
   UpdateStoryUpdateDto,
@@ -69,6 +70,12 @@ export class StoriesController {
   @ApiResponse({ status: 404, description: 'El relato no existe o no es visible para ti.' })
   getViewable(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.storiesService.getViewable(req.user.userId, id);
+  }
+
+  @Get('me/withdrawn')
+  @ApiOperation({ summary: 'Listar tus relatos retirados, paginados por cursor' })
+  listWithdrawn(@Req() req: AuthenticatedRequest, @Query() query: ListWithdrawnQueryDto) {
+    return this.storiesService.listWithdrawn(req.user.userId, query);
   }
 
   @Get('me/:id')
@@ -146,8 +153,23 @@ export class StoriesController {
     return this.storiesService.unfeature(req.user.userId, id);
   }
 
+  @Post('me/:id/withdraw')
+  @ApiOperation({ summary: 'Retirar un relato publicado (reversible)' })
+  @ApiResponse({ status: 409, description: 'El relato no está publicado.' })
+  withdraw(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.storiesService.withdraw(req.user.userId, id);
+  }
+
+  @Post('me/:id/restore')
+  @ApiOperation({ summary: 'Restaurar un relato retirado' })
+  @ApiResponse({ status: 409, description: 'El relato no está retirado.' })
+  restore(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.storiesService.restore(req.user.userId, id);
+  }
+
   @Delete('me/:id')
-  @ApiOperation({ summary: 'Dar de baja un relato (baja lógica)' })
+  @ApiOperation({ summary: 'Eliminar definitivamente un borrador o un relato retirado' })
+  @ApiResponse({ status: 409, description: 'Primero hay que retirar un relato publicado.' })
   remove(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.storiesService.remove(req.user.userId, id);
   }

@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, StoryStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -292,7 +292,11 @@ export class FollowsService {
     }
 
     const rows = await this.prisma.follower.findMany({
-      where: { followerId: character.id, followingStoryId: { not: null } },
+      where: {
+        followerId: character.id,
+        followingStoryId: { not: null },
+        followingStory: { is: { status: StoryStatus.PUBLISHED } },
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         followingStory: {

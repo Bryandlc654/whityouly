@@ -223,6 +223,8 @@ enum StoryStatus {
   HIDDEN
   REPORTED
   MODERATED
+  // El autor retiró el relato. Es reversible y no libera medios ni etapas.
+  WITHDRAWN
   DELETED
 }
 
@@ -234,6 +236,9 @@ model Story {
   status      StoryStatus @default(DRAFT)
   // Cuando la persona destaca un relato en su perfil público.
   featuredAt  DateTime?
+  // Fecha del retiro voluntario. Solo tiene valor mientras el estado es
+  // WITHDRAWN; se limpia al restaurar.
+  withdrawnAt DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -259,6 +264,8 @@ model Story {
   @@index([status, visibility, createdAt])
   // "Historias destacadas" del perfil público: se leen por personaje y fecha.
   @@index([characterId, featuredAt])
+  // Bandeja de relatos retirados: por personaje, estado y fecha de retiro.
+  @@index([characterId, status, withdrawnAt])
   // El contenido destacado cae a los relatos que sus autores marcaron en el
   // perfil cuando no hay curación; esa consulta ordena por `featuredAt` sola.
   @@index([featuredAt])

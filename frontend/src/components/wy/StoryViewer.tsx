@@ -83,40 +83,58 @@ export default function StoryViewer({
               <div>
                 <b>{story.author?.name ?? 'Autor desconocido'}</b>
                 <span className="hint">
-                  {formatDate(story.updatedAt)} · {story.updates.length}{' '}
-                  {story.updates.length === 1 ? 'etapa' : 'etapas'}
+                  {story.status === 'WITHDRAWN'
+                    ? 'Relato retirado'
+                    : `${formatDate(story.updatedAt)} · ${story.updates.length} ${
+                        story.updates.length === 1 ? 'etapa' : 'etapas'
+                      }`}
                 </span>
               </div>
             </div>
           ) : null}
 
-          <div className="story-timeline">
-            {story.updates.map((stage, index) => {
-              const last = index === story.updates.length - 1;
-              return (
-                <article key={stage.id} className={`story-stage${last ? ' last' : ''}`}>
-                  <span className="story-stage-dot" aria-hidden />
-                  <div className="story-stage-head">
-                    <span className="story-stage-tag">Etapa {stage.stageOrder}</span>
-                    <span className="hint">{formatDate(stage.createdAt)}</span>
-                  </div>
-                  {stage.content ? <p className="story-stage-text">{stage.content}</p> : null}
-                  {stage.mediaUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={stage.mediaUrl} alt="" className="post-media" />
-                  ) : null}
-                  {stage.audioUrl ? (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <audio controls src={stage.audioUrl} className="post-audio" />
-                  ) : null}
-                </article>
-              );
-            })}
-          </div>
+          {story.status === 'WITHDRAWN' ? (
+            <div className="withdrawn-story" role="status">
+              <span className="withdrawn-story-icon">
+                <Icon name="lock" />
+              </span>
+              <h2>{story.title}</h2>
+              <p>
+                El autor retiró esta parte de la historia. El texto, la imagen y el audio ya no
+                están disponibles.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="story-timeline">
+                {story.updates.map((stage, index) => {
+                  const last = index === story.updates.length - 1;
+                  return (
+                    <article key={stage.id} className={`story-stage${last ? ' last' : ''}`}>
+                      <span className="story-stage-dot" aria-hidden />
+                      <div className="story-stage-head">
+                        <span className="story-stage-tag">Etapa {stage.stageOrder}</span>
+                        <span className="hint">{formatDate(stage.createdAt)}</span>
+                      </div>
+                      {stage.content ? <p className="story-stage-text">{stage.content}</p> : null}
+                      {stage.mediaUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={stage.mediaUrl} alt="" className="post-media" />
+                      ) : null}
+                      {stage.audioUrl ? (
+                        // eslint-disable-next-line jsx-a11y/media-has-caption
+                        <audio controls src={stage.audioUrl} className="post-audio" />
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
 
-          <div className="story-reader-comments">
-            <CommentSection storyId={story.id} onNotify={onNotify} />
-          </div>
+              <div className="story-reader-comments">
+                <CommentSection storyId={story.id} onNotify={onNotify} />
+              </div>
+            </>
+          )}
         </>
       ) : null}
     </div>
@@ -130,9 +148,11 @@ export default function StoryViewer({
             <h2>{story?.title ?? title ?? 'Historia'}</h2>
             <p>
               {story
-                ? `${story.author?.name ? `${story.author.name} · ` : ''}${story.updates.length} ${
-                    story.updates.length === 1 ? 'etapa' : 'etapas'
-                  }`
+                ? story.status === 'WITHDRAWN'
+                  ? `${story.author?.name ? `${story.author.name} · ` : ''}Relato retirado`
+                  : `${story.author?.name ? `${story.author.name} · ` : ''}${story.updates.length} ${
+                      story.updates.length === 1 ? 'etapa' : 'etapas'
+                    }`
                 : 'Cargando…'}
             </p>
           </div>
@@ -151,7 +171,13 @@ export default function StoryViewer({
         <button className="action-link" type="button" onClick={onClose}>
           <Icon name="chevron" /> Volver a resultados
         </button>
-        <span className="hint">{story ? `${story.updates.length} etapas` : ''}</span>
+        <span className="hint">
+          {story
+            ? story.status === 'WITHDRAWN'
+              ? 'Relato retirado'
+              : `${story.updates.length} etapas`
+            : ''}
+        </span>
       </div>
       <h2 className="story-viewer-inline-title">{story?.title ?? title ?? 'Historia'}</h2>
       {body}

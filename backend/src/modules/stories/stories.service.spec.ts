@@ -287,11 +287,100 @@ describe('StoriesService', () => {
     expect(prisma.storyUpdate.create).not.toHaveBeenCalled();
   });
 
-  it('da de baja el relato (baja lógica) y libera sus archivos', async () => {
+  it('retira un relato publicado sin liberar sus archivos', async () => {
     prisma.story.findFirst.mockResolvedValue({
       id: 'story-1',
       characterId: 'char-1',
       status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+    });
+    prisma.story.update.mockResolvedValue(undefined);
+    prisma.story.findUnique.mockResolvedValue(
+      detailRow({ status: 'WITHDRAWN', withdrawnAt: new Date() }),
+    );
+
+    await service.withdraw('user-1', 'story-1');
+
+    expect(prisma.story.update).toHaveBeenCalledWith({
+      where: { id: 'story-1' },
+      data: expect.objectContaining({
+        status: 'WITHDRAWN',
+        withdrawnAt: expect.any(Date),
+      }),
+    });
+    // El retiro es reversible: la etapa y sus medios siguen intactos.
+    expect(prisma.storyUpdate.updateMany).not.toHaveBeenCalled();
+    expect(prisma.mediaAsset.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('solo retira relatos publicados', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-1',
+      status: 'DRAFT',
+      visibility: 'PUBLIC',
+    });
+
+    await expect(service.withdraw('user-1', 'story-1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(prisma.story.update).not.toHaveBeenCalled();
+  });
+
+  it('restaura un relato retirado y limpia la fecha de retiro', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-1',
+      status: 'WITHDRAWN',
+      visibility: 'PUBLIC',
+    });
+    prisma.story.findUnique.mockResolvedValue(
+      detailRow({ status: 'PUBLISHED', withdrawnAt: null }),
+    );
+
+    await service.restore('user-1', 'story-1');
+
+    expect(prisma.story.update).toHaveBeenCalledWith({
+      where: { id: 'story-1' },
+      data: expect.objectContaining({
+        status: 'PUBLISHED',
+        withdrawnAt: null,
+      }),
+    });
+  });
+
+  it('no restaura un relato que no está retirado', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-1',
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+    });
+
+    await expect(service.restore('user-1', 'story-1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+  });
+
+  it('exige retirar un relato publicado antes de eliminarlo definitivamente', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-1',
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+    });
+
+    await expect(service.remove('user-1', 'story-1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(prisma.story.update).not.toHaveBeenCalled();
+  });
+
+  it('elimina definitivamente un relato retirado y libera sus archivos', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-1',
+      status: 'WITHDRAWN',
       visibility: 'PUBLIC',
     });
     prisma.storyUpdate.findMany.mockResolvedValue([{ mediaAssetId: 'm1' }]);
@@ -299,12 +388,78 @@ describe('StoriesService', () => {
     const result = await service.remove('user-1', 'story-1');
 
     expect(prisma.story.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'DELETED' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'DELETED', withdrawnAt: null }),
+      }),
     );
     expect(prisma.mediaAsset.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { entityType: 'NONE', entityId: null } }),
     );
     expect(result).toEqual({ id: 'story-1' });
+  });
+
+  it('lista solo los relatos retirados propios', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.story.findMany.mockResolvedValue([]);
+
+    await expect(service.listWithdrawn('user-1', {})).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+    });
+
+    expect(prisma.story.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { characterId: 'char-1', status: 'WITHDRAWN' },
+      }),
+    );
+  });
+
+  it('muestra un tombstone sin contenido a quien podía ver un relato retirado', async () => {
+    prisma.story.findFirst
+      .mockResolvedValueOnce({
+        id: 'story-1',
+        status: 'WITHDRAWN',
+        visibility: 'PUBLIC',
+        characterId: 'char-2',
+        character: { userId: 'otra-persona' },
+      })
+      .mockResolvedValueOnce({
+        id: 'story-1',
+        status: 'WITHDRAWN',
+        visibility: 'PUBLIC',
+        characterId: 'char-2',
+        withdrawnAt: new Date('2026-10-20T10:00:00Z'),
+        createdAt: new Date('2026-10-01T10:00:00Z'),
+        updatedAt: new Date('2026-10-20T10:00:00Z'),
+        character: { name: 'LuzEnPausa', avatarUrl: null },
+      });
+
+    const result = (await service.getViewable('user-1', 'story-1')) as any;
+
+    expect(result.status).toBe('WITHDRAWN');
+    expect(result.title).toBe('Relato retirado por su autor');
+    expect(result.updates).toEqual([]);
+    expect(result.withdrawn).toBe(true);
+  });
+
+  it('el enlace público de un relato retirado no expone su contenido', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      status: 'WITHDRAWN',
+      visibility: 'PUBLIC',
+      characterId: 'char-2',
+      withdrawnAt: new Date('2026-10-20T10:00:00Z'),
+      createdAt: new Date('2026-10-01T10:00:00Z'),
+      updatedAt: new Date('2026-10-20T10:00:00Z'),
+      character: { name: 'LuzEnPausa', avatarUrl: null },
+    });
+
+    const result = (await service.getPublic('story-1')) as any;
+
+    expect(result.status).toBe('WITHDRAWN');
+    expect(result.title).toBe('Relato retirado por su autor');
+    expect(result.updates).toEqual([]);
+    expect(result.mediaUrl).toBeUndefined();
   });
 
   it('adjunta imagen y audio en la primera etapa', async () => {

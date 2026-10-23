@@ -308,6 +308,11 @@
 .wy .onboarding-card .profile-editor{border:0;box-shadow:none;padding:0;background:transparent}
 .wy .onboarding-card h1{font-size:27px;margin:0;text-align:center}
 .wy .onboarding-card>p{text-align:center;color:var(--muted);font-size:14px;line-height:1.55;margin:8px auto 20px;max-width:560px}
+.wy .withdrawn-story{display:grid;place-items:center;gap:8px;padding:38px 18px;text-align:center}
+.wy .withdrawn-story-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:var(--purple-3);color:var(--purple)}
+.wy .withdrawn-story-icon svg{width:25px;height:25px}
+.wy .withdrawn-story h2{font-size:20px;margin:4px 0 0}
+.wy .withdrawn-story p{margin:0;max-width:420px;color:var(--muted);font-size:14px;line-height:1.6}
 .wy .onboarding-card .auth-logo{margin-bottom:14px}
 @media(max-width:640px){.wy .onboarding-card{padding:20px 16px}.wy .profile-avatar-editor{gap:12px}.wy .profile-avatar-actions{width:100%}}
 .wy .option-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:12px}
@@ -420,6 +425,7 @@
 .wy .screen-heading p{font-size:12px}
 .wy .welcome-row h1{font-size:21px}
 .wy .welcome-row .secondary{display:none}
+.wy .welcome-row .secondary.keep-mobile{display:inline-flex;align-items:center;gap:6px;min-height:42px}
 .wy .quick-mood{padding:16px;border-radius:18px}
 .wy .quick-title h2{font-size:18px}
 .wy .quick-title p{font-size:12px}

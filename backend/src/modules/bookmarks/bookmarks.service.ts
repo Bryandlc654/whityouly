@@ -74,7 +74,8 @@ export class BookmarksService {
 
     const ids = rows.map((row) => row.targetId);
     const stories = await this.prisma.story.findMany({
-      where: { id: { in: ids }, status: { not: 'DELETED' } },
+      // Un relato retirado deja de mostrar su contenido también en guardados.
+      where: { id: { in: ids }, status: { notIn: ['DELETED', 'WITHDRAWN'] } },
       select: {
         id: true,
         title: true,

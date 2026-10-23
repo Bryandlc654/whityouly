@@ -20,6 +20,7 @@ import {
   publishStory,
   unfeatureStory,
   unpublishStory,
+  withdrawStory,
   type MyStory,
   type MyStoryListItem,
   type StoryStatus,
@@ -44,6 +45,7 @@ function isAppealable(status: StoryStatus): boolean {
 
 function statusLabel(status: StoryStatus): string {
   if (status === 'PUBLISHED') return 'Publicado';
+  if (status === 'WITHDRAWN') return 'Retirado';
   if (status === 'HIDDEN' || status === 'MODERATED' || status === 'REPORTED') return 'Oculto por moderación';
   return 'Borrador';
 }
@@ -224,6 +226,11 @@ export default function MyStoriesPage() {
       title: 'Tu cuenta',
       rows: [
         { label: 'Ir al Feed', icon: 'home', onClick: () => router.push('/feed') },
+        {
+          label: 'Relatos retirados',
+          icon: 'lock',
+          onClick: () => router.push('/mis-relatos/retirados'),
+        },
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
@@ -281,6 +288,57 @@ export default function MyStoriesPage() {
     notify(result.message);
   };
 
+  const confirmWithdraw = (story: MyStoryListItem) => {
+    setSheet({
+      title: '¿Retirar este relato?',
+      rows: [
+        {
+          label: 'Conservar relato',
+          icon: 'shield',
+          onClick: () => setSheet(null),
+        },
+        {
+          label: 'Retirar y permitir restauración',
+          icon: 'lock',
+          danger: true,
+          onClick: () => void withdraw(story),
+        },
+      ],
+    });
+  };
+
+  const confirmDelete = (story: MyStoryListItem) => {
+    setSheet({
+      title: '¿Eliminar este borrador?',
+      rows: [
+        {
+          label: 'Conservar borrador',
+          icon: 'shield',
+          onClick: () => setSheet(null),
+        },
+        {
+          label: 'Eliminar definitivamente',
+          icon: 'trash',
+          danger: true,
+          onClick: () => void remove(story),
+        },
+      ],
+    });
+  };
+
+  const withdraw = async (story: MyStoryListItem) => {
+    setBusyId(story.id);
+    const result = await withdrawStory(story.id);
+    setBusyId(null);
+
+    if (result.status === 'ok') {
+      setStories((prev) => prev.filter((item) => item.id !== story.id));
+      notify('Relato retirado. Puedes restaurarlo desde “Relatos retirados”.');
+      return;
+    }
+    notify(result.message);
+  };
+
   const remove = async (story: MyStoryListItem) => {
     setBusyId(story.id);
     const result = await deleteStory(story.id);
@@ -288,7 +346,7 @@ export default function MyStoriesPage() {
 
     if (result.status === 'ok') {
       setStories((prev) => prev.filter((item) => item.id !== story.id));
-      notify('Relato dado de baja.');
+      notify('Borrador eliminado definitivamente.');
       return;
     }
     notify(result.message);
@@ -369,10 +427,19 @@ export default function MyStoriesPage() {
                 : 'Tus historias y su evolución.'}
             </p>
           </div>
-          <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
-            <Icon name="plus" />
-            Compartir relato
-          </button>
+          <div className="heading-actions">
+            <button
+              className="secondary keep-mobile"
+              type="button"
+              onClick={() => router.push('/mis-relatos/retirados')}
+            >
+              <Icon name="lock" /> Relatos retirados
+            </button>
+            <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
+              <Icon name="plus" />
+              Compartir relato
+            </button>
+          </div>
         </div>
 
         <div className="segmented">
@@ -520,14 +587,25 @@ export default function MyStoriesPage() {
                       {story.status === 'PUBLISHED' ? 'Volver a borrador' : 'Publicar'}
                     </button>
                   )}
-                  <button
-                    className="action-link danger"
-                    type="button"
-                    disabled={busyId === story.id}
-                    onClick={() => void remove(story)}
-                  >
-                    <Icon name="trash" /> Dar de baja
-                  </button>
+                  {story.status === 'PUBLISHED' ? (
+                    <button
+                      className="action-link danger"
+                      type="button"
+                      disabled={busyId === story.id}
+                      onClick={() => confirmWithdraw(story)}
+                    >
+                      <Icon name="lock" /> Retirar relato
+                    </button>
+                  ) : story.status === 'DRAFT' ? (
+                    <button
+                      className="action-link danger"
+                      type="button"
+                      disabled={busyId === story.id}
+                      onClick={() => confirmDelete(story)}
+                    >
+                      <Icon name="trash" /> Eliminar borrador
+                    </button>
+                  ) : null}
                 </div>
 
                 {isAppealable(story.status) ? (

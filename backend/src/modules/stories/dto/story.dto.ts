@@ -252,6 +252,21 @@ export class ListMyStoriesQueryDto {
   status?: 'DRAFT' | 'PUBLISHED';
 }
 
+export class ListWithdrawnQueryDto {
+  @ApiPropertyOptional({ description: 'Id del último relato retirado; devuelve los siguientes.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cursor?: string;
+
+  @ApiPropertyOptional({ default: 20, description: 'Entre 1 y 50. El servicio ajusta el tope.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+}
+
 export class ReportStoryDto {
   @ApiProperty({ enum: REPORT_REASONS, example: 'OFFENSIVE' })
   @IsIn(REPORT_REASONS, { message: 'La razón del reporte no es válida' })

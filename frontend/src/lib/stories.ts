@@ -4,7 +4,14 @@ import type { ReportReason } from './comments';
 import type { LoadResult } from './account';
 
 export type StoryVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE';
-export type StoryStatus = 'DRAFT' | 'PUBLISHED' | 'HIDDEN' | 'REPORTED' | 'MODERATED' | 'DELETED';
+export type StoryStatus =
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'HIDDEN'
+  | 'REPORTED'
+  | 'MODERATED'
+  | 'WITHDRAWN'
+  | 'DELETED';
 
 export interface StoryStage {
   id: string;
@@ -33,6 +40,9 @@ export interface MyStory {
   supportCount: number;
   commentCount: number;
   followerCount: number;
+  withdrawnAt: string | null;
+  /** La API devuelve una ficha sin contenido cuando el autor retiró el relato. */
+  withdrawn: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +60,7 @@ export interface MyStoryListItem {
   stageCount: number;
   supportCount: number;
   commentCount: number;
+  withdrawnAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -155,6 +166,8 @@ function parseStory(value: unknown): MyStory | null {
     supportCount: numberOr(record.supportCount),
     commentCount: numberOr(record.commentCount),
     followerCount: numberOr(record.followerCount),
+    withdrawnAt: typeof record.withdrawnAt === 'string' ? record.withdrawnAt : null,
+    withdrawn: record.withdrawn === true,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
   };
@@ -179,6 +192,7 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
     stageCount: numberOr(record.stageCount),
     supportCount: numberOr(record.supportCount),
     commentCount: numberOr(record.commentCount),
+    withdrawnAt: typeof record.withdrawnAt === 'string' ? record.withdrawnAt : null,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
   };
@@ -243,6 +257,20 @@ export function createStory(input: CreateStoryInput): Promise<LoadResult<MyStory
   );
 }
 
+function parseStoryPage(body: unknown): StoryPage {
+  const record = (body ?? {}) as Record<string, unknown>;
+  const items = Array.isArray(record.items)
+    ? record.items
+        .map(parseStoryListItem)
+        .filter((item: MyStoryListItem | null): item is MyStoryListItem => item !== null)
+    : [];
+
+  return {
+    items,
+    nextCursor: typeof record.nextCursor === 'string' ? record.nextCursor : null,
+  };
+}
+
 export function listMyStories(params: {
   cursor?: string;
   status?: 'DRAFT' | 'PUBLISHED';
@@ -255,18 +283,22 @@ export function listMyStories(params: {
     `/stories/me?${query.toString()}`,
     { method: 'GET' },
     'No se pudieron cargar tus relatos.',
-    (body) => {
-      const record = (body ?? {}) as Record<string, unknown>;
-      const items = Array.isArray(record.items)
-        ? record.items
-            .map(parseStoryListItem)
-            .filter((item: MyStoryListItem | null): item is MyStoryListItem => item !== null)
-        : [];
-      return {
-        items,
-        nextCursor: typeof record.nextCursor === 'string' ? record.nextCursor : null,
-      };
-    },
+    parseStoryPage,
+  );
+}
+
+/** Relatos propios retirados, listos para restaurar o eliminar definitivamente. */
+export function listWithdrawnStories(
+  params: { cursor?: string } = {},
+): Promise<LoadResult<StoryPage>> {
+  const query = new URLSearchParams();
+  if (params.cursor) query.set('cursor', params.cursor);
+
+  return authedRequest(
+    `/stories/me/withdrawn?${query.toString()}`,
+    { method: 'GET' },
+    'No se pudieron cargar tus relatos retirados.',
+    parseStoryPage,
   );
 }
 
@@ -374,6 +406,25 @@ export function unpublishStory(id: string): Promise<LoadResult<MyStory>> {
     `/stories/me/${encodeURIComponent(id)}/unpublish`,
     { method: 'POST' },
     'No se pudo volver a borrador.',
+    (body) => parseStory(body),
+  );
+}
+
+/** Retira un relato sin borrarlo; se conserva para poder restaurarlo. */
+export function withdrawStory(id: string): Promise<LoadResult<MyStory>> {
+  return authedRequest(
+    `/stories/me/${encodeURIComponent(id)}/withdraw`,
+    { method: 'POST' },
+    'No se pudo retirar el relato.',
+    (body) => parseStory(body),
+  );
+}
+
+export function restoreStory(id: string): Promise<LoadResult<MyStory>> {
+  return authedRequest(
+    `/stories/me/${encodeURIComponent(id)}/restore`,
+    { method: 'POST' },
+    'No se pudo restaurar el relato.',
     (body) => parseStory(body),
   );
 }

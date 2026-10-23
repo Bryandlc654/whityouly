@@ -345,7 +345,8 @@ export class NotificationsService {
     }
 
     const stories = await this.prisma.story.findMany({
-      where: { id: { in: ids } },
+      // Los avisos de un relato retirado no repiten su título original.
+      where: { id: { in: ids }, status: { notIn: ['DELETED', 'WITHDRAWN'] } },
       select: {
         id: true,
         title: true,
