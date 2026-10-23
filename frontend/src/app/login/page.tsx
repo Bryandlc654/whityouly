@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
-import { tokenStorage } from '@/lib/auth';
+import { authFetch, tokenStorage } from '@/lib/auth';
 import AuthCard from '@/components/wy/AuthCard';
 
 export default function LoginPage() {
@@ -39,9 +39,20 @@ export default function LoginPage() {
       tokenStorage.setAccess(data.accessToken);
 
       setSuccess(true);
+
+      // Una cuenta recién verificada aún no tiene personaje: primero elige su
+      // seudónimo. Si la comprobación falla, el feed vuelve a intentarlo.
+      let destination = '/feed';
+      try {
+        const character = await authFetch(`${API_URL}/characters/me`);
+        if (character.status === 404) destination = '/onboarding';
+      } catch {
+        /* el feed decide cuando termine de cargar */
+      }
+
       setTimeout(() => {
-        router.push('/feed');
-      }, 1200);
+        router.push(destination);
+      }, 900);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Credenciales inválidas');
       setLoading(false);

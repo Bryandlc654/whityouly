@@ -16,6 +16,7 @@ export interface PublicProfile {
   avatarUrl: string | null;
   bio: string | null;
   interests: string[];
+  showFollowing: boolean;
   createdAt: string | null;
   stats?: {
     followers: number;
@@ -34,6 +35,34 @@ export interface PublicStoryPreview {
   opening: { content: string; mediaUrl: string | null; audioUrl: string | null } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OwnerCharacter {
+  id: string;
+  name: string;
+  tagline: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  interests: string[];
+  privacySettings: PrivacySettings;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CreateCharacterInput {
+  name: string;
+  tagline?: string | null;
+  bio?: string | null;
+  interests?: string[];
+  privacySettings?: Partial<PrivacySettings>;
+}
+
+export interface UpdateCharacterInput {
+  name?: string;
+  tagline?: string | null;
+  bio?: string | null;
+  interests?: string[];
+  privacySettings?: Partial<PrivacySettings>;
 }
 
 export interface CharacterSearchItem {
@@ -140,6 +169,7 @@ function parseProfile(payload: unknown): PublicProfile | null {
     avatarUrl: isSafeImageUrl(avatarUrl),
     bio: isBoundedString(bio, MAX_BIO_LENGTH),
     interests: parseInterests(interests),
+    showFollowing: (payload as Record<string, unknown>).showFollowing === true,
     createdAt: typeof createdAt === 'string' && !Number.isNaN(Date.parse(createdAt)) ? createdAt : null,
     stats: {
       followers: num(stats.followers),
@@ -263,6 +293,215 @@ export function formatJoinDate(value: string | null): string | null {
   }).format(new Date(value));
 }
 
+function parsePrivacy(value: unknown): PrivacySettings {
+  const record = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    profileVisibility: record.profileVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+    showAvatar: typeof record.showAvatar === 'boolean' ? record.showAvatar : true,
+    showBio: typeof record.showBio === 'boolean' ? record.showBio : true,
+    showFollowing: record.showFollowing === true,
+  };
+}
+
+export function parseOwnerCharacter(payload: unknown): OwnerCharacter | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+
+  const record = payload as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id : null;
+  const name = typeof record.name === 'string' ? record.name : null;
+
+  if (!id || !name) return null;
+
+  return {
+    id,
+    name,
+    tagline: isBoundedString(record.tagline, MAX_TAGLINE_LENGTH),
+    avatarUrl: isSafeImageUrl(record.avatarUrl),
+    bio: isBoundedString(record.bio, MAX_BIO_LENGTH),
+    interests: parseInterests(record.interests),
+    privacySettings: parsePrivacy(record.privacySettings),
+    createdAt: typeof record.createdAt === 'string' ? record.createdAt : null,
+    updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : null,
+  };
+}
+
+function readErrorMessage(body: unknown, fallback: string): string {
+  const message = (body as { message?: unknown } | null)?.message;
+  if (Array.isArray(message)) return message.join(' ');
+  if (typeof message === 'string' && message.trim() !== '') return message;
+  return fallback;
+}
+
+async function characterJsonRequest<T>(
+  path: string,
+  init: RequestInit,
+  fallback: string,
+  parse: (body: unknown) => T | null,
+): Promise<LoadResult<T>> {
+  let response: Response;
+
+  try {
+    response = await authFetch(`${API_URL}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      /* sin cuerpo */
+    }
+    return { status: 'error', message: readErrorMessage(body, fallback) };
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return { status: 'error', message: fallback };
+  }
+
+  const parsed = parse(body);
+  return parsed === null ? { status: 'error', message: fallback } : { status: 'ok', data: parsed };
+}
+
+/** Crea el personaje público. El servidor exige que la cuenta aún no tenga uno. */
+export function createCharacter(input: CreateCharacterInput): Promise<LoadResult<OwnerCharacter>> {
+  return characterJsonRequest(
+    '/characters',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+    'No se pudo crear tu personaje.',
+    parseOwnerCharacter,
+  );
+}
+
+/** Actualiza el perfil. Solo se envían las claves presentes. */
+export function updateCharacter(input: UpdateCharacterInput): Promise<LoadResult<OwnerCharacter>> {
+  return characterJsonRequest(
+    '/characters/me',
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+    'No se pudieron guardar los cambios del perfil.',
+    parseOwnerCharacter,
+  );
+}
+
+/** Disponibilidad del seudónimo; el servidor es la única autoridad. */
+export function checkNameAvailability(
+  rawName: string,
+): Promise<LoadResult<{ available: boolean; reason?: string }>> {
+  const name = rawName.normalize('NFKC').replace(/\s+/g, ' ').trim();
+
+  if (!name) {
+    return Promise.resolve({
+      status: 'ok',
+      data: { available: false, reason: 'Escribe un seudónimo.' },
+    });
+  }
+
+  return characterJsonRequest(
+    `/characters/availability?name=${encodeURIComponent(name)}`,
+    { method: 'GET' },
+    'No se pudo comprobar la disponibilidad.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      return {
+        available: record.available === true,
+        reason: typeof record.reason === 'string' ? record.reason : undefined,
+      };
+    },
+  );
+}
+
+/** Catálogo cerrado de intereses que ofrece el servidor. */
+export async function listInterests(): Promise<LoadResult<string[]>> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}/interests`, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { Accept: 'application/json' },
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    return { status: 'error', message: 'No se pudieron cargar los intereses.' };
+  }
+
+  const body = await response.json().catch(() => null);
+
+  if (!Array.isArray(body)) {
+    return { status: 'error', message: 'No se pudieron cargar los intereses.' };
+  }
+
+  return {
+    status: 'ok',
+    data: body
+      .filter((item): item is string => typeof item === 'string' && item.trim() !== '')
+      .slice(0, 100),
+  };
+}
+
+/** Sube un avatar nuevo; el backend lo recodifica a WebP y lo recorta. */
+export async function uploadCharacterAvatar(
+  file: File,
+): Promise<LoadResult<{ avatarUrl: string | null }>> {
+  const form = new FormData();
+  form.append('file', file);
+
+  let response: Response;
+
+  try {
+    response = await authFetch(`${API_URL}/characters/me/avatar`, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo subir el avatar.' };
+  }
+
+  if (!response.ok) {
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      /* sin cuerpo */
+    }
+    return { status: 'error', message: readErrorMessage(body, 'No se pudo subir el avatar.') };
+  }
+
+  const body = await response.json().catch(() => null);
+  const record = (body ?? {}) as Record<string, unknown>;
+
+  return { status: 'ok', data: { avatarUrl: isSafeImageUrl(record.avatarUrl) } };
+}
+
+/** Quita el avatar actual del personaje. */
+export function removeCharacterAvatar(): Promise<LoadResult<{ avatarUrl: null }>> {
+  return characterJsonRequest(
+    '/characters/me/avatar',
+    { method: 'DELETE' },
+    'No se pudo quitar el avatar.',
+    () => ({ avatarUrl: null }),
+  );
+}
+
 /**
  * Protección de la información personal: guarda los ajustes de privacidad del
  * personaje. Solo se envían las claves presentes para no pisar el resto.
@@ -309,14 +548,9 @@ async function savePrivacyRequest(
   const payload = (await response.json().catch(() => null)) as
     | { privacySettings?: unknown }
     | null;
-  const raw = (payload?.privacySettings ?? {}) as Record<string, unknown>;
 
   return {
     status: 'ok',
-    data: {
-      profileVisibility: raw.profileVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
-      showAvatar: typeof raw.showAvatar === 'boolean' ? raw.showAvatar : true,
-      showBio: typeof raw.showBio === 'boolean' ? raw.showBio : true,
-    },
+    data: parsePrivacy(payload?.privacySettings),
   };
 }

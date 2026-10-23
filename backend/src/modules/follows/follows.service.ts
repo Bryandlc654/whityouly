@@ -5,12 +5,38 @@ import { StoriesService } from '../stories/stories.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from './follow-levels';
-import { normalizeCharacterName } from '../characters/characters.service';
+import {
+  normalizeCharacterName,
+  resolvePrivacySettings,
+  type ResolvedPrivacy,
+} from '../characters/characters.service';
+import type { ListConnectionsQueryDto } from './dto/follows.dto';
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 50;
 
 export interface FollowedCharacter {
   name: string;
   tagline: string | null;
   avatarUrl: string | null;
+}
+
+/** Persona dentro de una lista pública de seguidores o seguidos. */
+export interface SocialConnection {
+  name: string;
+  tagline: string | null;
+  avatarUrl: string | null;
+  /** Si la persona que consulta sigue a esta. */
+  following: boolean;
+  /** La fila corresponde a quien consulta. */
+  isSelf: boolean;
+}
+
+export interface SocialConnectionPage {
+  items: SocialConnection[];
+  nextCursor: string | null;
+  total: number;
+  showFollowing: boolean;
 }
 
 export interface FollowedStory {
@@ -101,6 +127,110 @@ export class FollowsService {
         .map((row) => row.followingCharacter)
         .filter((row): row is FollowedCharacter => row !== null),
     };
+  }
+
+  /**
+   * Seguidores públicos de un personaje. La lista solo es accesible si el
+   * perfil es público (o si quien consulta es su dueño) y se pagina por cursor
+   * para no cargar una lista ilimitada.
+   */
+  async listFollowers(
+    viewerUserId: string,
+    rawName: string,
+    query: ListConnectionsQueryDto,
+  ): Promise<SocialConnectionPage> {
+    const target = await this.resolveSocialTarget(rawName, viewerUserId);
+    const limit = this.pageSize(query.limit);
+
+    const [rows, total, viewer] = await Promise.all([
+      this.prisma.follower.findMany({
+        where: {
+          followingCharacterId: target.id,
+          follower: { is: { user: { is: { status: 'ACTIVE' } } } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+        ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          follower: {
+            select: { name: true, tagline: true, avatarUrl: true, privacySettings: true },
+          },
+        },
+      }),
+      this.prisma.follower.count({
+        where: {
+          followingCharacterId: target.id,
+          follower: { is: { user: { is: { status: 'ACTIVE' } } } },
+        },
+      }),
+      this.prisma.character.findUnique({
+        where: { userId: viewerUserId },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    return this.buildConnectionsPage({
+      rows: rows.map((row) => ({ id: row.id, character: row.follower })),
+      limit,
+      total,
+      viewer,
+      showFollowing: target.privacy.showFollowing,
+    });
+  }
+
+  /**
+   * Personajes que sigue un perfil. Solo el dueño ve siempre la lista; el resto
+   * necesita que `showFollowing` esté activo. Así el ajuste de privacidad no se
+   * puede eludir cambiando la URL.
+   */
+  async listFollowingOf(
+    viewerUserId: string,
+    rawName: string,
+    query: ListConnectionsQueryDto,
+  ): Promise<SocialConnectionPage> {
+    const target = await this.resolveSocialTarget(rawName, viewerUserId);
+    const isOwner = target.userId === viewerUserId;
+
+    if (!isOwner && !target.privacy.showFollowing) {
+      throw new ForbiddenException('Este perfil no comparte a quién sigue.');
+    }
+
+    const limit = this.pageSize(query.limit);
+    const where: Prisma.FollowerWhereInput = {
+      followerId: target.id,
+      followingCharacter: { is: { user: { is: { status: 'ACTIVE' } } } },
+    };
+
+    const [rows, total, viewer] = await Promise.all([
+      this.prisma.follower.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+        ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          followingCharacter: {
+            select: { name: true, tagline: true, avatarUrl: true, privacySettings: true },
+          },
+        },
+      }),
+      this.prisma.follower.count({ where }),
+      this.prisma.character.findUnique({
+        where: { userId: viewerUserId },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    return this.buildConnectionsPage({
+      rows: rows
+        .filter((row) => row.followingCharacter !== null)
+        .map((row) => ({ id: row.id, character: row.followingCharacter! })),
+      limit,
+      total,
+      viewer,
+      showFollowing: target.privacy.showFollowing,
+    });
   }
 
   async followStory(userId: string, storyId: string): Promise<{ following: true }> {
@@ -203,6 +333,119 @@ export class FollowsService {
     ]);
 
     return { characters: characters.items, stories };
+  }
+
+  private pageSize(limit?: number): number {
+    return Math.min(Math.max(limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  }
+
+  private async buildConnectionsPage(params: {
+    rows: {
+      id: string;
+      character: {
+        name: string;
+        tagline: string | null;
+        avatarUrl: string | null;
+        privacySettings: unknown;
+      };
+    }[];
+    limit: number;
+    total: number;
+    viewer: { id: string; name: string } | null;
+    showFollowing: boolean;
+  }): Promise<SocialConnectionPage> {
+    const hasMore = params.rows.length > params.limit;
+    const pageRows = hasMore ? params.rows.slice(0, params.limit) : params.rows;
+    const names = pageRows.map((row) => row.character.name);
+
+    const followedNames = new Set<string>();
+    if (params.viewer && names.length > 0) {
+      const followed = await this.prisma.follower.findMany({
+        where: {
+          followerId: params.viewer.id,
+          followingCharacter: { name: { in: names } },
+        },
+        select: { followingCharacter: { select: { name: true } } },
+      });
+
+      for (const row of followed) {
+        if (row.followingCharacter) {
+          followedNames.add(row.followingCharacter.name.toLowerCase());
+        }
+      }
+    }
+
+    const viewerName = params.viewer?.name.toLowerCase() ?? null;
+
+    const items = pageRows.map((row) => {
+      const privacy = resolvePrivacySettings(row.character.privacySettings);
+      // Un perfil privado no expone ni lema ni avatar en listas ajenas; solo su
+      // seudónimo. Así no se filtra contenido que el perfil oculta en su vista.
+      const exposesProfile = privacy.profileVisibility === 'PUBLIC';
+
+      return {
+        name: row.character.name,
+        tagline: exposesProfile && privacy.showBio ? row.character.tagline : null,
+        avatarUrl: exposesProfile && privacy.showAvatar ? row.character.avatarUrl : null,
+        following: followedNames.has(row.character.name.toLowerCase()),
+        isSelf: viewerName !== null && row.character.name.toLowerCase() === viewerName,
+      } satisfies SocialConnection;
+    });
+
+    return {
+      items,
+      nextCursor: hasMore ? pageRows[pageRows.length - 1].id : null,
+      total: params.total,
+      showFollowing: params.showFollowing,
+    };
+  }
+
+  /**
+   * Resuelve el personaje objetivo de una lista aplicando la misma regla que el
+   * perfil público: un perfil privado responde 404 salvo para su dueño. Nunca
+   * se distingue de un seudónimo inexistente para no filtrar su existencia.
+   */
+  private async resolveSocialTarget(
+    rawName: string,
+    viewerUserId: string,
+  ): Promise<{ id: string; userId: string; privacy: ResolvedPrivacy }> {
+    const name = normalizeCharacterName(rawName);
+
+    if (!name || name.length > 30) {
+      throw new NotFoundException('Personaje no encontrado.');
+    }
+
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "characters" WHERE lower("name") = lower(${name}) LIMIT 1
+    `;
+    const match = rows[0];
+
+    if (!match) {
+      throw new NotFoundException('Personaje no encontrado.');
+    }
+
+    const character = await this.prisma.character.findUnique({
+      where: { id: match.id },
+      select: {
+        id: true,
+        userId: true,
+        privacySettings: true,
+        user: { select: { status: true } },
+      },
+    });
+
+    if (!character || character.user.status !== 'ACTIVE') {
+      throw new NotFoundException('Personaje no encontrado.');
+    }
+
+    const privacy = resolvePrivacySettings(character.privacySettings);
+    const isOwner = character.userId === viewerUserId;
+
+    if (!isOwner && privacy.profileVisibility !== 'PUBLIC') {
+      throw new NotFoundException('Personaje no encontrado.');
+    }
+
+    return { id: character.id, userId: character.userId, privacy };
   }
 
   private isUniqueError(error: unknown): boolean {

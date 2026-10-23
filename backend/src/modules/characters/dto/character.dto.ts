@@ -82,6 +82,14 @@ export class PrivacySettingsDto {
   @IsOptional()
   @IsBoolean()
   showBio?: boolean;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Compartir públicamente la lista de personajes que sigo.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  showFollowing?: boolean;
 }
 
 export class CreateCharacterDto {

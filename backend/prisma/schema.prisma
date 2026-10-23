@@ -430,6 +430,11 @@ model Follower {
   // y el filtro "quién me sigue".
   @@index([followerId, followingCharacterId])
   @@index([followingCharacterId])
+  // Listas públicas paginadas: se filtran por un lado de la relación y se
+  // ordenan por fecha descendente. Sin estos índices, Postgres ordena en
+  // memoria una página tras otra.
+  @@index([followingCharacterId, createdAt])
+  @@index([followerId, createdAt])
   // "Historias que sigo": se consulta por historia seguida (contador) y por
   // seguidor para listar las tuyas.
   @@index([followingStoryId])

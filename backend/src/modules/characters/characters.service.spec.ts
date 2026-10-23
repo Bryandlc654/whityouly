@@ -102,7 +102,12 @@ describe('CharactersService', () => {
           bio: null,
           avatarUrl: null,
           userId: 'user-1',
-          privacySettings: { profileVisibility: 'PUBLIC', showAvatar: true, showBio: true },
+          privacySettings: {
+            profileVisibility: 'PUBLIC',
+            showAvatar: true,
+            showBio: true,
+            showFollowing: false,
+          },
         }),
       }),
     );
@@ -204,7 +209,12 @@ describe('CharactersService', () => {
     expect(prisma.character.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          privacySettings: { profileVisibility: 'PRIVATE', showAvatar: false, showBio: false },
+          privacySettings: {
+            profileVisibility: 'PRIVATE',
+            showAvatar: false,
+            showBio: false,
+            showFollowing: false,
+          },
         }),
       }),
     );
@@ -212,6 +222,7 @@ describe('CharactersService', () => {
       profileVisibility: 'PRIVATE',
       showAvatar: false,
       showBio: false,
+      showFollowing: false,
     });
   });
 
@@ -286,12 +297,19 @@ describe('CharactersService', () => {
       updatedAt: new Date(),
     });
 
-    await service.update('user-1', { privacySettings: { showBio: false } } as any);
+    await service.update('user-1', {
+      privacySettings: { showBio: false, showFollowing: true },
+    } as any);
 
     expect(prisma.character.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          privacySettings: { profileVisibility: 'PUBLIC', showAvatar: true, showBio: false },
+          privacySettings: {
+            profileVisibility: 'PUBLIC',
+            showAvatar: true,
+            showBio: false,
+            showFollowing: true,
+          },
         }),
       }),
     );

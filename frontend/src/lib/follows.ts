@@ -19,6 +19,22 @@ export interface WhatIFollow {
   stories: FollowedStorySummary[];
 }
 
+/** Persona dentro de una lista pública de seguidores o seguidos. */
+export interface SocialConnection {
+  name: string;
+  tagline: string | null;
+  avatarUrl: string | null;
+  following: boolean;
+  isSelf: boolean;
+}
+
+export interface ConnectionsPage {
+  items: SocialConnection[];
+  nextCursor: string | null;
+  total: number;
+  showFollowing: boolean;
+}
+
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function safeUrl(value: unknown): string | null {
@@ -164,5 +180,71 @@ export function listFollowing(): Promise<LoadResult<{ items: FollowedCharacter[]
         : [];
       return { items };
     },
+  );
+}
+
+function parseConnectionsPage(body: unknown): ConnectionsPage | null {
+  const record = (body ?? {}) as Record<string, unknown>;
+
+  if (!Array.isArray(record.items)) {
+    return null;
+  }
+
+  const items = record.items
+    .map((item) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      const name = typeof row.name === 'string' ? row.name : null;
+      if (!name) return null;
+
+      return {
+        name,
+        tagline: typeof row.tagline === 'string' ? row.tagline : null,
+        avatarUrl: safeUrl(row.avatarUrl),
+        following: row.following === true,
+        isSelf: row.isSelf === true,
+      } satisfies SocialConnection;
+    })
+    .filter((item): item is SocialConnection => item !== null);
+
+  return {
+    items,
+    nextCursor: typeof record.nextCursor === 'string' ? record.nextCursor : null,
+    total: typeof record.total === 'number' && Number.isFinite(record.total) ? record.total : items.length,
+    showFollowing: record.showFollowing === true,
+  };
+}
+
+function connectionsPath(name: string, kind: 'followers' | 'following', params: { cursor?: string; limit?: number }): string {
+  const query = new URLSearchParams();
+  if (params.cursor) query.set('cursor', params.cursor);
+  if (params.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString();
+
+  return `/characters/${encodeURIComponent(name)}/${kind}${suffix ? `?${suffix}` : ''}`;
+}
+
+/** Seguidores públicos de un personaje (paginado por cursor). */
+export function listFollowersOf(
+  name: string,
+  params: { cursor?: string; limit?: number } = {},
+): Promise<LoadResult<ConnectionsPage>> {
+  return request(
+    connectionsPath(name, 'followers', params),
+    { method: 'GET' },
+    'No se pudieron cargar los seguidores.',
+    parseConnectionsPage,
+  );
+}
+
+/** Personajes que sigue un perfil; el servidor decide si la lista es visible. */
+export function listFollowingOf(
+  name: string,
+  params: { cursor?: string; limit?: number } = {},
+): Promise<LoadResult<ConnectionsPage>> {
+  return request(
+    connectionsPath(name, 'following', params),
+    { method: 'GET' },
+    'No se pudo cargar la lista de seguidos.',
+    parseConnectionsPage,
   );
 }

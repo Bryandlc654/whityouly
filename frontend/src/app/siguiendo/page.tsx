@@ -129,6 +129,7 @@ export default function FollowingPage() {
       rows: [
         { label: 'Ir al Feed', icon: 'home', onClick: () => router.push('/feed') },
         { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
+        { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
@@ -249,6 +250,15 @@ export default function FollowingPage() {
                 : 'Lo que sigues y guardas.'}
             </p>
           </div>
+          {name ? (
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => router.push(`/seguidores/${encodeURIComponent(name)}`)}
+            >
+              Ver mis seguidores
+            </button>
+          ) : null}
         </div>
 
         {following.length > 0 ? (

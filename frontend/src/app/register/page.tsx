@@ -48,7 +48,8 @@ export default function RegisterPage() {
       {error ? <div className="auth-error">{error}</div> : null}
       {success ? (
         <div className="auth-success">
-          Cuenta creada. Revisa tu correo para verificar el acceso.
+          Cuenta creada. Revisa tu correo para verificar el acceso; después elegirás tu
+          seudónimo.
         </div>
       ) : null}
 

@@ -43,13 +43,34 @@ export interface ResolvedPrivacy {
   profileVisibility: 'PUBLIC' | 'PRIVATE';
   showAvatar: boolean;
   showBio: boolean;
+  showFollowing: boolean;
 }
 
 const DEFAULT_PRIVACY: ResolvedPrivacy = {
   profileVisibility: 'PUBLIC',
   showAvatar: true,
   showBio: true,
+  // Por defecto la lista de "a quién sigo" es privada; solo se comparte si la
+  // persona lo activa. Los seguidores sí son públicos en perfiles públicos.
+  showFollowing: false,
 };
+
+/**
+ * Normaliza los ajustes de privacidad guardados como JSON. Se exporta para que
+ * otros módulos (por ejemplo, seguidores) apliquen exactamente el mismo
+ * criterio sin duplicar reglas.
+ */
+export function resolvePrivacySettings(settings: unknown): ResolvedPrivacy {
+  const source = (settings ?? {}) as Partial<PrivacySettingsDto>;
+
+  return {
+    profileVisibility: source.profileVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+    showAvatar: typeof source.showAvatar === 'boolean' ? source.showAvatar : DEFAULT_PRIVACY.showAvatar,
+    showBio: typeof source.showBio === 'boolean' ? source.showBio : DEFAULT_PRIVACY.showBio,
+    showFollowing:
+      typeof source.showFollowing === 'boolean' ? source.showFollowing : DEFAULT_PRIVACY.showFollowing,
+  };
+}
 
 const MAX_BIO_LENGTH = 500;
 const MAX_TAGLINE_LENGTH = 120;
@@ -292,8 +313,20 @@ export class CharactersService {
     // parte de lo que la persona escribió sobre sí misma.
     const [followers, following, companionshipsReceived, publishedCount, featuredStories, recentStories] =
       await Promise.all([
-        this.prisma.follower.count({ where: { followingCharacterId: character.id } }),
-        this.prisma.follower.count({ where: { followerId: character.id, followingCharacterId: { not: null } } }),
+        // Los contadores usan el mismo filtro que las listas: no cuentan
+        // cuentas suspendidas, para que el número y la lista coincidan.
+        this.prisma.follower.count({
+          where: {
+            followingCharacterId: character.id,
+            follower: { is: { user: { is: { status: 'ACTIVE' } } } },
+          },
+        }),
+        this.prisma.follower.count({
+          where: {
+            followerId: character.id,
+            followingCharacter: { is: { user: { is: { status: 'ACTIVE' } } } },
+          },
+        }),
         this.prisma.companionship.count({ where: { targetCharacterId: character.id } }),
         this.prisma.story.count({ where: { characterId: character.id, status: 'PUBLISHED' } }),
         this.prisma.story.findMany({
@@ -319,6 +352,9 @@ export class CharactersService {
       interests: privacy.showBio
         ? character.interests.map(({ interest }) => interest.name).sort((a, b) => a.localeCompare(b, 'es'))
         : [],
+      // Indica si el perfil comparte públicamente la lista de personas que
+      // sigue. La lista de seguidores no requiere este ajuste.
+      showFollowing: privacy.showFollowing,
       createdAt: character.createdAt,
       stats: {
         followers,
@@ -525,13 +561,7 @@ export class CharactersService {
   }
 
   private resolvePrivacy(settings: unknown): ResolvedPrivacy {
-    const source = (settings ?? {}) as Partial<PrivacySettingsDto>;
-
-    return {
-      profileVisibility: source.profileVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
-      showAvatar: typeof source.showAvatar === 'boolean' ? source.showAvatar : DEFAULT_PRIVACY.showAvatar,
-      showBio: typeof source.showBio === 'boolean' ? source.showBio : DEFAULT_PRIVACY.showBio,
-    };
+    return resolvePrivacySettings(settings);
   }
 
   private isUniqueConstraintError(error: unknown): boolean {

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { fetchPublicProfile, formatJoinDate } from '@/lib/characters';
@@ -109,24 +110,48 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
         {profile.stats ? (
           <div className="profile-stats card pad">
-            <div>
+            <Link
+              href={`/seguidores/${encodeURIComponent(profile.name)}`}
+              className="profile-stat"
+              aria-label={`Ver los seguidores de ${profile.name}`}
+            >
               <b>{profile.stats.followers}</b>
               <span>Seguidores</span>
-            </div>
-            <div>
-              <b>{profile.stats.following}</b>
-              <span>Siguiendo</span>
-            </div>
-            <div>
+            </Link>
+            {profile.showFollowing ? (
+              <Link
+                href={`/seguidores/${encodeURIComponent(profile.name)}?tab=following`}
+                className="profile-stat"
+                aria-label={`Ver a quién sigue ${profile.name}`}
+              >
+                <b>{profile.stats.following}</b>
+                <span>Siguiendo</span>
+              </Link>
+            ) : (
+              <div className="profile-stat is-static">
+                <b>{profile.stats.following}</b>
+                <span>Siguiendo</span>
+              </div>
+            )}
+            <div className="profile-stat is-static">
               <b>{profile.stats.companionshipsReceived}</b>
               <span>Estoy contigo</span>
             </div>
-            <div>
+            <div className="profile-stat is-static">
               <b>{profile.stats.stories}</b>
               <span>Relatos</span>
             </div>
           </div>
         ) : null}
+
+        <div className="profile-links">
+          <Link
+            href={`/seguidores/${encodeURIComponent(profile.name)}`}
+            className="text-link"
+          >
+            Ver seguidores
+          </Link>
+        </div>
 
         {profile.featuredStories && profile.featuredStories.length > 0 ? (
           <section className="card pad profile-stories">

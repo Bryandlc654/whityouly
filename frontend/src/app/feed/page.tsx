@@ -147,6 +147,12 @@ export default function FeedPage() {
           return;
         }
 
+        // Sin personaje no hay feed posible: primero se elige el seudónimo.
+        if (res.status === 404) {
+          router.replace('/onboarding');
+          return;
+        }
+
         if (res.ok) {
           const data = await res.json();
           if (data) setCharacter(data);
@@ -232,6 +238,7 @@ export default function FeedPage() {
       title: 'Tu cuenta',
       rows: [
         { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
+        { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],

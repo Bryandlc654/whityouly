@@ -2,6 +2,7 @@ export interface PrivacySettings {
   profileVisibility: 'PUBLIC' | 'PRIVATE';
   showAvatar: boolean;
   showBio: boolean;
+  showFollowing: boolean;
 }
 
 export interface CharacterSummary {

@@ -183,6 +183,15 @@ export default function AccountPage() {
                 {account.activeSessions}{' '}
                 {account.activeSessions === 1 ? 'sesión activa' : 'sesiones activas'}
               </span>
+              {character ? (
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => router.push('/perfil/editar')}
+                >
+                  <Icon name="edit" /> Editar perfil
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

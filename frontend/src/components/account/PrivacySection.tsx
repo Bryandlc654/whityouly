@@ -14,6 +14,7 @@ const DEFAULTS: PrivacySettings = {
   profileVisibility: 'PUBLIC',
   showAvatar: true,
   showBio: true,
+  showFollowing: false,
 };
 
 const VISIBILITIES: { value: PrivacySettings['profileVisibility']; label: string; hint: string }[] = [
@@ -22,7 +23,7 @@ const VISIBILITIES: { value: PrivacySettings['profileVisibility']; label: string
 ];
 
 export default function PrivacySection({ settings, onSaved }: Props) {
-  const initial = settings ?? DEFAULTS;
+  const initial = { ...DEFAULTS, ...(settings ?? {}) };
   const [values, setValues] = useState<PrivacySettings>(initial);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,7 +31,8 @@ export default function PrivacySection({ settings, onSaved }: Props) {
   const dirty =
     values.profileVisibility !== initial.profileVisibility ||
     values.showAvatar !== initial.showAvatar ||
-    values.showBio !== initial.showBio;
+    values.showBio !== initial.showBio ||
+    values.showFollowing !== initial.showFollowing;
 
   async function save() {
     setSaving(true);
@@ -118,6 +120,25 @@ export default function PrivacySection({ settings, onSaved }: Props) {
                 checked={values.showBio}
                 onChange={(event) =>
                   setValues((prev) => ({ ...prev, showBio: event.target.checked }))
+                }
+              />
+            </span>
+          </label>
+
+          <label className="settings-row">
+            <span>
+              <Icon name="users" />
+            </span>
+            <span>
+              <b>Mostrar a quién sigo</b>
+              <small>Si lo desactivas, solo tú podrás ver tu lista de seguidos.</small>
+            </span>
+            <span>
+              <input
+                type="checkbox"
+                checked={values.showFollowing}
+                onChange={(event) =>
+                  setValues((prev) => ({ ...prev, showFollowing: event.target.checked }))
                 }
               />
             </span>
