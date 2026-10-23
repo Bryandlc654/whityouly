@@ -308,6 +308,14 @@
 .wy .onboarding-card .profile-editor{border:0;box-shadow:none;padding:0;background:transparent}
 .wy .onboarding-card h1{font-size:27px;margin:0;text-align:center}
 .wy .onboarding-card>p{text-align:center;color:var(--muted);font-size:14px;line-height:1.55;margin:8px auto 20px;max-width:560px}
+.wy .moderation-case-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.wy .moderation-case-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.wy .moderation-case h2,.wy .moderation-audit h2{font-size:19px;line-height:1.35;margin:0 0 4px;overflow-wrap:anywhere}
+.wy .moderation-reason{margin:8px 0 0;color:#454852;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.wy .moderation-context{margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--purple);border-radius:10px;background:#f7f5ff;color:var(--muted);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.wy .moderation-actions{display:flex;gap:8px;flex-wrap:wrap}
+.wy .moderation-review-context{margin:14px 0;padding:12px 0;border-block:1px solid var(--line)}
+@media(max-width:600px){.wy .moderation-case-head{flex-direction:column}.wy .moderation-case-head>.primary,.wy .moderation-case-head>.secondary,.wy .moderation-case-head>.moderation-actions{align-self:flex-start}.wy .moderation-actions .primary,.wy .moderation-actions .secondary{min-height:42px}}
 .wy .withdrawn-story{display:grid;place-items:center;gap:8px;padding:38px 18px;text-align:center}
 .wy .withdrawn-story-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:var(--purple-3);color:var(--purple)}
 .wy .withdrawn-story-icon svg{width:25px;height:25px}

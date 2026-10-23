@@ -16,10 +16,13 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ModerationService } from './moderation.service';
 import {
+  CreateModerationDecisionDto,
   ListAppealsQueryDto,
+  ListModerationActionsQueryDto,
   ListReportsQueryDto,
   ModerateContentDto,
   ResolveAppealDto,
+  RevertModerationActionDto,
   UpdateReportDto,
 } from './dto/moderation.dto';
 
@@ -43,10 +46,38 @@ export class AdminModerationController {
   }
 
   @Patch('reports/:id')
-  @ApiOperation({ summary: 'Cambiar el estado de un reporte (en revisión, resuelto, descartado)' })
+  @ApiOperation({ summary: 'Marcar un reporte en revisión o reabrir un caso' })
   @ApiResponse({ status: 404, description: 'Ese reporte no existe.' })
   updateReport(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateReportDto) {
     return this.moderationService.updateReport(req.user.userId, id, dto);
+  }
+
+  @Patch('reports/:id/decision')
+  @ApiOperation({ summary: 'Aplicar una decisión de moderación con motivo (auditada)' })
+  @ApiResponse({ status: 409, description: 'El reporte ya fue resuelto o el objetivo cambió.' })
+  decide(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateModerationDecisionDto,
+  ) {
+    return this.moderationService.decideReport(req.user.userId, id, dto);
+  }
+
+  @Get('moderation/actions')
+  @ApiOperation({ summary: 'Historial auditable de decisiones (paginado)' })
+  listActions(@Query() query: ListModerationActionsQueryDto) {
+    return this.moderationService.listActions(query);
+  }
+
+  @Patch('moderation/actions/:id/revert')
+  @ApiOperation({ summary: 'Revertir una decisión y reabrir el caso' })
+  @ApiResponse({ status: 409, description: 'La decisión ya fue revertida o el objetivo cambió.' })
+  revertAction(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RevertModerationActionDto,
+  ) {
+    return this.moderationService.revertAction(req.user.userId, id, dto);
   }
 
   @Patch('reports/:id/content')

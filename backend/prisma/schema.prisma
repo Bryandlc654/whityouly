@@ -51,6 +51,9 @@ model User {
   appeals          Appeal[]          @relation("AppealAppellant")
   resolvedAppeals  Appeal[]          @relation("AppealResolver")
   treeDrops        TreeDrop[]
+  moderationActions  ModerationAction[] @relation("ModerationActionActor")
+  moderationReverts  ModerationAction[] @relation("ModerationActionReverter")
+  moderationSubjects ModerationAction[] @relation("ModerationActionSubject")
 
   @@map("users")
 }
@@ -598,6 +601,7 @@ model Report {
   resolvedAt     DateTime?
 
   reporter User @relation(fields: [reporterUserId], references: [id], onDelete: Cascade)
+  moderationActions ModerationAction[]
 
   // La bandeja de moderación lista por estado y fecha; el chequeo de duplicados
   // (misma persona, mismo objeto) y el índice por objetivo se resuelven por
@@ -642,6 +646,47 @@ model Appeal {
   @@index([targetType, targetId])
   @@index([resolvedByUserId])
   @@map("appeals")
+}
+
+enum ModerationActionKind {
+  DISMISS
+  HIDE
+  SUSPEND
+  RESTORE
+}
+
+// Auditoría de decisiones de moderación. Cada fila es inmutable salvo los
+// campos de reversión: quién revirtió, cuándo y por qué. Se guarda el sujeto
+// suspendido (`subjectUserId`) además del objetivo reportado para poder
+// deshacer la medida aunque el contenido cambie después.
+model ModerationAction {
+  id               String               @id @default(uuid())
+  reportId         String?
+  actorUserId      String
+  action           ModerationActionKind
+  targetType       ReportedType?
+  targetId         String?
+  subjectUserId    String?
+  reason           String
+  createdAt        DateTime             @default(now())
+  revertedAt       DateTime?
+  revertedByUserId String?
+  revertReason     String?
+
+  report     Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  actor      User    @relation("ModerationActionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  revertedBy User?   @relation("ModerationActionReverter", fields: [revertedByUserId], references: [id], onDelete: SetNull)
+  subject    User?   @relation("ModerationActionSubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+
+  // Historial global por fecha y caso; los índices cubren las consultas del
+  // panel y las claves foráneas que Postgres no indexa solo.
+  @@index([createdAt, id])
+  @@index([reportId])
+  @@index([targetType, targetId])
+  @@index([actorUserId, createdAt])
+  @@index([revertedByUserId])
+  @@index([subjectUserId])
+  @@map("moderation_actions")
 }
 
 // Tu árbol: crecimiento emocional privado. Una gota por camino y día, con el

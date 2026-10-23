@@ -1,11 +1,21 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AppealStatus, CommentStatus, ReportStatus, StoryStatus } from '@prisma/client';
+import {
+  AppealStatus,
+  CommentStatus,
+  ModerationActionKind,
+  Prisma,
+  ReportStatus,
+  Role,
+  Status,
+  StoryStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -15,10 +25,13 @@ import {
 import {
   AppealTarget,
   CreateAppealDto,
+  CreateModerationDecisionDto,
   ListAppealsQueryDto,
+  ListModerationActionsQueryDto,
   ListReportsQueryDto,
   ModerateContentDto,
   ResolveAppealDto,
+  RevertModerationActionDto,
   UpdateReportDto,
 } from './dto/moderation.dto';
 
@@ -35,6 +48,20 @@ const APPEALABLE_STORY_STATUSES: StoryStatus[] = [
 ];
 const APPEALABLE_COMMENT_STATUSES: CommentStatus[] = [CommentStatus.HIDDEN, CommentStatus.MODERATED];
 
+// Una restauración por apelación no se "revierte": no tendría un inverso claro.
+const REVERTABLE_ACTIONS: ModerationActionKind[] = [
+  ModerationActionKind.DISMISS,
+  ModerationActionKind.HIDE,
+  ModerationActionKind.SUSPEND,
+];
+
+const ROLE_RANK: Record<Role, number> = {
+  USER: 0,
+  MODERATOR: 1,
+  ADMIN: 2,
+  SUPERADMIN: 3,
+};
+
 /** Resumen del contenido reportado para dar contexto a quien modera. */
 export interface TargetSummary {
   id: string;
@@ -43,6 +70,8 @@ export interface TargetSummary {
   authorName: string | null;
   status: string | null;
   storyId: string | null;
+  /** Extracto del contenido público reportado, nunca datos privados. */
+  context: string | null;
 }
 
 export interface ReportView {
@@ -69,6 +98,52 @@ export interface AppealView {
   resolutionNote: string | null;
   appellantCharacterName: string | null;
   target: TargetSummary | null;
+}
+
+export interface ModerationActionView {
+  id: string;
+  reportId: string | null;
+  action: ModerationActionKind;
+  targetType: string | null;
+  targetId: string | null;
+  reason: string;
+  createdAt: Date;
+  revertedAt: Date | null;
+  revertReason: string | null;
+  actorCharacterName: string | null;
+  revertedByCharacterName: string | null;
+  target: TargetSummary | null;
+  canRevert: boolean;
+}
+
+const MODERATION_ACTION_SELECT = {
+  id: true,
+  reportId: true,
+  actorUserId: true,
+  action: true,
+  targetType: true,
+  targetId: true,
+  subjectUserId: true,
+  reason: true,
+  createdAt: true,
+  revertedAt: true,
+  revertedByUserId: true,
+  revertReason: true,
+} satisfies Prisma.ModerationActionSelect;
+
+type ModerationActionRow = Prisma.ModerationActionGetPayload<{
+  select: typeof MODERATION_ACTION_SELECT;
+}>;
+
+interface SubjectAccount {
+  userId: string;
+  role: Role;
+  status: Status;
+}
+
+interface DecisionTarget extends SubjectAccount {
+  targetStatus: string | null;
+  storyId: string | null;
 }
 
 /**
@@ -211,17 +286,350 @@ export class ModerationService {
       throw new NotFoundException('Ese reporte no existe.');
     }
 
-    const terminal = dto.status === ReportStatus.RESOLVED || dto.status === ReportStatus.REJECTED;
+    // Resolver o descartar es una decisión: exige motivo y genera auditoría.
+    // Este endpoint queda para marcar "en revisión" o reabrir un caso.
+    if (dto.status === ReportStatus.RESOLVED || dto.status === ReportStatus.REJECTED) {
+      throw new BadRequestException(
+        'Para resolver o descartar un reporte usa una decisión de moderación con motivo.',
+      );
+    }
 
     await this.prisma.report.update({
       where: { id: reportId },
       data: {
         status: dto.status,
-        resolvedAt: terminal ? new Date() : null,
+        resolvedAt: null,
       },
     });
 
     return { id: reportId, status: dto.status };
+  }
+
+  /**
+   * Decisión principal del panel: descartar, ocultar contenido o suspender la
+   * cuenta autora. Todo cambio queda en `moderation_actions` con motivo y actor.
+   */
+  async decideReport(
+    actorUserId: string,
+    reportId: string,
+    dto: CreateModerationDecisionDto,
+  ) {
+    const actor = await this.loadActor(actorUserId);
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      select: {
+        id: true,
+        reportedType: true,
+        reportedId: true,
+        status: true,
+      },
+    });
+
+    if (!report) {
+      throw new NotFoundException('Ese reporte no existe.');
+    }
+
+    if (report.status === ReportStatus.RESOLVED || report.status === ReportStatus.REJECTED) {
+      throw new ConflictException(
+        'Ese reporte ya fue resuelto. Reabre la revisión antes de decidir de nuevo.',
+      );
+    }
+
+    const target =
+      dto.action === 'DISMISS'
+        ? null
+        : await this.resolveDecisionTarget(report.reportedType, report.reportedId, dto.action);
+
+    if (dto.action === 'SUSPEND' && target) {
+      await this.assertCanModerateAccount(actor, {
+        userId: target.userId,
+        role: target.role,
+        status: target.status,
+        actorUserId,
+      });
+    }
+
+    const now = new Date();
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      if (dto.action === 'HIDE' && target) {
+        if (report.reportedType === 'STORY') {
+          const updated = await tx.story.updateMany({
+            where: {
+              id: report.reportedId,
+              status: { notIn: [StoryStatus.DELETED, StoryStatus.WITHDRAWN] },
+            },
+            data: { status: StoryStatus.HIDDEN, updatedAt: now },
+          });
+          if (updated.count === 0) {
+            throw new ConflictException('Ese relato ya no está disponible.');
+          }
+        } else {
+          const updated = await tx.comment.updateMany({
+            where: { id: report.reportedId, status: { not: CommentStatus.DELETED } },
+            data: { status: CommentStatus.HIDDEN },
+          });
+          if (updated.count === 0) {
+            throw new ConflictException('Ese comentario ya no está disponible.');
+          }
+        }
+      }
+
+      if (dto.action === 'SUSPEND' && target) {
+        // Se vuelve a comprobar el último SUPERADMIN dentro de la transacción
+        // para que dos suspensiones simultáneas no dejen la instancia sin nadie.
+        if (target.role === 'SUPERADMIN') {
+          const others = await tx.user.count({
+            where: {
+              role: 'SUPERADMIN',
+              status: 'ACTIVE',
+              NOT: { id: target.userId },
+            },
+          });
+          if (others === 0) {
+            throw new ConflictException(
+              'No puedes dejar la instancia sin SUPERADMIN activo.',
+            );
+          }
+        }
+
+        const suspended = await tx.user.updateMany({
+          where: { id: target.userId, status: 'ACTIVE' },
+          data: { status: 'SUSPENDED' },
+        });
+        if (suspended.count === 0) {
+          throw new ConflictException('La cuenta ya no está activa.');
+        }
+
+        await tx.session.updateMany({
+          where: { userId: target.userId, revokedAt: null },
+          data: { revokedAt: now },
+        });
+      }
+
+      // Bloqueo optimista: dos decisiones simultáneas no pueden resolver el
+      // mismo reporte dos veces ni duplicar la auditoría.
+      const resolved = await tx.report.updateMany({
+        where: {
+          id: report.id,
+          status: { in: [ReportStatus.PENDING, ReportStatus.IN_REVIEW] },
+        },
+        data: {
+          status: dto.action === 'DISMISS' ? ReportStatus.REJECTED : ReportStatus.RESOLVED,
+          resolvedAt: now,
+        },
+      });
+      if (resolved.count === 0) {
+        throw new ConflictException(
+          'Ese reporte ya fue resuelto por otra persona. Recarga la cola.',
+        );
+      }
+
+      return tx.moderationAction.create({
+        data: {
+          reportId: report.id,
+          actorUserId,
+          action:
+            dto.action === 'DISMISS'
+              ? ModerationActionKind.DISMISS
+              : dto.action === 'HIDE'
+                ? ModerationActionKind.HIDE
+                : ModerationActionKind.SUSPEND,
+          targetType: report.reportedType,
+          targetId: report.reportedId,
+          subjectUserId: dto.action === 'SUSPEND' ? target?.userId ?? null : null,
+          reason: dto.reason,
+        },
+        select: MODERATION_ACTION_SELECT,
+      });
+    });
+
+    if (target && dto.action !== 'DISMISS') {
+      await this.notifyModeration(target.userId, actorUserId, {
+        storyId: target.storyId,
+      });
+    }
+
+    return {
+      id: created.id,
+      reportId: report.id,
+      action: dto.action,
+      reportStatus:
+        dto.action === 'DISMISS' ? ReportStatus.REJECTED : ReportStatus.RESOLVED,
+    };
+  }
+
+  /** Historial de decisiones, paginado y con el resumen del objetivo. */
+  async listActions(query: ListModerationActionsQueryDto) {
+    const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+
+    const rows = await this.prisma.moderationAction.findMany({
+      where: {
+        ...(query.action ? { action: query.action } : {}),
+        ...(query.reportId ? { reportId: query.reportId } : {}),
+        ...(query.status === 'ACTIVE'
+          ? { revertedAt: null }
+          : query.status === 'REVERTED'
+            ? { revertedAt: { not: null } }
+            : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      select: MODERATION_ACTION_SELECT,
+    });
+
+    const hasMore = rows.length > take;
+    const page = hasMore ? rows.slice(0, take) : rows;
+
+    const [targets, actors, reverters] = await Promise.all([
+      this.describeTargets(
+        page
+          .filter((row) => row.targetType && row.targetId)
+          .map((row) => ({ type: row.targetType!, id: row.targetId! })),
+      ),
+      this.reporterNames(page.map((row) => row.actorUserId)),
+      this.reporterNames(
+        page
+          .map((row) => row.revertedByUserId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ]);
+
+    return {
+      items: page.map((row) => this.toActionView(row, targets, actors, reverters)),
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+    };
+  }
+
+  /**
+   * Revierte una decisión: reabre el reporte, restaura el contenido o reactiva
+   * la cuenta. No se puede revertir dos veces ni revertir una restauración de
+   * apelación.
+   */
+  async revertAction(
+    actorUserId: string,
+    actionId: string,
+    dto: RevertModerationActionDto,
+  ) {
+    const actor = await this.loadActor(actorUserId);
+    const action = await this.prisma.moderationAction.findUnique({
+      where: { id: actionId },
+      select: MODERATION_ACTION_SELECT,
+    });
+
+    if (!action) {
+      throw new NotFoundException('Esa acción de moderación no existe.');
+    }
+    if (action.revertedAt) {
+      throw new ConflictException('Esa decisión ya fue revertida.');
+    }
+    if (!REVERTABLE_ACTIONS.includes(action.action)) {
+      throw new BadRequestException('Esa acción no se puede revertir.');
+    }
+
+    if (action.action === ModerationActionKind.SUSPEND) {
+      if (!action.subjectUserId) {
+        throw new ConflictException('La acción no tiene una cuenta asociada.');
+      }
+      const subject = await this.prisma.user.findUnique({
+        where: { id: action.subjectUserId },
+        select: { id: true, role: true, status: true },
+      });
+      if (!subject) {
+        throw new NotFoundException('La cuenta suspendida ya no existe.');
+      }
+      await this.assertCanModerateAccount(actor, {
+        userId: subject.id,
+        role: subject.role,
+        status: subject.status,
+        actorUserId,
+        allowSuspended: true,
+      });
+    }
+
+    const now = new Date();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // No se revierte una medida antigua si hay otra más reciente y vigente
+      // sobre el mismo objetivo: reactivaría contenido que sigue moderado.
+      if (action.action !== ModerationActionKind.DISMISS) {
+        const newer = await tx.moderationAction.findFirst({
+          where: {
+            id: { not: action.id },
+            revertedAt: null,
+            createdAt: { gt: action.createdAt },
+            ...(action.action === ModerationActionKind.SUSPEND
+              ? {
+                  action: ModerationActionKind.SUSPEND,
+                  subjectUserId: action.subjectUserId,
+                }
+              : {
+                  action: ModerationActionKind.HIDE,
+                  targetType: action.targetType,
+                  targetId: action.targetId,
+                }),
+          },
+          select: { id: true },
+        });
+
+        if (newer) {
+          throw new ConflictException(
+            'Hay una decisión más reciente y vigente sobre este objetivo. Revierte esa primero.',
+          );
+        }
+      }
+
+      if (action.action === ModerationActionKind.HIDE) {
+        await this.restoreContent(tx, action.targetType, action.targetId);
+      }
+
+      if (action.action === ModerationActionKind.SUSPEND && action.subjectUserId) {
+        await tx.user.updateMany({
+          where: { id: action.subjectUserId, status: 'SUSPENDED' },
+          data: { status: 'ACTIVE' },
+        });
+      }
+
+      if (action.reportId) {
+        const expected =
+          action.action === ModerationActionKind.DISMISS
+            ? ReportStatus.REJECTED
+            : ReportStatus.RESOLVED;
+        const reopened = await tx.report.updateMany({
+          where: { id: action.reportId, status: expected },
+          data: { status: ReportStatus.PENDING, resolvedAt: null },
+        });
+        if (reopened.count === 0) {
+          throw new ConflictException(
+            'El reporte cambió de estado desde esta decisión; revísalo antes de revertir.',
+          );
+        }
+      }
+
+      const reverted = await tx.moderationAction.updateMany({
+        where: { id: action.id, revertedAt: null },
+        data: {
+          revertedAt: now,
+          revertedByUserId: actorUserId,
+          revertReason: dto.reason,
+        },
+      });
+      if (reverted.count === 0) {
+        throw new ConflictException('Esa decisión ya fue revertida.');
+      }
+
+      return tx.moderationAction.findUniqueOrThrow({
+        where: { id: action.id },
+        select: MODERATION_ACTION_SELECT,
+      });
+    });
+
+    return {
+      id: updated.id,
+      revertedAt: updated.revertedAt,
+      reportId: updated.reportId,
+    };
   }
 
   /**
@@ -237,6 +645,12 @@ export class ModerationService {
     });
     if (!report) {
       throw new NotFoundException('Ese reporte no existe.');
+    }
+
+    if (report.status === ReportStatus.RESOLVED || report.status === ReportStatus.REJECTED) {
+      throw new ConflictException(
+        'Ese reporte ya fue resuelto. Reabre la revisión antes de moderar de nuevo.',
+      );
     }
 
     const hide = dto.action === 'HIDE';
@@ -257,6 +671,21 @@ export class ModerationService {
       data: {
         status: hide ? ReportStatus.RESOLVED : ReportStatus.REJECTED,
         resolvedAt: new Date(),
+      },
+    });
+
+    // La ruta heredada también deja rastro: ninguna decisión puede quedar sin
+    // actor, motivo y fecha en el historial.
+    await this.prisma.moderationAction.create({
+      data: {
+        reportId: report.id,
+        actorUserId: adminUserId,
+        action: hide ? ModerationActionKind.HIDE : ModerationActionKind.RESTORE,
+        targetType: report.reportedType,
+        targetId: report.reportedId,
+        reason: hide
+          ? 'Contenido ocultado desde la consola de moderación.'
+          : 'Contenido restaurado desde la consola de moderación.',
       },
     });
 
@@ -315,18 +744,32 @@ export class ModerationService {
       throw new ConflictException('Esa apelación ya fue resuelta.');
     }
 
-    if (dto.status === 'ACCEPTED') {
-      await this.restoreTarget(appeal.targetType, appeal.targetId);
-    }
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.status === 'ACCEPTED') {
+        await this.restoreContent(tx, appeal.targetType, appeal.targetId);
+        await tx.moderationAction.create({
+          data: {
+            reportId: appeal.reportId,
+            actorUserId: adminUserId,
+            action: ModerationActionKind.RESTORE,
+            targetType: appeal.targetType,
+            targetId: appeal.targetId,
+            reason:
+              dto.resolutionNote?.trim() ||
+              'Apelación aceptada: contenido restaurado.',
+          },
+        });
+      }
 
-    await this.prisma.appeal.update({
-      where: { id: appealId },
-      data: {
-        status: dto.status === 'ACCEPTED' ? AppealStatus.ACCEPTED : AppealStatus.REJECTED,
-        resolvedByUserId: adminUserId,
-        resolvedAt: new Date(),
-        resolutionNote: dto.resolutionNote ?? null,
-      },
+      await tx.appeal.update({
+        where: { id: appealId },
+        data: {
+          status: dto.status === 'ACCEPTED' ? AppealStatus.ACCEPTED : AppealStatus.REJECTED,
+          resolvedByUserId: adminUserId,
+          resolvedAt: new Date(),
+          resolutionNote: dto.resolutionNote ?? null,
+        },
+      });
     });
 
     await this.notifyModeration(appeal.appellantUserId, adminUserId, {
@@ -338,6 +781,275 @@ export class ModerationService {
 
   // --- Apoyo ----------------------------------------------------------------
 
+  private async loadActor(
+    actorUserId: string,
+  ): Promise<{ userId: string; role: Role; status: Status }> {
+    const actor = await this.prisma.user.findUnique({
+      where: { id: actorUserId },
+      select: { id: true, role: true, status: true },
+    });
+
+    if (!actor) {
+      throw new NotFoundException('Esa cuenta de moderación no existe.');
+    }
+    if (actor.status !== 'ACTIVE') {
+      throw new ForbiddenException('Tu cuenta no está activa.');
+    }
+    if (actor.role !== 'MODERATOR' && actor.role !== 'ADMIN' && actor.role !== 'SUPERADMIN') {
+      throw new ForbiddenException('No tienes permisos de moderación.');
+    }
+
+    return { userId: actor.id, role: actor.role, status: actor.status };
+  }
+
+  /**
+   * Jerarquía de moderación de cuentas: un MODERATOR solo actúa sobre cuentas
+   * USER; un ADMIN también sobre MODERATOR; solo SUPERADMIN toca a otro
+   * SUPERADMIN. Nunca sobre la propia cuenta.
+   */
+  private async assertCanModerateAccount(
+    actor: { userId: string; role: Role },
+    target: {
+      userId: string;
+      role: Role;
+      status: Status;
+      actorUserId: string;
+      allowSuspended?: boolean;
+    },
+  ): Promise<void> {
+    if (target.userId === target.actorUserId || target.userId === actor.userId) {
+      throw new ForbiddenException('No puedes moderar tu propia cuenta.');
+    }
+
+    if (target.status === 'DELETED') {
+      throw new ConflictException('La cuenta ya no existe.');
+    }
+
+    if (!target.allowSuspended && target.status !== 'ACTIVE') {
+      throw new ConflictException('La cuenta ya no está activa.');
+    }
+
+    const allowed =
+      actor.role === 'SUPERADMIN' ||
+      (actor.role === 'ADMIN' && ROLE_RANK[target.role] <= ROLE_RANK.MODERATOR) ||
+      (actor.role === 'MODERATOR' && target.role === 'USER');
+
+    if (!allowed) {
+      throw new ForbiddenException(
+        'No tienes autoridad para moderar una cuenta con ese rol.',
+      );
+    }
+  }
+
+  /** Resuelve la cuenta autora y el estado del objetivo de una decisión. */
+  private async resolveDecisionTarget(
+    reportedType: string,
+    reportedId: string,
+    action: 'HIDE' | 'SUSPEND',
+  ): Promise<DecisionTarget> {
+    if (action === 'HIDE' && reportedType !== 'STORY' && reportedType !== 'COMMENT') {
+      throw new BadRequestException('Solo se pueden ocultar relatos y comentarios.');
+    }
+
+    if (reportedType === 'STORY') {
+      const story = await this.prisma.story.findUnique({
+        where: { id: reportedId },
+        select: {
+          id: true,
+          status: true,
+          character: {
+            select: {
+              userId: true,
+              user: { select: { role: true, status: true } },
+            },
+          },
+        },
+      });
+      if (!story) {
+        throw new NotFoundException('Ese relato no existe.');
+      }
+      return {
+        userId: story.character.userId,
+        role: story.character.user.role,
+        status: story.character.user.status,
+        targetStatus: story.status,
+        storyId: story.id,
+      };
+    }
+
+    if (reportedType === 'COMMENT') {
+      const comment = await this.prisma.comment.findUnique({
+        where: { id: reportedId },
+        select: {
+          id: true,
+          status: true,
+          storyId: true,
+          character: {
+            select: {
+              userId: true,
+              user: { select: { role: true, status: true } },
+            },
+          },
+        },
+      });
+      if (!comment) {
+        throw new NotFoundException('Ese comentario no existe.');
+      }
+      return {
+        userId: comment.character.userId,
+        role: comment.character.user.role,
+        status: comment.character.user.status,
+        targetStatus: comment.status,
+        storyId: comment.storyId,
+      };
+    }
+
+    if (reportedType === 'CHARACTER') {
+      const character = await this.prisma.character.findUnique({
+        where: { id: reportedId },
+        select: {
+          userId: true,
+          user: { select: { role: true, status: true } },
+        },
+      });
+      if (!character) {
+        throw new NotFoundException('Ese personaje no existe.');
+      }
+      return {
+        userId: character.userId,
+        role: character.user.role,
+        status: character.user.status,
+        targetStatus: null,
+        storyId: null,
+      };
+    }
+
+    if (reportedType === 'USER') {
+      const user = await this.prisma.user.findUnique({
+        where: { id: reportedId },
+        select: { id: true, role: true, status: true },
+      });
+      if (!user) {
+        throw new NotFoundException('Esa cuenta no existe.');
+      }
+      return {
+        userId: user.id,
+        role: user.role,
+        status: user.status,
+        targetStatus: null,
+        storyId: null,
+      };
+    }
+
+    if (reportedType === 'CREATION') {
+      const creation = await this.prisma.creation.findUnique({
+        where: { id: reportedId },
+        select: {
+          userId: true,
+          user: { select: { role: true, status: true } },
+        },
+      });
+      if (!creation) {
+        throw new NotFoundException('Esa creación no existe.');
+      }
+      return {
+        userId: creation.userId,
+        role: creation.user.role,
+        status: creation.user.status,
+        targetStatus: null,
+        storyId: null,
+      };
+    }
+
+    throw new BadRequestException('Ese tipo de contenido no se puede moderar.');
+  }
+
+  private async restoreContent(
+    tx: Prisma.TransactionClient,
+    targetType: string | null,
+    targetId: string | null,
+  ): Promise<void> {
+    if (!targetType || !targetId) {
+      throw new ConflictException('La acción no tiene un objetivo que restaurar.');
+    }
+
+    if (targetType === 'STORY') {
+      const story = await tx.story.findUnique({
+        where: { id: targetId },
+        select: { status: true },
+      });
+      if (!story) {
+        throw new NotFoundException('Ese relato ya no existe.');
+      }
+      if (
+        story.status === StoryStatus.DELETED ||
+        story.status === StoryStatus.WITHDRAWN ||
+        story.status === StoryStatus.DRAFT
+      ) {
+        throw new ConflictException(
+          'El relato fue retirado o eliminado: no se puede volver a publicar desde moderación.',
+        );
+      }
+      if (story.status !== StoryStatus.PUBLISHED) {
+        await tx.story.update({
+          where: { id: targetId },
+          data: { status: StoryStatus.PUBLISHED, updatedAt: new Date() },
+        });
+      }
+      return;
+    }
+
+    if (targetType === 'COMMENT') {
+      const comment = await tx.comment.findUnique({
+        where: { id: targetId },
+        select: { status: true },
+      });
+      if (!comment) {
+        throw new NotFoundException('Ese comentario ya no existe.');
+      }
+      if (comment.status === CommentStatus.DELETED) {
+        throw new ConflictException('Ese comentario ya no está disponible.');
+      }
+      if (comment.status !== CommentStatus.ACTIVE) {
+        await tx.comment.update({
+          where: { id: targetId },
+          data: { status: CommentStatus.ACTIVE },
+        });
+      }
+      return;
+    }
+
+    throw new BadRequestException('Ese tipo de contenido no se puede restaurar.');
+  }
+
+  private toActionView(
+    row: ModerationActionRow,
+    targets: Map<string, TargetSummary>,
+    actors: Map<string, string>,
+    reverters: Map<string, string>,
+  ): ModerationActionView {
+    return {
+      id: row.id,
+      reportId: row.reportId,
+      action: row.action,
+      targetType: row.targetType,
+      targetId: row.targetId,
+      reason: row.reason,
+      createdAt: row.createdAt,
+      revertedAt: row.revertedAt,
+      revertReason: row.revertReason,
+      actorCharacterName: actors.get(row.actorUserId) ?? null,
+      revertedByCharacterName: row.revertedByUserId
+        ? reverters.get(row.revertedByUserId) ?? null
+        : null,
+      target:
+        row.targetType && row.targetId
+          ? targets.get(`${row.targetType}:${row.targetId}`) ?? null
+          : null,
+      canRevert: !row.revertedAt && REVERTABLE_ACTIONS.includes(row.action),
+    };
+  }
+
   private async moderateStory(adminUserId: string, storyId: string, hide: boolean): Promise<void> {
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },
@@ -346,8 +1058,17 @@ export class ModerationService {
     if (!story) {
       throw new NotFoundException('Ese relato no existe.');
     }
-    if (story.status === StoryStatus.DELETED) {
+    if (story.status === StoryStatus.DELETED || story.status === StoryStatus.WITHDRAWN) {
       throw new ConflictException('Ese relato ya no está disponible.');
+    }
+
+    if (
+      !hide &&
+      story.status !== StoryStatus.HIDDEN &&
+      story.status !== StoryStatus.MODERATED &&
+      story.status !== StoryStatus.REPORTED
+    ) {
+      throw new ConflictException('Ese relato no está oculto por moderación.');
     }
 
     await this.prisma.story.update({
@@ -372,6 +1093,10 @@ export class ModerationService {
       throw new ConflictException('Ese comentario ya no está disponible.');
     }
 
+    if (!hide && comment.status !== CommentStatus.HIDDEN && comment.status !== CommentStatus.MODERATED) {
+      throw new ConflictException('Ese comentario no está oculto por moderación.');
+    }
+
     await this.prisma.comment.update({
       where: { id: commentId },
       data: { status: hide ? CommentStatus.HIDDEN : CommentStatus.ACTIVE },
@@ -380,22 +1105,6 @@ export class ModerationService {
     if (hide) {
       await this.notifyModeration(comment.character.userId, adminUserId, {
         storyId: comment.storyId,
-      });
-    }
-  }
-
-  private async restoreTarget(targetType: string, targetId: string): Promise<void> {
-    if (targetType === 'STORY') {
-      await this.prisma.story.update({
-        where: { id: targetId },
-        data: { status: StoryStatus.PUBLISHED, updatedAt: new Date() },
-      });
-      return;
-    }
-    if (targetType === 'COMMENT') {
-      await this.prisma.comment.update({
-        where: { id: targetId },
-        data: { status: CommentStatus.ACTIVE },
       });
     }
   }
@@ -485,14 +1194,17 @@ export class ModerationService {
   private async describeTargets(
     refs: { type: string; id: string }[],
   ): Promise<Map<string, TargetSummary>> {
-    const storyIds = [
-      ...new Set(refs.filter((ref) => ref.type === 'STORY').map((ref) => ref.id)),
-    ];
-    const commentIds = [
-      ...new Set(refs.filter((ref) => ref.type === 'COMMENT').map((ref) => ref.id)),
+    const idsOf = (type: string) => [
+      ...new Set(refs.filter((ref) => ref.type === type).map((ref) => ref.id)),
     ];
 
-    const [stories, comments] = await Promise.all([
+    const storyIds = idsOf('STORY');
+    const commentIds = idsOf('COMMENT');
+    const characterIds = idsOf('CHARACTER');
+    const userIds = idsOf('USER');
+    const creationIds = idsOf('CREATION');
+
+    const [stories, comments, characters, users, creations] = await Promise.all([
       storyIds.length > 0
         ? this.prisma.story.findMany({
             where: { id: { in: storyIds } },
@@ -501,6 +1213,11 @@ export class ModerationService {
               title: true,
               status: true,
               character: { select: { name: true } },
+              updates: {
+                orderBy: { stageOrder: 'asc' },
+                take: 1,
+                select: { content: true },
+              },
             },
           })
         : Promise.resolve([]),
@@ -516,6 +1233,38 @@ export class ModerationService {
             },
           })
         : Promise.resolve([]),
+      characterIds.length > 0
+        ? this.prisma.character.findMany({
+            where: { id: { in: characterIds } },
+            select: {
+              id: true,
+              name: true,
+              user: { select: { status: true } },
+            },
+          })
+        : Promise.resolve([]),
+      userIds.length > 0
+        ? this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+              id: true,
+              status: true,
+              // Nunca se envía el correo al panel: solo el seudónimo público.
+              character: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+      creationIds.length > 0
+        ? this.prisma.creation.findMany({
+            where: { id: { in: creationIds } },
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              user: { select: { character: { select: { name: true } } } },
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
     const map = new Map<string, TargetSummary>();
@@ -527,6 +1276,7 @@ export class ModerationService {
         authorName: story.character?.name ?? null,
         status: story.status,
         storyId: story.id,
+        context: this.snippet(story.updates?.[0]?.content ?? ''),
       });
     }
     for (const comment of comments) {
@@ -537,6 +1287,40 @@ export class ModerationService {
         authorName: comment.character?.name ?? null,
         status: comment.status,
         storyId: comment.storyId,
+        context: this.snippet(comment.content),
+      });
+    }
+    for (const character of characters) {
+      map.set(`CHARACTER:${character.id}`, {
+        id: character.id,
+        type: 'CHARACTER',
+        title: character.name,
+        authorName: character.name,
+        status: character.user.status,
+        storyId: null,
+        context: null,
+      });
+    }
+    for (const user of users) {
+      map.set(`USER:${user.id}`, {
+        id: user.id,
+        type: 'USER',
+        title: user.character?.name ? `Cuenta de ${user.character.name}` : 'Cuenta sin personaje',
+        authorName: user.character?.name ?? null,
+        status: user.status,
+        storyId: null,
+        context: null,
+      });
+    }
+    for (const creation of creations) {
+      map.set(`CREATION:${creation.id}`, {
+        id: creation.id,
+        type: 'CREATION',
+        title: creation.title,
+        authorName: creation.user.character?.name ?? null,
+        status: null,
+        storyId: null,
+        context: this.snippet(creation.content),
       });
     }
     return map;

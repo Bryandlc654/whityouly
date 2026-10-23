@@ -192,6 +192,17 @@ export default function AccountPage() {
                   <Icon name="edit" /> Editar perfil
                 </button>
               ) : null}
+              {account.role === 'MODERATOR' ||
+              account.role === 'ADMIN' ||
+              account.role === 'SUPERADMIN' ? (
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => router.push('/moderacion')}
+                >
+                  <Icon name="shield" /> Panel de moderación
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

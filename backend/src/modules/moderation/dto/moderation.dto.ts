@@ -26,6 +26,16 @@ export type ReportStatusValue = (typeof REPORT_STATUSES)[number];
 
 export const REPORTED_TYPES = ['USER', 'CHARACTER', 'STORY', 'COMMENT', 'CREATION'] as const;
 
+/** Decisiones que puede tomar una persona moderadora. */
+export const MODERATION_DECISIONS = ['DISMISS', 'HIDE', 'SUSPEND'] as const;
+export type ModerationDecision = (typeof MODERATION_DECISIONS)[number];
+
+/** Tipos de acción que aparecen en la auditoría. */
+export const MODERATION_ACTION_KINDS = ['DISMISS', 'HIDE', 'SUSPEND', 'RESTORE'] as const;
+
+export const MODERATION_REASON_MIN_LENGTH = 5;
+export const MODERATION_REASON_MAX_LENGTH = 1000;
+
 export class CreateAppealDto {
   @ApiProperty({ enum: APPEAL_TARGETS, example: 'STORY' })
   @IsIn(APPEAL_TARGETS, { message: 'El tipo de contenido no se puede apelar' })
@@ -101,6 +111,71 @@ export class ModerateContentDto {
   @ApiProperty({ enum: ['HIDE', 'RESTORE'], example: 'HIDE' })
   @IsIn(['HIDE', 'RESTORE'], { message: 'La acción no es válida' })
   action!: 'HIDE' | 'RESTORE';
+}
+
+export class CreateModerationDecisionDto {
+  @ApiProperty({ enum: MODERATION_DECISIONS, example: 'HIDE' })
+  @IsIn(MODERATION_DECISIONS, { message: 'La decisión no es válida' })
+  action!: ModerationDecision;
+
+  @ApiProperty({
+    example: 'El contenido incumple las normas de la comunidad.',
+    description: 'Motivo obligatorio de la decisión; queda en la auditoría.',
+  })
+  @Transform(trim)
+  @IsString()
+  @MinLength(MODERATION_REASON_MIN_LENGTH, {
+    message: `Explica el motivo de la decisión (mínimo ${MODERATION_REASON_MIN_LENGTH} caracteres)`,
+  })
+  @MaxLength(MODERATION_REASON_MAX_LENGTH, {
+    message: `El motivo no puede superar los ${MODERATION_REASON_MAX_LENGTH} caracteres`,
+  })
+  reason!: string;
+}
+
+export class RevertModerationActionDto {
+  @ApiProperty({
+    example: 'La revisión mostró que el contenido no incumplía las normas.',
+    description: 'Motivo de la reversión; queda en la auditoría.',
+  })
+  @Transform(trim)
+  @IsString()
+  @MinLength(MODERATION_REASON_MIN_LENGTH, {
+    message: `Explica el motivo de la reversión (mínimo ${MODERATION_REASON_MIN_LENGTH} caracteres)`,
+  })
+  @MaxLength(MODERATION_REASON_MAX_LENGTH, {
+    message: `El motivo no puede superar los ${MODERATION_REASON_MAX_LENGTH} caracteres`,
+  })
+  reason!: string;
+}
+
+export class ListModerationActionsQueryDto {
+  @ApiPropertyOptional({ description: 'Id de la última acción recibida; devuelve las siguientes.' })
+  @IsOptional()
+  @IsUUID(undefined, { message: 'El cursor no es válido' })
+  cursor?: string;
+
+  @ApiPropertyOptional({ default: 30, description: 'Entre 1 y 50. El servicio ajusta el tope.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+
+  @ApiPropertyOptional({ enum: MODERATION_ACTION_KINDS })
+  @IsOptional()
+  @IsIn(MODERATION_ACTION_KINDS, { message: 'La acción no es válida' })
+  action?: (typeof MODERATION_ACTION_KINDS)[number];
+
+  @ApiPropertyOptional({ description: 'Filtra por reporte.' })
+  @IsOptional()
+  @IsUUID(undefined, { message: 'El reporte no es válido' })
+  reportId?: string;
+
+  @ApiPropertyOptional({ enum: ['ALL', 'ACTIVE', 'REVERTED'], default: 'ALL' })
+  @IsOptional()
+  @IsIn(['ALL', 'ACTIVE', 'REVERTED'], { message: 'El estado de la auditoría no es válido' })
+  status?: 'ALL' | 'ACTIVE' | 'REVERTED';
 }
 
 export class ResolveAppealDto {

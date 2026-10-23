@@ -3,10 +3,13 @@ import { validate } from 'class-validator';
 import {
   APPEAL_MESSAGE_MAX_LENGTH,
   CreateAppealDto,
+  CreateModerationDecisionDto,
   ListAppealsQueryDto,
+  ListModerationActionsQueryDto,
   ListReportsQueryDto,
   ModerateContentDto,
   ResolveAppealDto,
+  RevertModerationActionDto,
   UpdateReportDto,
 } from './moderation.dto';
 
@@ -106,6 +109,45 @@ describe('moderation DTOs (validación de entrada)', () => {
   describe('ListAppealsQueryDto', () => {
     it('rechaza un cursor que no es UUID', async () => {
       const errors = await errorsOf(ListAppealsQueryDto, { cursor: 'bad-cursor' });
+      expect(errors.some((e) => e.property === 'cursor')).toBe(true);
+    });
+  });
+
+  describe('CreateModerationDecisionDto', () => {
+    it('acepta una decisión con motivo suficiente', async () => {
+      const errors = await errorsOf(CreateModerationDecisionDto, {
+        action: 'HIDE',
+        reason: 'El contenido incumple las normas.',
+      });
+      expect(errors).toHaveLength(0);
+    });
+
+    it('exige un motivo y una acción conocida', async () => {
+      const errors = await errorsOf(CreateModerationDecisionDto, {
+        action: 'DELETE',
+        reason: 'no',
+      });
+      expect(errors.some((e) => e.property === 'action')).toBe(true);
+      expect(errors.some((e) => e.property === 'reason')).toBe(true);
+    });
+  });
+
+  describe('RevertModerationActionDto', () => {
+    it('exige un motivo de reversión', async () => {
+      const errors = await errorsOf(RevertModerationActionDto, { reason: 'no' });
+      expect(errors.some((e) => e.property === 'reason')).toBe(true);
+    });
+  });
+
+  describe('ListModerationActionsQueryDto', () => {
+    it('rechaza filtros desconocidos', async () => {
+      const errors = await errorsOf(ListModerationActionsQueryDto, {
+        action: 'NOPE',
+        status: 'NOPE',
+        cursor: 'bad-cursor',
+      });
+      expect(errors.some((e) => e.property === 'action')).toBe(true);
+      expect(errors.some((e) => e.property === 'status')).toBe(true);
       expect(errors.some((e) => e.property === 'cursor')).toBe(true);
     });
   });
