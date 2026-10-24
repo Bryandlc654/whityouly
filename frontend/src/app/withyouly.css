@@ -986,3 +986,151 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy.feed-reference .featured-card{border:1px solid #E2E3E8;background:#FFF;padding:14px}
 .wy.feed-reference .featured-label{color:#6246F5;font-size:11px;letter-spacing:.045em}
 @media(max-width:820px){.wy.feed-reference .feed-group{margin-left:16px;margin-right:16px;padding-left:0;padding-right:0}}
+
+/* Shell v42: rail izquierdo de 200 px, rail derecho de 280 px y superficies planas. */
+.wy .app-shell{max-width:1360px;grid-template-columns:200px minmax(0,680px) 280px;gap:24px;padding:22px}
+.wy .topbar-inner{max-width:1360px;padding:0 22px}
+.wy .left-rail{width:200px}
+.wy .right-rail{width:280px}
+.wy .main-content{width:100%;max-width:680px}
+.wy .side-nav{gap:6px}
+.wy .side-nav button{width:100%;height:48px;padding:0 14px;border-radius:14px;color:#656873;justify-content:flex-start}
+.wy .side-nav b{display:block;font-size:15px}
+.wy .side-nav button:hover,.wy .side-nav button.active{background:#F1EDFF;color:#6246F5}
+.wy .safety-note{border-radius:12px;box-shadow:none;background:#FFF}
+.wy .right-card{padding:17px;margin-bottom:14px;border-radius:12px;background:#FFF;box-shadow:none}
+.wy .right-card h3{margin:0 0 12px;font-size:15px}
+.wy .right-card p,.wy .right-card small{color:#50535D}
+.wy .right-card>.text-link{margin-top:8px;padding-left:0}
+.wy .right-rail .text-link{min-height:32px;text-align:left}
+.wy .weekly-mini.emotion-bars{display:flex;align-items:flex-end;gap:7px;height:92px;padding:8px 0 0;border-bottom:1px solid #E2E3E8}
+.wy .weekly-mini.emotion-bars>span{position:relative;flex:1;min-height:6px;border-radius:7px 7px 3px 3px;background:#dfe1e8}
+.wy .weekly-mini.emotion-bars>span:after{content:attr(data-day);position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);color:#8a8490;font-size:8px}
+.wy .mini-summary{margin-top:20px;font-size:12px;line-height:1.5;color:#50535D}
+.wy .private-line{display:flex;align-items:center;gap:5px;color:#668176;font-size:11px;margin-top:7px}
+.wy .private-line svg{width:13px;height:13px}
+.wy .micro-label{display:block;color:#50535D;font-size:9px;font-weight:900;letter-spacing:.055em;line-height:1.3}
+.wy .recommended-card{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:14px;padding:17px;border:0;border-top:1px solid #E2E3E8;border-bottom:1px solid #E2E3E8;border-radius:0;background:#FFF;box-shadow:none}
+.wy .recommended-icon{display:grid;place-items:center;width:58px;height:58px;border-radius:18px;background:#F1EDFF;color:#6246F5;font-size:28px}
+.wy .recommended-icon svg{width:26px;height:26px}
+.wy .recommended-copy{min-width:0}
+.wy .recommended-copy h3{margin:4px 0 3px;font-size:17px;line-height:1.25}
+.wy .recommended-copy p{margin:0;font-size:12px;line-height:1.5;color:#50535D}
+.wy .recommended-copy small{display:block;margin-top:6px;font-size:11px;font-weight:750;color:#50535D}
+.wy .recommended-card>button{min-width:118px;min-height:42px;font-size:12px;padding:8px 12px}
+.wy .right-rail .recommended-card.compact{grid-template-columns:43px minmax(0,1fr);gap:10px;padding:14px}
+.wy .right-rail .recommended-card.compact .recommended-icon{width:43px;height:43px;border-radius:13px}
+.wy .right-rail .recommended-card.compact .recommended-icon svg{width:21px;height:21px}
+.wy .right-rail .recommended-card.compact .recommended-copy h3{font-size:15px}
+.wy .right-rail .recommended-card.compact .recommended-copy p{font-size:12px}
+.wy .right-rail .recommended-card.compact .recommended-copy small{font-size:10px}
+.wy .right-rail .recommended-card.compact>button{grid-column:1/-1;width:100%}
+.wy .tree-mini{overflow:hidden;background:#FFF;box-shadow:none}
+.wy .tree-mini .summary-title h3{font-size:18px;line-height:1.15}
+.wy .tree-mini-row{display:grid;grid-template-columns:66px 1fr;align-items:center;gap:9px;margin:5px 0 12px}
+.wy .tree-mini-row .mini-tree{display:grid;place-items:center;margin:0;line-height:1}
+.wy .tree-mini-row b,.wy .tree-mini-row small{display:block}
+.wy .tree-mini-row b{font-size:15px;line-height:1.2;color:#302b38}
+.wy .tree-mini-row small{margin:3px 0 8px;color:#50535D;font-size:10px;line-height:1.4}
+.wy .mini-progress{height:6px;overflow:hidden;border-radius:999px;background:#E2E8E3}
+.wy .mini-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#4CAB7D,#7650E5)}
+.wy .tree-mini>.secondary{display:inline-flex;align-items:center;justify-content:center;width:100%;text-decoration:none}
+.wy .bonsai-mark{display:block;width:64px;height:64px;overflow:visible}
+.wy .mini-tree .bonsai-mark{width:56px;height:56px}
+.wy .bonsai-mark .mark-pot{fill:#7250DF;stroke:#3D277C;stroke-width:2}
+.wy .bonsai-mark .mark-trunk{fill:none;stroke:#8D5636;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.wy .bonsai-mark .mark-crown{fill:#56B978;stroke:#28714B;stroke-width:1.5}
+.wy .prompt-card{background:#FFF;border-radius:12px}
+.wy .prompt-card .micro-label{margin-bottom:6px}
+.wy .prompt-card h3{font-size:16px;margin:0 0 8px}
+.wy .prompt-card p{font-size:13px;line-height:1.5;margin:0 0 12px}
+.wy .prompt-card button{width:100%;font-size:12px;padding:9px 10px}
+.wy .summary-toggle{background:#F4F2FB;color:#50535D}
+.wy .summary-hidden p{color:#50535D}
+
+/* Feed v42: check-in compacto, compositor sobrio y publicaciones planas. */
+.wy.feed-reference .app-shell,.wy.feed-reference .main-content,.wy.feed-reference .screen{background:#FFF}
+.wy.feed-reference .screen.home-screen{gap:18px}
+.wy.feed-reference .welcome-row{gap:12px}
+.wy.feed-reference .welcome-row h1{font-size:23px;margin:0}
+.wy.feed-reference .welcome-row .text-link{font-size:13px;font-weight:750;min-height:36px}
+.wy.feed-reference .quick-mood.compact-checkin{padding:12px 14px;border:0;border-bottom:1px solid #E2E3E8;border-radius:0;background:#FFF;color:#191A20;box-shadow:none;overflow:visible}
+.wy.feed-reference .compact-checkin:after{display:none}
+.wy.feed-reference .compact-checkin .quick-title{align-items:center}
+.wy.feed-reference .compact-checkin .quick-title h2{color:#191A20;font-size:17px;margin:0}
+.wy.feed-reference .compact-checkin .quick-title p{display:flex;align-items:center;gap:4px;margin:3px 0 0;color:#50535D;font-size:12px}
+.wy.feed-reference .compact-checkin .quick-title p svg{width:13px;height:13px}
+.wy.feed-reference .compact-checkin .quick-title .text-link{color:#6246F5;font-size:13px;font-weight:800;min-height:36px}
+.wy.feed-reference .compact-checkin .mood-choices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:10px}
+.wy.feed-reference .compact-checkin .mood-choice{display:flex;flex-direction:row;gap:6px;min-height:42px;border:0;border-radius:8px;background:#FFF;color:#191A20;padding:6px 4px}
+.wy.feed-reference .compact-checkin .mood-choice span{font-size:23px;color:#191A20}
+.wy.feed-reference .compact-checkin .mood-choice small{display:block;color:#343741;font-size:12px}
+.wy.feed-reference .compact-checkin .mood-choice:hover{background:#F1EDFF}
+.wy.feed-reference .composer{padding:9px 0;border:0;border-radius:0;background:#FFF;box-shadow:none}
+.wy.feed-reference .composer-trigger{min-height:48px;border:1px solid #BABDC7;border-radius:24px;background:#FFF;color:#3B3E47;font-size:16px}
+.wy.feed-reference .composer-top .avatar{width:42px;height:42px;flex:0 0 42px}
+.wy.feed-reference .feed-tabs{display:flex;border:0;border-bottom:1px solid #C6C9D0;border-radius:0;padding:0;background:#FFF;box-shadow:none}
+.wy.feed-reference .feed-tabs button{min-height:48px;border-radius:0;flex:1;color:#454852;font-size:15px;background:#FFF}
+.wy.feed-reference .feed-tabs button.active{background:#FFF;color:#6246F5;border-bottom:3px solid #6246F5}
+.wy.feed-reference #feedList{display:grid;gap:0;padding:0;border:0;border-radius:0;background:#FFF}
+.wy.feed-reference #feedList .post{margin:0;padding:24px 4px;border:0;border-bottom:3px solid #4B5563;border-radius:0;background:#FFF;box-shadow:none}
+.wy.feed-reference .post-head{grid-template-columns:46px minmax(0,1fr) 36px;gap:10px}
+.wy.feed-reference .post-head .avatar{width:46px;height:46px;flex:0 0 46px;font-size:15px}
+.wy.feed-reference .post-author{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;font-size:16px}
+.wy.feed-reference .post-author .author-name{font-size:16px;font-weight:800;color:#191A20}
+.wy.feed-reference .post-author button{margin:0;font-size:12px;padding:6px 9px;min-height:30px;color:#6246F5}
+.wy.feed-reference .post-time{margin-top:3px;font-size:13px;color:#50535D}
+.wy.feed-reference .more-btn{min-height:36px;min-width:36px;color:#50535D}
+.wy.feed-reference .post-tags{margin:15px 0 10px;gap:6px}
+.wy.feed-reference .post-tags .tag{color:#454852;background:#F1F2F4;font-size:12px;padding:4px 8px}
+.wy.feed-reference .post h2{color:#111;font-size:22px;line-height:1.35;margin:8px 0 12px}
+.wy.feed-reference .post .post-text{font-size:16px;line-height:1.7;color:#111;white-space:pre-wrap;overflow-wrap:anywhere}
+.wy.feed-reference .post .post-text.clamp{-webkit-line-clamp:4}
+.wy.feed-reference .post-more{display:block;min-height:42px;font-size:14px;font-weight:750;color:#6246F5}
+.wy.feed-reference .post-stats{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;color:#50535D;font-size:13px;padding:8px 2px 5px}
+.wy.feed-reference .post-actions{grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #D5D7DD;padding:5px 0;gap:0}
+.wy.feed-reference .post-actions button{min-height:52px;padding:8px 2px;color:#50535D;gap:7px;font-size:12px}
+.wy.feed-reference .post-actions button svg{width:21px;height:21px;flex:0 0 21px}
+.wy.feed-reference .post-actions button .action-label{font-size:12px;line-height:1.25;white-space:normal}
+.wy.feed-reference .post-actions button:hover,.wy.feed-reference .post-actions button.on{background:#F1EDFF;color:#6246F5}
+.wy.feed-reference .right-card{box-shadow:none;border-radius:12px}
+.wy.feed-reference .empty-state{display:grid;justify-items:center;text-align:center;padding:44px 22px;gap:8px}
+.wy.feed-reference .empty-state h2{font-size:20px;margin:0}
+.wy.feed-reference .empty-state p{max-width:390px;margin:0 auto 10px;color:#50535D;line-height:1.5}
+.wy.feed-reference .empty-state .secondary{padding:11px 16px}
+@media(max-width:1279px){
+ .wy .app-shell{grid-template-columns:180px minmax(0,1fr);max-width:980px;gap:18px;padding:18px}
+ .wy .left-rail{width:180px}
+ .wy .right-rail{display:none}
+ .wy .main-content{max-width:680px;justify-self:center}
+ .wy .safety-note{display:none}
+}
+@media(max-width:820px){
+ .wy .topbar-inner{padding:0 14px;gap:10px}
+ .wy .app-shell{display:block;max-width:100%;padding:12px 0 96px}
+ .wy .left-rail,.wy .right-rail{display:none}
+ .wy .main-content{max-width:none}
+ .wy.feed-reference .screen.home-screen{gap:13px}
+ .wy.feed-reference .welcome-row{margin-left:16px;margin-right:16px}
+ .wy.feed-reference .welcome-row h1{font-size:21px}
+ .wy.feed-reference .welcome-row .text-link{font-size:12px}
+ .wy.feed-reference .quick-mood.compact-checkin{padding:8px 0 10px;margin-left:16px;margin-right:16px;border-bottom:1px solid #E2E3E8}
+ .wy.feed-reference .compact-checkin .quick-title h2{font-size:16px}
+ .wy.feed-reference .compact-checkin .mood-choices{gap:2px;margin-top:7px}
+ .wy.feed-reference .compact-checkin .mood-choice{flex-direction:column;gap:2px;padding:3px 1px;min-height:48px}
+ .wy.feed-reference .compact-checkin .mood-choice span{font-size:22px}
+ .wy.feed-reference .compact-checkin .mood-choice small{font-size:11px}
+ .wy.feed-reference .composer{padding:3px 0;margin-left:16px;margin-right:16px}
+ .wy.feed-reference .composer-trigger{font-size:15px;min-height:46px}
+ .wy.feed-reference .feed-tabs{margin-left:16px;margin-right:16px}
+ .wy.feed-reference #feedList .post{padding:19px 16px;border-bottom:3px solid #4B5563}
+ .wy.feed-reference .post-actions button{flex-direction:column;gap:5px;min-height:55px}
+ .wy.feed-reference .post-actions button .action-label{font-size:11px}
+ .wy.feed-reference .post-stats{font-size:12px}
+ .wy.feed-reference .empty-state{padding:38px 16px}
+}
+@media(max-width:360px){
+ .wy.feed-reference .post-author .author-name{font-size:14px}
+ .wy.feed-reference .post-author button{font-size:10px}
+ .wy.feed-reference .post-actions button .action-label{font-size:10.5px}
+}

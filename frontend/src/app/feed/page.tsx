@@ -19,11 +19,10 @@ import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
-import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import NotificationsPanel from '@/components/wy/NotificationsPanel';
 import type { DemoStory } from '@/components/wy/feedData';
-import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '@/lib/emotionalMap';
+import { createEmotionalLog, daypartToLoggedAt } from '@/lib/emotionalMap';
 
 interface FeedEntry extends DemoStory {
   isOwn: boolean;
@@ -73,10 +72,6 @@ function toEntry(story: FollowingStory, authorName: string): FeedEntry {
   };
 }
 
-function allEmpty(feedItems: FollowingStory[] | null): boolean {
-  return !feedItems || feedItems.length === 0;
-}
-
 export default function FeedPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -101,15 +96,13 @@ export default function FeedPage() {
   const [moodDaypart, setMoodDaypart] = useState('Todo el día');
   const [moodSaving, setMoodSaving] = useState(false);
   const [moodError, setMoodError] = useState('');
-  // `null` mientras se comprueba; true si ya registró su estado en el día global.
-  const [moodRegisteredToday, setMoodRegisteredToday] = useState<boolean | null>(null);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
+  const [feedTab, setFeedTab] = useState<'for-you' | 'following'>('for-you');
   const [summaryHidden, setSummaryHidden] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [featured, setFeatured] = useState<FeaturedStory[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const composerRef = useRef<HTMLElement>(null);
@@ -171,19 +164,14 @@ export default function FeedPage() {
     if (!options?.silent) setFeedLoading(true);
     setFeedError('');
 
-    const [feed, follows, featuredResult, unread] = await Promise.all([
+    const [feed, follows, unread] = await Promise.all([
       getFeed(),
       listFollowing(),
-      getFeaturedStories(),
       unreadNotificationsCount(),
     ]);
 
     if (follows.status === 'ok') {
       setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
-    }
-
-    if (featuredResult.status === 'ok') {
-      setFeatured(featuredResult.data.items);
     }
 
     if (unread.status === 'ok') {
@@ -204,29 +192,6 @@ export default function FeedPage() {
   useEffect(() => {
     if (!loading) void loadFeed();
   }, [loading, loadFeed]);
-
-  const loadMoodToday = useCallback(async () => {
-    const result = await getEmotionalTodayStatus();
-    if (result.status === 'ok') setMoodRegisteredToday(result.data.registered);
-  }, []);
-
-  useEffect(() => {
-    if (!loading) void loadMoodToday();
-  }, [loading, loadMoodToday]);
-
-  // Si la pestaña sigue abierta cuando empieza un día nuevo, el recordatorio
-  // vuelve a aparecer al recuperar el foco.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void loadMoodToday();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onVisible);
-    };
-  }, [loadMoodToday]);
 
   const logout = useCallback(async () => {
     await endSession();
@@ -254,6 +219,18 @@ export default function FeedPage() {
     setMoodOpen(true);
   };
 
+  const openIntro = () => {
+    setSheet({
+      title: 'Cómo empezar',
+      rows: [
+        { label: 'Registrar cómo me siento', icon: 'pulse', onClick: () => openMood() },
+        { label: 'Explorar relatos', icon: 'search', onClick: () => router.push('/explorar') },
+        { label: 'Cuidar mi espacio', icon: 'trend', onClick: () => router.push('/mi-estado') },
+        { label: 'Ayuda y seguridad', icon: 'shield', onClick: () => router.push('/soporte') },
+      ],
+    });
+  };
+
   const saveMood = async () => {
     setMoodSaving(true);
     setMoodError('');
@@ -274,7 +251,6 @@ export default function FeedPage() {
 
     setMoodOpen(false);
     setMoodNote('');
-    setMoodRegisteredToday(true);
     notify(`${moodName} ${moodValue}/10 guardado de forma privada`);
   };
 
@@ -457,48 +433,9 @@ export default function FeedPage() {
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
           onComment={() => setReader({ id: story.id, title: story.title })}
+          onShare={() => notify('Enlace copiado')}
         />
       </div>
-    );
-  };
-
-  const renderFeatured = (items: FeaturedStory[]) => {
-    if (items.length === 0) return null;
-    return (
-      <section className="feed-group">
-        <h2 className="feed-group-title">Contenido destacado</h2>
-        <div className="featured-strip">
-          {items.map((story) => (
-            <article key={story.id} className="card featured-card">
-              <span className="featured-label">
-                <Icon name="sparkle" />
-                {story.note || 'Destacado'}
-              </span>
-              <h3>{story.title}</h3>
-              <p className="story-row-meta">
-                <Icon name="user" />
-                <span>{story.author.name}</span>
-                {story.categories[0] ? (
-                  <>
-                    <span className="dot" aria-hidden />
-                    <span>{story.categories[0]}</span>
-                  </>
-                ) : null}
-              </p>
-              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
-              {story.opening?.mediaUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={story.opening.mediaUrl} alt="" className="post-media" />
-              ) : null}
-              <div className="story-row-actions">
-                <button className="action-link" type="button" onClick={() => setReader({ id: story.id, title: story.title })}>
-                  <Icon name="book" /> Leer historia
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
     );
   };
 
@@ -512,6 +449,10 @@ export default function FeedPage() {
 
   const name = character?.name ?? '';
   const initials = initialsOf(character?.name);
+  const visibleFeed =
+    feedTab === 'following'
+      ? (feedItems ?? []).filter((story) => followedAuthors.has(story.author.name))
+      : (feedItems ?? []);
 
   return (
     <WyFrame
@@ -572,47 +513,40 @@ export default function FeedPage() {
         />
       }
     >
-      <section className="screen">
+      <section className="screen home-screen">
         <div className="welcome-row">
-          <div>
-            <h1>Hola, {name || 'invitado'}</h1>
-            <p className="muted small">Este es un espacio para sentirte acompañado.</p>
-          </div>
-          {moodRegisteredToday === true ? (
-            <span className="mood-done-chip">
-              <Icon name="check" /> Estado de hoy registrado
-            </span>
-          ) : (
-            <button className="secondary" type="button" onClick={() => openMood()}>
-              <Icon name="pulse" /> Registrar estado
-            </button>
-          )}
+          <h1>Hola, {name || 'invitado'}</h1>
+          <button className="text-link" type="button" onClick={openIntro}>
+            Cómo empezar
+          </button>
         </div>
 
-        {moodRegisteredToday === true ? null : (
-          <section className="quick-mood card">
-            <div className="quick-title">
-              <div>
-                <h2>¿Cómo estás ahora?</h2>
-                <p>Regístralo en menos de 10 segundos</p>
-              </div>
-              <span className="small">Privado</span>
+        <section className="quick-mood card compact-checkin">
+          <div className="quick-title">
+            <div>
+              <h2>¿Cómo estás ahora?</h2>
+              <p>
+                <Icon name="lock" /> Solo para ti
+              </p>
             </div>
-            <div className="mood-choices">
-              {MOODS.map((mood) => (
-                <button
-                  key={mood.name}
-                  className="mood-choice"
-                  type="button"
-                  onClick={() => openMood(mood.name)}
-                >
-                  <span>{mood.emoji}</span>
-                  <small>{mood.name}</small>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+            <button className="text-link" type="button" onClick={() => openMood()}>
+              Registrar
+            </button>
+          </div>
+          <div className="mood-choices mood-choices-v2">
+            {MOODS.map((mood) => (
+              <button
+                key={mood.name}
+                className="mood-choice"
+                type="button"
+                onClick={() => openMood(mood.name)}
+              >
+                <span>{mood.emoji}</span>
+                <small>{mood.name}</small>
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section className="composer card" ref={composerRef}>
           <div className="composer-top">
@@ -628,7 +562,7 @@ export default function FeedPage() {
                 type="button"
                 onClick={() => setComposerOpen(true)}
               >
-                ¿Qué necesitas sacar de tu pecho hoy?
+                Comparte tu relato
               </button>
             )}
           </div>
@@ -643,27 +577,25 @@ export default function FeedPage() {
               }}
               onCancel={() => setComposerOpen(false)}
             />
-          ) : (
-            <div className="composer-meta">
-              <span>
-                <Icon name="lock" /> Publicarás como <strong>{name || 'tu seudónimo'}</strong>
-              </span>
-              <button className="text-link" type="button" onClick={() => setComposerOpen(true)}>
-                Responder consigna diaria
-              </button>
-            </div>
-          )}
+          ) : null}
         </section>
 
         <div className="feed-tabs" role="tablist" aria-label="Vista del feed">
-          <button type="button" role="tab" aria-selected className="active">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={feedTab === 'for-you'}
+            className={feedTab === 'for-you' ? 'active' : undefined}
+            onClick={() => setFeedTab('for-you')}
+          >
             Para ti
           </button>
           <button
             type="button"
             role="tab"
-            aria-selected={false}
-            onClick={() => router.push('/siguiendo')}
+            aria-selected={feedTab === 'following'}
+            className={feedTab === 'following' ? 'active' : undefined}
+            onClick={() => setFeedTab('following')}
           >
             Siguiendo
           </button>
@@ -680,29 +612,19 @@ export default function FeedPage() {
 
         {feedLoading ? <p className="muted small">Preparando tu feed…</p> : null}
 
-        <div id="feedList" className="stack">
-          {renderFeatured(featured)}
-
-          {feedItems && feedItems.length > 0
-            ? feedItems.map((story, index) => renderCard(story, index, name))
+        <div id="feedList">
+          {visibleFeed.length > 0
+            ? visibleFeed.map((story, index) => renderCard(story, index, name))
             : null}
 
-          {!feedLoading && !feedError && allEmpty(feedItems) ? (
-            <div className="empty card">
-              <div className="empty-icon">
-                <Icon name="book" />
-              </div>
-              <h2>Todavía no hay relatos</h2>
-              <p>Sé la primera persona en compartir. Tu relato aparecerá aquí.</p>
-              <button
-                className="primary"
-                type="button"
-                style={{ padding: '12px 18px' }}
-                onClick={() => setComposerOpen(true)}
-              >
-                Compartir un relato
+          {!feedLoading && !feedError && visibleFeed.length === 0 ? (
+            <section className="empty-state">
+              <h2>Aquí aparecerán sus relatos</h2>
+              <p>Sigue a los autores que quieras volver a leer.</p>
+              <button className="secondary" type="button" onClick={() => router.push('/explorar')}>
+                Explorar relatos
               </button>
-            </div>
+            </section>
           ) : null}
         </div>
       </section>

@@ -25,9 +25,7 @@ const NAV: { label: string; icon: IconName; route: WyRoute }[] = [
   { label: 'Explorar', icon: 'search', route: 'explore' },
   { label: 'Mis relatos', icon: 'book', route: 'my-stories' },
   { label: 'Siguiendo', icon: 'users', route: 'following' },
-  { label: 'Mi estado', icon: 'pulse', route: 'mood' },
-  { label: 'Pulso', icon: 'sparkle', route: 'pulso' },
-  { label: 'Mi árbol', icon: 'trend', route: 'tree' },
+  { label: 'Mi espacio', icon: 'pulse', route: 'mood' },
   { label: 'Perfil', icon: 'user', route: 'profile' },
 ];
 
@@ -125,10 +123,6 @@ function LeftRail({
           </button>
         ))}
       </nav>
-      <button className="primary wide" type="button" onClick={() => onNavigate('my-stories')}>
-        <Icon name="plus" />
-        <span>Compartir relato</span>
-      </button>
       <div className="safety-note">
         <span>
           <Icon name="shield" />
@@ -160,18 +154,30 @@ function BottomNav({
         <Icon name="home" />
         <small>Inicio</small>
       </button>
-      <button type="button" onClick={() => onNavigate('explore')}>
+      <button
+        type="button"
+        className={activeRoute === 'explore' ? 'active' : undefined}
+        onClick={() => onNavigate('explore')}
+      >
         <Icon name="search" />
         <small>Explorar</small>
       </button>
       <button className="create-fab" type="button" onClick={() => onNavigate('my-stories')} aria-label="Compartir relato">
         <Icon name="plus" />
       </button>
-      <button type="button" onClick={() => onNavigate('mood')}>
+      <button
+        type="button"
+        className={activeRoute === 'mood' ? 'active' : undefined}
+        onClick={() => onNavigate('mood')}
+      >
         <Icon name="pulse" />
-        <small>Mi estado</small>
+        <small>Mi espacio</small>
       </button>
-      <button type="button" onClick={onOpenAccount}>
+      <button
+        type="button"
+        className={activeRoute === 'profile' ? 'active' : undefined}
+        onClick={onOpenAccount}
+      >
         <Icon name="user" />
         <small>Perfil</small>
       </button>

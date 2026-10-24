@@ -27,6 +27,7 @@ interface PostCardProps {
   onPlay: () => void;
   onAuthor: () => void;
   onComment: () => void;
+  onShare: () => void;
 }
 
 export default function PostCard({
@@ -45,6 +46,7 @@ export default function PostCard({
   onPlay,
   onAuthor,
   onComment,
+  onShare,
   mediaUrl,
   audioUrl,
   supportCount,
@@ -75,6 +77,7 @@ export default function PostCard({
         <div>
           <div className="post-author">
             <span
+              className="author-name"
               role="button"
               tabIndex={0}
               onClick={onAuthor}
@@ -170,6 +173,10 @@ export default function PostCard({
         <button className={saved ? 'on' : undefined} type="button" onClick={onSave}>
           <Icon name="bookmark" />
           <span className="action-label">Guardar</span>
+        </button>
+        <button type="button" onClick={onShare}>
+          <Icon name="share" />
+          <span className="action-label">Compartir</span>
         </button>
       </div>
     </article>
