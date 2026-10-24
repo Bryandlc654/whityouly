@@ -826,7 +826,24 @@ export class StoriesService {
         status: StoryStatus.PUBLISHED,
         visibility: 'PUBLIC',
         ...(query.q
-          ? { title: { contains: query.q, mode: 'insensitive' } }
+          ? {
+              OR: [
+                { title: { contains: query.q, mode: 'insensitive' } },
+                { updates: { some: { content: { contains: query.q, mode: 'insensitive' } } } },
+                { character: { name: { contains: query.q, mode: 'insensitive' } } },
+                {
+                  categories: {
+                    some: { category: { name: { contains: query.q, mode: 'insensitive' } } },
+                  },
+                },
+                {
+                  emotions: {
+                    some: { emotion: { name: { contains: query.q, mode: 'insensitive' } } },
+                  },
+                },
+                { tags: { some: { tag: { name: { contains: query.q, mode: 'insensitive' } } } } },
+              ],
+            }
           : {}),
         ...(query.category ? { categories: { some: { category: { name: { equals: query.category, mode: 'insensitive' } } } } } : {}),
         ...(query.emotion ? { emotions: { some: { emotion: { name: { equals: query.emotion, mode: 'insensitive' } } } } } : {}),

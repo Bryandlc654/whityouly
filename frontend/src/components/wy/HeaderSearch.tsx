@@ -35,6 +35,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
   const [busy, setBusy] = useState(false);
   const [people, setPeople] = useState<CharacterSearchItem[]>([]);
   const [stories, setStories] = useState<FollowingStory[]>([]);
+  const [searchError, setSearchError] = useState('');
 
   const term = q.trim();
 
@@ -43,11 +44,13 @@ export default function HeaderSearch({ onOpenStory }: Props) {
       setPeople([]);
       setStories([]);
       setBusy(false);
+      setSearchError('');
       return;
     }
 
     let active = true;
     setBusy(true);
+    setSearchError('');
     const timer = setTimeout(async () => {
       const [charResult, storyResult] = await Promise.all([
         searchCharacters(term, MAX_PEOPLE),
@@ -57,6 +60,9 @@ export default function HeaderSearch({ onOpenStory }: Props) {
       setBusy(false);
       setPeople(charResult.status === 'ok' ? charResult.data.items.slice(0, MAX_PEOPLE) : []);
       setStories(storyResult.status === 'ok' ? storyResult.data.items.slice(0, MAX_STORIES) : []);
+      if (charResult.status !== 'ok' && storyResult.status !== 'ok') {
+        setSearchError('No se pudo buscar. Revisa tu conexión e inténtalo de nuevo.');
+      }
     }, 220);
 
     return () => {
@@ -146,7 +152,9 @@ export default function HeaderSearch({ onOpenStory }: Props) {
           {busy && !hasResults ? <p className="header-search-status">Buscando…</p> : null}
 
           {!busy && !hasResults ? (
-            <p className="header-search-status">Sin coincidencias para «{term}».</p>
+            <p className="header-search-status">
+              {searchError || `Sin coincidencias para “${term}”.`}
+            </p>
           ) : null}
 
           {people.length > 0 ? (

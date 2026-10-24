@@ -379,9 +379,9 @@ export class CharactersService {
 
     const ids = await this.prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
       SELECT "id", "name" FROM "characters"
-      WHERE lower("name") LIKE lower(${q}) || '%'
+      WHERE lower("name") LIKE '%' || lower(${q}) || '%'
         AND ("privacySettings" IS NULL OR "privacySettings"->>'profileVisibility' = 'PUBLIC')
-      ORDER BY lower("name") ASC
+      ORDER BY (lower("name") LIKE lower(${q}) || '%') DESC, lower("name") ASC
       LIMIT ${take}
     `);
 
