@@ -1,14 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import Avatar from './Avatar';
 import {
   createComment,
   deleteComment,
   editComment,
+  getCommentDraft,
   listComments,
   reportComment,
+  saveCommentDraft,
   toggleHelpful,
   REPORT_REASONS,
   type ReportReason,
@@ -18,6 +20,7 @@ import {
 interface Props {
   storyId: string;
   onNotify?: (message: string) => void;
+  commentsPaused?: boolean;
 }
 
 function relativeTime(value: string): string {
@@ -34,7 +37,11 @@ function relativeTime(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
 }
 
-export default function CommentSection({ storyId, onNotify }: Props) {
+export default function CommentSection({
+  storyId,
+  onNotify,
+  commentsPaused = false,
+}: Props) {
   const [comments, setComments] = useState<StoryComment[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [commentCount, setCommentCount] = useState(0);
@@ -44,6 +51,8 @@ export default function CommentSection({ storyId, onNotify }: Props) {
   const [localNote, setLocalNote] = useState('');
 
   const [draft, setDraft] = useState('');
+  const [draftReady, setDraftReady] = useState(false);
+  const savedDraftRef = useRef('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,6 +83,43 @@ export default function CommentSection({ storyId, onNotify }: Props) {
     void load();
   }, [load]);
 
+  // El borrador vive en el servidor: sobrevive a recargas y cambios de
+  // dispositivo sin mezclarse con el de otra persona.
+  useEffect(() => {
+    let active = true;
+    setDraftReady(false);
+    setDraft('');
+    savedDraftRef.current = '';
+
+    void getCommentDraft(storyId).then((result) => {
+      if (!active) return;
+      if (result.status === 'ok') {
+        setDraft(result.data.content);
+        savedDraftRef.current = result.data.content;
+      }
+      setDraftReady(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [storyId]);
+
+  useEffect(() => {
+    if (!draftReady || busy) return;
+    if (draft === savedDraftRef.current) return;
+
+    const timer = setTimeout(() => {
+      void saveCommentDraft(storyId, draft).then((result) => {
+        // Se conserva el texto local para no mover el cursor mientras se
+        // escribe; el servidor ya guardó su versión saneada.
+        if (result.status === 'ok') savedDraftRef.current = draft;
+      });
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, [busy, draft, draftReady, storyId]);
+
   const submit = async (content: string, parentId?: string) => {
     if (!content.trim() || busy) return;
     setBusy(true);
@@ -83,6 +129,7 @@ export default function CommentSection({ storyId, onNotify }: Props) {
 
     if (result.status === 'ok') {
       setDraft('');
+      savedDraftRef.current = '';
       setReplyDraft('');
       setReplyingTo(null);
       await load(true);
@@ -206,16 +253,18 @@ export default function CommentSection({ storyId, onNotify }: Props) {
 
         {!comment.deleted ? (
           <div className="comment-actions">
-            <button
-              type="button"
-              className="action-link"
-              onClick={() => {
-                setReplyingTo(replying ? null : comment.id);
-                setReportFor(null);
-              }}
-            >
-              <Icon name="message" /> Responder
-            </button>
+            {!commentsPaused ? (
+              <button
+                type="button"
+                className="action-link"
+                onClick={() => {
+                  setReplyingTo(replying ? null : comment.id);
+                  setReportFor(null);
+                }}
+              >
+                <Icon name="message" /> Responder
+              </button>
+            ) : null}
             {comment.isOwn ? (
               <>
                 <button
@@ -257,7 +306,7 @@ export default function CommentSection({ storyId, onNotify }: Props) {
           </div>
         ) : null}
 
-        {replying ? (
+        {replying && !commentsPaused ? (
           <div className="reply-composer">
             <textarea
               className="field"
@@ -319,30 +368,45 @@ export default function CommentSection({ storyId, onNotify }: Props) {
         </p>
       ) : null}
 
-      <div className="comment-composer">
-        <textarea
-          className="field"
-          value={draft}
-          maxLength={2000}
-          placeholder="Comparte una palabra de apoyo o lo que sientas."
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <button
-          className="primary sm"
-          type="button"
-          onClick={() => void submit(draft)}
-          disabled={busy || draft.trim().length === 0}
-        >
-          <Icon name="send" /> Comentar
-        </button>
-      </div>
+      {commentsPaused ? (
+        <div className="moderation-context" role="status">
+          <Icon name="lock" /> El autor pausó los comentarios. Los que ya existen siguen
+          visibles.
+          {draft.trim() ? ' Tu borrador se conserva para cuando se reabran.' : ''}
+        </div>
+      ) : (
+        <div className="comment-composer">
+          <textarea
+            className="field"
+            value={draft}
+            maxLength={2000}
+            placeholder={
+              draftReady
+                ? 'Comparte una palabra de apoyo o lo que sientas.'
+                : 'Cargando tu borrador…'
+            }
+            onChange={(event) => setDraft(event.target.value)}
+            disabled={!draftReady}
+          />
+          <button
+            className="primary sm"
+            type="button"
+            onClick={() => void submit(draft)}
+            disabled={busy || !draftReady || draft.trim().length === 0}
+          >
+            <Icon name="send" /> Comentar
+          </button>
+        </div>
+      )}
 
       {loading ? <p className="hint">Cargando comentarios…</p> : null}
 
       <div className="comment-list">
         {topLevel.length > 0 ? topLevel.map(renderComment) : !loading && !error ? (
           <p className="hint" style={{ padding: '8px 0' }}>
-            Sé la primera persona en comentar.
+            {commentsPaused
+              ? 'Todavía no hay comentarios en este relato.'
+              : 'Sé la primera persona en comentar.'}
           </p>
         ) : null}
       </div>

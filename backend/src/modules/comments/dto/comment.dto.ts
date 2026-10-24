@@ -41,6 +41,18 @@ export class ReportCommentDto {
   reason!: (typeof REPORT_REASONS)[number];
 }
 
+export class SaveCommentDraftDto {
+  @ApiProperty({
+    example: 'Quería responder algo, pero todavía lo estoy pensando.',
+    description: 'Texto del borrador. Enviar vacío elimina el borrador.',
+  })
+  @IsString()
+  @MaxLength(COMMENT_MAX_LENGTH, {
+    message: `El borrador no puede superar los ${COMMENT_MAX_LENGTH} caracteres`,
+  })
+  content!: string;
+}
+
 export class ListCommentsQueryDto {
   @ApiPropertyOptional({ description: 'Id del último comentario recibido; devuelve los siguientes.' })
   @IsOptional()

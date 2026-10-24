@@ -58,9 +58,56 @@ export class CommentsService {
     private readonly tree: TreeService,
   ) {}
 
+  /** Borrador privado del compositor. Solo su autor puede leerlo o escribirlo. */
+  async getDraft(userId: string, storyId: string) {
+    const draft = await this.prisma.commentDraft.findUnique({
+      where: { userId_storyId: { userId, storyId } },
+      select: { content: true, updatedAt: true },
+    });
+
+    return {
+      content: draft?.content ?? '',
+      updatedAt: draft?.updatedAt ?? null,
+    };
+  }
+
+  async saveDraft(userId: string, storyId: string, content: string) {
+    // Se exige ver el relato para no guardar borradores sobre contenido ajeno
+    // que ya no está disponible.
+    await this.storiesService.assertStoryVisible(userId, storyId);
+
+    const clean = sanitizeCommentContent(content);
+
+    if (!clean) {
+      await this.prisma.commentDraft.deleteMany({ where: { userId, storyId } });
+      return { content: '', updatedAt: null };
+    }
+
+    const draft = await this.prisma.commentDraft.upsert({
+      where: { userId_storyId: { userId, storyId } },
+      create: { userId, storyId, content: clean },
+      update: { content: clean },
+      select: { content: true, updatedAt: true },
+    });
+
+    return { content: draft.content, updatedAt: draft.updatedAt };
+  }
+
+  async deleteDraft(userId: string, storyId: string) {
+    await this.prisma.commentDraft.deleteMany({ where: { userId, storyId } });
+    return { deleted: true as const };
+  }
+
   async create(userId: string, storyId: string, dto: CreateCommentDto) {
     // El comentario exige poder ver el relato (propietario, seguidor o público).
     const story = await this.storiesService.assertStoryVisible(userId, storyId);
+
+    if (story.commentsPaused) {
+      throw new ConflictException(
+        'Los comentarios están pausados por el autor del relato.',
+      );
+    }
+
     const character = await this.requireCommenterCharacter(userId);
 
     const content = sanitizeCommentContent(dto.content);
@@ -96,6 +143,11 @@ export class CommentsService {
       data: { storyId, characterId: character.id, parentId, content },
       select: COMMENT_SELECT,
     });
+
+    // El borrador privado deja de tener sentido en cuanto se publica.
+    await this.prisma.commentDraft
+      .deleteMany({ where: { userId, storyId } })
+      .catch(() => undefined);
 
     await this.track('comment.created', { userId, storyId, commentId: comment.id });
     await this.notifyComment(userId, {

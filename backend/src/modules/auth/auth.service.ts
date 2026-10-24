@@ -103,7 +103,9 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    if (user.status !== 'ACTIVE') {
+    // DELETION_PENDING sigue pudiendo entrar para consultar la fecha y cancelar
+    // la baja. Los permisos administrativos, en cambio, exigen ACTIVE.
+    if (user.status !== 'ACTIVE' && user.status !== 'DELETION_PENDING') {
       await this.auditService.logLoginFailure({
         userId: user.id,
         ip: meta.ipAddress,
@@ -177,7 +179,7 @@ export class AuthService {
     }
 
     const user = await this.usersService.findById(session.userId);
-    if (!user || user.status !== 'ACTIVE') {
+    if (!user || (user.status !== 'ACTIVE' && user.status !== 'DELETION_PENDING')) {
       throw new UnauthorizedException('La cuenta no está activa');
     }
 

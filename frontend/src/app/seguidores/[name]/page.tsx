@@ -290,6 +290,7 @@ export default function ConnectionsPage() {
         { label: 'Lo que sigo', icon: 'users', onClick: () => router.push('/siguiendo') },
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
+        { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],

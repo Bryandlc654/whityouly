@@ -1,5 +1,6 @@
-import { API_URL } from './api';
+﻿import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { PrivacySettings } from '@/components/feed/types';
 import type { LoadResult } from './account';
 
@@ -54,6 +55,7 @@ export interface CreateCharacterInput {
   tagline?: string | null;
   bio?: string | null;
   interests?: string[];
+  avatarUrl?: string | null;
   privacySettings?: Partial<PrivacySettings>;
 }
 
@@ -62,6 +64,7 @@ export interface UpdateCharacterInput {
   tagline?: string | null;
   bio?: string | null;
   interests?: string[];
+  avatarUrl?: string | null;
   privacySettings?: Partial<PrivacySettings>;
 }
 
@@ -76,8 +79,8 @@ export interface CharacterSearchItem {
 
 /**
  * Se distingue entre "no hay perfil" y "no se pudo saber". Un perfil privado y
- * uno inexistente devuelven el mismo 404, así que `missing` no revela si el
- * seudónimo está registrado. Un 429 o un 500 no son un 404 y no se deben
+ * uno inexistente devuelven el mismo 404, asÃ­ que `missing` no revela si el
+ * seudÃ³nimo estÃ¡ registrado. Un 429 o un 500 no son un 404 y no se deben
  * disfrazar como tal.
  */
 export type PublicProfileResult =
@@ -96,7 +99,7 @@ export async function fetchPublicProfile(name: string): Promise<PublicProfileRes
 
   try {
     response = await fetch(`${API_URL}/characters/${encodeURIComponent(normalized)}`, {
-      // Sin caché: al cambiar la privacidad o la biografía el perfil tiene que
+      // Sin cachÃ©: al cambiar la privacidad o la biografÃ­a el perfil tiene que
       // desaparecer o actualizarse de inmediato, sin esperar a revalidar.
       cache: 'no-store',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -123,7 +126,7 @@ export async function fetchPublicProfile(name: string): Promise<PublicProfileRes
 
 /**
  * La respuesta de la API no se toma como cierta: si un despliegue futuro
- * devolviera un cuerpo inesperado, la página no debe romperse ni renderizar
+ * devolviera un cuerpo inesperado, la pÃ¡gina no debe romperse ni renderizar
  * tipos inesperados.
  */
 function parseStoryPreview(value: unknown): PublicStoryPreview | null {
@@ -166,7 +169,7 @@ function parseProfile(payload: unknown): PublicProfile | null {
   return {
     name,
     tagline: isBoundedString(tagline, MAX_TAGLINE_LENGTH),
-    avatarUrl: isSafeImageUrl(avatarUrl),
+    avatarUrl: safeAvatarUrl(avatarUrl),
     bio: isBoundedString(bio, MAX_BIO_LENGTH),
     interests: parseInterests(interests),
     showFollowing: (payload as Record<string, unknown>).showFollowing === true,
@@ -195,8 +198,8 @@ function isBoundedString(value: unknown, max: number): string | null {
 }
 
 /**
- * Los intereses llegan del catálogo curado por el servidor, pero el perfil se
- * dibuja con lo que se reciba: se limita el número y la longitud de cada uno y
+ * Los intereses llegan del catÃ¡logo curado por el servidor, pero el perfil se
+ * dibuja con lo que se reciba: se limita el nÃºmero y la longitud de cada uno y
  * se descartan duplicados, igual que hace la API al guardar.
  */
 function parseInterests(value: unknown): string[] {
@@ -237,7 +240,7 @@ function isSafeImageUrl(value: unknown): string | null {
   }
 }
 
-/** Búsqueda pública de personajes por prefijo del seudónimo. */
+/** BÃºsqueda pÃºblica de personajes por prefijo del seudÃ³nimo. */
 export async function searchCharacters(
   rawQ: string,
   limit = 20,
@@ -271,7 +274,7 @@ export async function searchCharacters(
       return {
         name,
         tagline: isBoundedString(row.tagline, MAX_TAGLINE_LENGTH),
-        avatarUrl: isSafeImageUrl(row.avatarUrl),
+        avatarUrl: safeAvatarUrl(row.avatarUrl),
         interests: parseInterests(row.interests),
         stories: typeof row.stories === 'number' ? row.stories : 0,
         followers: typeof row.followers === 'number' ? row.followers : 0,
@@ -317,7 +320,7 @@ export function parseOwnerCharacter(payload: unknown): OwnerCharacter | null {
     id,
     name,
     tagline: isBoundedString(record.tagline, MAX_TAGLINE_LENGTH),
-    avatarUrl: isSafeImageUrl(record.avatarUrl),
+    avatarUrl: safeAvatarUrl(record.avatarUrl),
     bio: isBoundedString(record.bio, MAX_BIO_LENGTH),
     interests: parseInterests(record.interests),
     privacySettings: parsePrivacy(record.privacySettings),
@@ -371,7 +374,7 @@ async function characterJsonRequest<T>(
   return parsed === null ? { status: 'error', message: fallback } : { status: 'ok', data: parsed };
 }
 
-/** Crea el personaje público. El servidor exige que la cuenta aún no tenga uno. */
+/** Crea el personaje pÃºblico. El servidor exige que la cuenta aÃºn no tenga uno. */
 export function createCharacter(input: CreateCharacterInput): Promise<LoadResult<OwnerCharacter>> {
   return characterJsonRequest(
     '/characters',
@@ -385,7 +388,7 @@ export function createCharacter(input: CreateCharacterInput): Promise<LoadResult
   );
 }
 
-/** Actualiza el perfil. Solo se envían las claves presentes. */
+/** Actualiza el perfil. Solo se envÃ­an las claves presentes. */
 export function updateCharacter(input: UpdateCharacterInput): Promise<LoadResult<OwnerCharacter>> {
   return characterJsonRequest(
     '/characters/me',
@@ -399,7 +402,7 @@ export function updateCharacter(input: UpdateCharacterInput): Promise<LoadResult
   );
 }
 
-/** Disponibilidad del seudónimo; el servidor es la única autoridad. */
+/** Disponibilidad del seudÃ³nimo; el servidor es la Ãºnica autoridad. */
 export function checkNameAvailability(
   rawName: string,
 ): Promise<LoadResult<{ available: boolean; reason?: string }>> {
@@ -408,7 +411,7 @@ export function checkNameAvailability(
   if (!name) {
     return Promise.resolve({
       status: 'ok',
-      data: { available: false, reason: 'Escribe un seudónimo.' },
+      data: { available: false, reason: 'Escribe un seudÃ³nimo.' },
     });
   }
 
@@ -426,7 +429,7 @@ export function checkNameAvailability(
   );
 }
 
-/** Catálogo cerrado de intereses que ofrece el servidor. */
+/** CatÃ¡logo cerrado de intereses que ofrece el servidor. */
 export async function listInterests(): Promise<LoadResult<string[]>> {
   let response: Response;
 
@@ -503,8 +506,8 @@ export function removeCharacterAvatar(): Promise<LoadResult<{ avatarUrl: null }>
 }
 
 /**
- * Protección de la información personal: guarda los ajustes de privacidad del
- * personaje. Solo se envían las claves presentes para no pisar el resto.
+ * ProtecciÃ³n de la informaciÃ³n personal: guarda los ajustes de privacidad del
+ * personaje. Solo se envÃ­an las claves presentes para no pisar el resto.
  */
 export function saveCharacterPrivacy(
   settings: Partial<PrivacySettings>,

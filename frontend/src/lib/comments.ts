@@ -1,5 +1,6 @@
 import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
 
 export interface CommentAuthor {
@@ -40,16 +41,6 @@ export type ReportReason = (typeof REPORT_REASONS)[number];
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
-function safeUrl(value: unknown): string | null {
-  if (typeof value !== 'string' || value === '') return null;
-  try {
-    const { protocol } = new URL(value);
-    return protocol === 'https:' || protocol === 'http:' ? value : null;
-  } catch {
-    return null;
-  }
-}
-
 function parseComment(value: unknown): StoryComment | null {
   const record = (value ?? {}) as Record<string, unknown>;
   const id = typeof record.id === 'string' ? record.id : null;
@@ -62,7 +53,7 @@ function parseComment(value: unknown): StoryComment | null {
     parentId: typeof record.parentId === 'string' ? record.parentId : null,
     author: {
       name: typeof authorRecord.name === 'string' ? authorRecord.name : 'Anónimo',
-      avatarUrl: safeUrl(authorRecord.avatarUrl),
+      avatarUrl: safeAvatarUrl(authorRecord.avatarUrl),
     },
     isOwn: record.isOwn === true,
     helpfulCount:
@@ -123,6 +114,55 @@ function jsonInit(method: string, body: unknown): RequestInit {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   };
+}
+
+export interface CommentDraft {
+  content: string;
+  updatedAt: string | null;
+}
+
+function parseDraft(body: unknown): CommentDraft | null {
+  const record = (body ?? {}) as Record<string, unknown>;
+  if (typeof record.content !== 'string') return null;
+  return {
+    content: record.content,
+    updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : null,
+  };
+}
+
+export function getCommentDraft(storyId: string): Promise<LoadResult<CommentDraft>> {
+  return request(
+    `/comments/story/${encodeURIComponent(storyId)}/draft`,
+    { method: 'GET' },
+    'No se pudo recuperar el borrador.',
+    parseDraft,
+  );
+}
+
+export function saveCommentDraft(
+  storyId: string,
+  content: string,
+): Promise<LoadResult<CommentDraft>> {
+  return request(
+    `/comments/story/${encodeURIComponent(storyId)}/draft`,
+    jsonInit('PUT', { content }),
+    'No se pudo guardar el borrador.',
+    parseDraft,
+  );
+}
+
+export function deleteCommentDraft(
+  storyId: string,
+): Promise<LoadResult<{ deleted: boolean }>> {
+  return request(
+    `/comments/story/${encodeURIComponent(storyId)}/draft`,
+    { method: 'DELETE' },
+    'No se pudo eliminar el borrador.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      return { deleted: record.deleted === true };
+    },
+  );
 }
 
 export function listComments(

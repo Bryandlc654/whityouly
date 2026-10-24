@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -23,6 +24,7 @@ import {
   EditCommentDto,
   ListCommentsQueryDto,
   ReportCommentDto,
+  SaveCommentDraftDto,
 } from './dto/comment.dto';
 
 type AuthenticatedRequest = Request & { user: { userId: string } };
@@ -56,6 +58,37 @@ export class CommentsController {
     @Query() query: ListCommentsQueryDto,
   ) {
     return this.commentsService.list(req.user.userId, storyId, query);
+  }
+
+  @Get('story/:storyId/draft')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Leer el borrador privado de comentario de un relato' })
+  getDraft(
+    @Req() req: AuthenticatedRequest,
+    @Param('storyId', ParseUUIDPipe) storyId: string,
+  ) {
+    return this.commentsService.getDraft(req.user.userId, storyId);
+  }
+
+  @Put('story/:storyId/draft')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Guardar el borrador privado de comentario (vacío lo elimina)' })
+  saveDraft(
+    @Req() req: AuthenticatedRequest,
+    @Param('storyId', ParseUUIDPipe) storyId: string,
+    @Body() dto: SaveCommentDraftDto,
+  ) {
+    return this.commentsService.saveDraft(req.user.userId, storyId, dto.content);
+  }
+
+  @Delete('story/:storyId/draft')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Eliminar el borrador privado de comentario' })
+  deleteDraft(
+    @Req() req: AuthenticatedRequest,
+    @Param('storyId', ParseUUIDPipe) storyId: string,
+  ) {
+    return this.commentsService.deleteDraft(req.user.userId, storyId);
   }
 
   @Patch(':commentId')

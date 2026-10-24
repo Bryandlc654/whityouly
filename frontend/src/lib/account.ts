@@ -1,11 +1,23 @@
 import { API_URL } from './api';
 import { authFetch } from './auth';
 
+export type ReadingSize = 'NORMAL' | 'LARGE' | 'LARGER';
+
 export interface AccountPreferences {
   emailNotifications: boolean;
   pushNotifications: boolean;
+  notificationsEnabled: boolean;
+  readingSize: ReadingSize;
   theme: string;
   language: string;
+}
+
+export interface AccountDeletion {
+  id: string;
+  requestedAt: string;
+  eligibleAt: string;
+  cancelledAt: string | null;
+  completedAt: string | null;
 }
 
 export interface Account {
@@ -18,6 +30,23 @@ export interface Account {
   preferences: AccountPreferences;
   usage: { characters: number; media: number };
   activeSessions: number;
+  deletion: AccountDeletion | null;
+}
+
+function parseDeletion(value: unknown): AccountDeletion | null {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id : null;
+  const requestedAt = typeof record.requestedAt === 'string' ? record.requestedAt : null;
+  const eligibleAt = typeof record.eligibleAt === 'string' ? record.eligibleAt : null;
+  if (!id || !requestedAt || !eligibleAt) return null;
+
+  return {
+    id,
+    requestedAt,
+    eligibleAt,
+    cancelledAt: typeof record.cancelledAt === 'string' ? record.cancelledAt : null,
+    completedAt: typeof record.completedAt === 'string' ? record.completedAt : null,
+  };
 }
 
 export type LoadResult<T> =
@@ -27,6 +56,8 @@ export type LoadResult<T> =
 const DEFAULT_PREFERENCES: AccountPreferences = {
   emailNotifications: true,
   pushNotifications: true,
+  notificationsEnabled: true,
+  readingSize: 'NORMAL',
   theme: 'light',
   language: 'es',
 };
@@ -68,6 +99,34 @@ async function request<T>(path: string, init: RequestInit, fallback: string): Pr
   }
 }
 
+async function requestParsed<T>(
+  path: string,
+  init: RequestInit,
+  fallback: string,
+  parse: (body: unknown) => T | null,
+): Promise<LoadResult<T>> {
+  let response: Response;
+
+  try {
+    response = await authFetch(`${API_URL}${path}`, init);
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    return { status: 'error', message: await readError(response, fallback) };
+  }
+
+  try {
+    const parsed = parse(await response.json());
+    return parsed === null
+      ? { status: 'error', message: fallback }
+      : { status: 'ok', data: parsed };
+  } catch {
+    return { status: 'error', message: fallback };
+  }
+}
+
 function json(body: unknown): RequestInit {
   return {
     method: 'POST',
@@ -102,6 +161,7 @@ export async function fetchAccount(): Promise<LoadResult<Account>> {
         media: Number(data?.usage?.media ?? 0),
       },
       activeSessions: Number(data?.activeSessions ?? 0),
+      deletion: parseDeletion(data?.deletion),
     },
   };
 }
@@ -138,15 +198,80 @@ export async function requestEmailChange(input: {
   );
 }
 
-export async function deleteAccount(input: {
+export async function requestAccountDeletion(input: {
   currentPassword: string;
   confirmation: string;
-}): Promise<LoadResult<{ message: string }>> {
-  return request<{ message: string }>(
-    '/users/me',
-    { ...json(input), method: 'DELETE' },
-    'No se pudo dar de baja la cuenta.',
+}): Promise<LoadResult<{ message: string; deletion: AccountDeletion; revokedSessions: number }>> {
+  return requestParsed(
+    '/users/me/deletion',
+    json(input),
+    'No se pudo solicitar la baja de la cuenta.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const deletion = parseDeletion(record.deletion);
+      if (!deletion) return null;
+      return {
+        message: typeof record.message === 'string' ? record.message : 'Solicitud registrada.',
+        deletion,
+        revokedSessions:
+          typeof record.revokedSessions === 'number' ? record.revokedSessions : 0,
+      };
+    },
   );
+}
+
+export async function cancelAccountDeletion(): Promise<
+  LoadResult<{ message: string; deletion: AccountDeletion }>
+> {
+  return requestParsed(
+    '/users/me/deletion/cancel',
+    { method: 'POST' },
+    'No se pudo cancelar la baja.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const deletion = parseDeletion(record.deletion);
+      if (!deletion) return null;
+      return {
+        message:
+          typeof record.message === 'string'
+            ? record.message
+            : 'Solicitud cancelada.',
+        deletion,
+      };
+    },
+  );
+}
+
+/**
+ * Descarga el JSON completo de la cuenta. Se hace por `authFetch` para que el
+ * token viaje en la cabecera y no en la URL (no queda en historiales ni logs).
+ */
+export async function exportAccountData(): Promise<
+  LoadResult<{ blob: Blob; filename: string }>
+> {
+  let response: Response;
+
+  try {
+    response = await authFetch(`${API_URL}/users/me/export`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readError(response, 'No se pudieron exportar tus datos.'),
+    };
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const match = /filename="([^"]+)"/i.exec(disposition);
+  const filename = match?.[1] ?? 'withyouly-mis-datos.json';
+
+  return { status: 'ok', data: { blob: await response.blob(), filename } };
 }
 
 /**

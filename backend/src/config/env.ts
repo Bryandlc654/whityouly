@@ -79,6 +79,16 @@ export const env = {
   emailResendCooldownMs: parseNumber(process.env.EMAIL_RESEND_COOLDOWN_MS, 60_000),
   maxSessionsPerUser: parseNumber(process.env.MAX_SESSIONS_PER_USER, 10),
   sessionCleanupIntervalMs: parseNumber(process.env.SESSION_CLEANUP_INTERVAL_MS, 60 * 60_000),
+  deletion: {
+    // Ventana reversible antes de purgar. 30 días por decisión de producto.
+    graceDays: Math.max(parseNumber(process.env.ACCOUNT_DELETION_GRACE_DAYS, 30), 1),
+    // Cadencia y tamaño de lote del proceso programado. 0 desactiva la tarea.
+    purgeIntervalMs: parseNumber(
+      process.env.ACCOUNT_DELETION_PURGE_INTERVAL_MS,
+      60 * 60_000,
+    ),
+    purgeBatchSize: Math.max(parseNumber(process.env.ACCOUNT_DELETION_PURGE_BATCH_SIZE, 10), 1),
+  },
   cookie: {
     // En producción por defecto Secure=true (requerido si SameSite=None).
     secure: process.env.COOKIE_SECURE

@@ -30,6 +30,7 @@ import { EmotionalMapModule } from './modules/emotional-map/emotional-map.module
 import { CommunityModule } from './modules/community/community.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { SupportModule } from './modules/support/support.module';
 import { TreeModule } from './modules/tree/tree.module';
 
 @Module({
@@ -55,6 +56,7 @@ import { TreeModule } from './modules/tree/tree.module';
     CommunityModule,
     ModerationModule,
     ReportsModule,
+    SupportModule,
     TreeModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({

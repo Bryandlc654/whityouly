@@ -13,10 +13,10 @@ import {
   MinLength,
   MaxLength,
   Matches,
-  IsUrl,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AVATAR_REFERENCE_PATTERN } from '../avatar-presets';
 
 const CHARACTER_NAME_MAX_LENGTH = 30;
 const BIO_MAX_LENGTH = 500;
@@ -127,13 +127,12 @@ export class CreateCharacterDto {
   @MaxLength(INTEREST_NAME_MAX_LENGTH, { each: true })
   interests?: string[];
 
-  @ApiPropertyOptional({ example: 'https://cdn.whityouly.com/avatars/abc.png' })
+  @ApiPropertyOptional({ example: '/avatars/12.svg' })
   @Transform(trim)
   @IsOptional()
-  @IsUrl(
-    { protocols: ['https'], require_protocol: true, require_tld: true },
-    { message: 'El avatar debe ser una URL https válida' },
-  )
+  @Matches(AVATAR_REFERENCE_PATTERN, {
+    message: 'El avatar debe ser un avatar ilustrado o una URL https válida',
+  })
   @MaxLength(URL_MAX_LENGTH)
   avatarUrl?: string;
 
@@ -155,13 +154,12 @@ export class UpdateCharacterDto {
   @Matches(NAME_PATTERN, { message: NAME_PATTERN_MESSAGE })
   name?: string;
 
-  @ApiPropertyOptional({ example: 'https://cdn.whityouly.com/avatars/abc.png' })
+  @ApiPropertyOptional({ example: '/avatars/12.svg' })
   @Transform(trim)
   @IsOptional()
-  @IsUrl(
-    { protocols: ['https'], require_protocol: true, require_tld: true },
-    { message: 'El avatar debe ser una URL https válida' },
-  )
+  @Matches(AVATAR_REFERENCE_PATTERN, {
+    message: 'El avatar debe ser un avatar ilustrado o una URL https válida',
+  })
   @MaxLength(URL_MAX_LENGTH)
   avatarUrl?: string | null;
 

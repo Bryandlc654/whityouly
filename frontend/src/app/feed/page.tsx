@@ -240,6 +240,7 @@ export default function FeedPage() {
         { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
+        { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
@@ -413,7 +414,7 @@ export default function FeedPage() {
         setNotificationsOpen(true);
         break;
       case 'help':
-        notify('Ayuda, privacidad y recursos de apoyo llegarán pronto.');
+        router.push('/soporte');
         break;
       case 'profile':
         router.push('/cuenta');

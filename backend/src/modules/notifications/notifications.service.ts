@@ -3,6 +3,7 @@ import { NotificationStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   NOTIFICATION_ENTITY,
+  NOTIFICATION_TYPES,
   type NotificationEntityType,
   type NotificationType,
 } from './notification-types';
@@ -97,6 +98,9 @@ export class NotificationsService {
     if (this.isSelfNotification(input)) {
       return;
     }
+    if (!(await this.inAppEnabled(input))) {
+      return;
+    }
 
     try {
       await this.prisma.notification.create({
@@ -126,6 +130,9 @@ export class NotificationsService {
    */
   async createAggregated(input: CreateNotificationInput): Promise<void> {
     if (this.isSelfNotification(input)) {
+      return;
+    }
+    if (!(await this.inAppEnabled(input))) {
       return;
     }
 
@@ -171,7 +178,32 @@ export class NotificationsService {
 
   /** Versión por lotes (una etapa nueva avisa a todos los seguidores). */
   async createMany(inputs: CreateNotificationInput[]): Promise<void> {
-    const batch = inputs.filter((input) => !this.isSelfNotification(input));
+    const initial = inputs.filter((input) => !this.isSelfNotification(input));
+    if (initial.length === 0) {
+      return;
+    }
+
+    // Una sola consulta por lote: se omiten los avisos sociales de quien los
+    // desactivó, pero moderación/sistema siempre llegan.
+    const userIds = [...new Set(initial.map((input) => input.userId))];
+    let disabledIds = new Set<string>();
+    try {
+      const disabled = await this.prisma.userPreference.findMany({
+        where: { userId: { in: userIds }, notificationsEnabled: false },
+        select: { userId: true },
+      });
+      disabledIds = new Set(disabled.map((row) => row.userId));
+    } catch (error) {
+      // Un fallo leyendo preferencias no debe impedir el aviso ni la acción
+      // que lo originó: se entrega con el valor por defecto.
+      this.logger.warn(
+        `No se pudieron leer preferencias de avisos: ${(error as Error).message}`,
+      );
+    }
+    const batch = initial.filter(
+      (input) => this.isCritical(input.type) || !disabledIds.has(input.userId),
+    );
+
     if (batch.length === 0) {
       return;
     }
@@ -235,6 +267,31 @@ export class NotificationsService {
 
   private isSelfNotification(input: CreateNotificationInput): boolean {
     return Boolean(input.actorUserId) && input.actorUserId === input.userId;
+  }
+
+  private isCritical(type: string): boolean {
+    return type === NOTIFICATION_TYPES.MODERATION || type === NOTIFICATION_TYPES.SYSTEM;
+  }
+
+  private async inAppEnabled(input: CreateNotificationInput): Promise<boolean> {
+    if (this.isCritical(input.type)) {
+      return true;
+    }
+
+    try {
+      const preference = await this.prisma.userPreference.findUnique({
+        where: { userId: input.userId },
+        select: { notificationsEnabled: true },
+      });
+
+      // Sin fila de preferencias se mantiene el comportamiento por defecto.
+      return preference?.notificationsEnabled !== false;
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo leer la preferencia de avisos: ${(error as Error).message}`,
+      );
+      return true;
+    }
   }
 
   // --- Lectura --------------------------------------------------------------

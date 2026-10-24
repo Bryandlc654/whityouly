@@ -1,5 +1,6 @@
-import { API_URL } from './api';
+﻿import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
 
 export interface FollowedCharacter {
@@ -19,7 +20,7 @@ export interface WhatIFollow {
   stories: FollowedStorySummary[];
 }
 
-/** Persona dentro de una lista pública de seguidores o seguidos. */
+/** Persona dentro de una lista pÃºblica de seguidores o seguidos. */
 export interface SocialConnection {
   name: string;
   tagline: string | null;
@@ -36,16 +37,6 @@ export interface ConnectionsPage {
 }
 
 const REQUEST_TIMEOUT_MS = 10_000;
-
-function safeUrl(value: unknown): string | null {
-  if (typeof value !== 'string' || value === '') return null;
-  try {
-    const { protocol } = new URL(value);
-    return protocol === 'https:' || protocol === 'http:' ? value : null;
-  } catch {
-    return null;
-  }
-}
 
 function messageFrom(body: unknown, fallback: string): string {
   const record = (body ?? {}) as Record<string, unknown>;
@@ -131,7 +122,7 @@ export function whatIFollow(): Promise<LoadResult<WhatIFollow>> {
               return {
                 name,
                 tagline: typeof row.tagline === 'string' ? row.tagline : null,
-                avatarUrl: safeUrl(row.avatarUrl),
+                avatarUrl: safeAvatarUrl(row.avatarUrl),
               } satisfies FollowedCharacter;
             })
             .filter((item): item is FollowedCharacter => item !== null)
@@ -147,7 +138,7 @@ export function whatIFollow(): Promise<LoadResult<WhatIFollow>> {
               return {
                 id,
                 title,
-                author: { name: authorRecord.name, avatarUrl: safeUrl(authorRecord.avatarUrl) },
+                author: { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
               } satisfies FollowedStorySummary;
             })
             .filter((item): item is FollowedStorySummary => item !== null)
@@ -173,7 +164,7 @@ export function listFollowing(): Promise<LoadResult<{ items: FollowedCharacter[]
               return {
                 name,
                 tagline: typeof row.tagline === 'string' ? row.tagline : null,
-                avatarUrl: safeUrl(row.avatarUrl),
+                avatarUrl: safeAvatarUrl(row.avatarUrl),
               } satisfies FollowedCharacter;
             })
             .filter((item): item is FollowedCharacter => item !== null)
@@ -199,7 +190,7 @@ function parseConnectionsPage(body: unknown): ConnectionsPage | null {
       return {
         name,
         tagline: typeof row.tagline === 'string' ? row.tagline : null,
-        avatarUrl: safeUrl(row.avatarUrl),
+        avatarUrl: safeAvatarUrl(row.avatarUrl),
         following: row.following === true,
         isSelf: row.isSelf === true,
       } satisfies SocialConnection;
@@ -223,7 +214,7 @@ function connectionsPath(name: string, kind: 'followers' | 'following', params: 
   return `/characters/${encodeURIComponent(name)}/${kind}${suffix ? `?${suffix}` : ''}`;
 }
 
-/** Seguidores públicos de un personaje (paginado por cursor). */
+/** Seguidores pÃºblicos de un personaje (paginado por cursor). */
 export function listFollowersOf(
   name: string,
   params: { cursor?: string; limit?: number } = {},

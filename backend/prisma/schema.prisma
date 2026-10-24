@@ -24,6 +24,8 @@ enum Role {
 enum Status {
   ACTIVE
   SUSPENDED
+  // La cuenta solicitó su baja y está en el periodo reversible de 30 días.
+  DELETION_PENDING
   DELETED
 }
 
@@ -43,6 +45,7 @@ model User {
   preferences      UserPreference?
   character        Character?
   bookmarks        Bookmark[]
+  commentDrafts    CommentDraft[]
   emotionalLogs    EmotionalLog[]
   creations        Creation[]
   reports          Report[]
@@ -54,6 +57,8 @@ model User {
   moderationActions  ModerationAction[] @relation("ModerationActionActor")
   moderationReverts  ModerationAction[] @relation("ModerationActionReverter")
   moderationSubjects ModerationAction[] @relation("ModerationActionSubject")
+  supportTickets     SupportTicket[]
+  deletionRequests   AccountDeletionRequest[]
 
   @@map("users")
 }
@@ -90,14 +95,23 @@ model Session {
   @@map("sessions")
 }
 
+enum ReadingSize {
+  NORMAL
+  LARGE
+  LARGER
+}
+
 model UserPreference {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  emailNotifications Boolean  @default(true)
-  pushNotifications  Boolean  @default(true)
-  theme              String   @default("light")
-  language           String   @default("es")
-  updatedAt          DateTime @updatedAt
+  id                 String      @id @default(uuid())
+  userId             String      @unique
+  emailNotifications Boolean     @default(true)
+  pushNotifications  Boolean     @default(true)
+  // Avisos dentro de la app, independientes de correo y push.
+  notificationsEnabled Boolean   @default(true)
+  readingSize        ReadingSize @default(NORMAL)
+  theme              String      @default("light")
+  language           String      @default("es")
+  updatedAt          DateTime    @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -242,6 +256,8 @@ model Story {
   // Fecha del retiro voluntario. Solo tiene valor mientras el estado es
   // WITHDRAWN; se limpia al restaurar.
   withdrawnAt DateTime?
+  // El autor puede pausar los comentarios sin ocultar los existentes.
+  commentsPaused Boolean @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -252,6 +268,7 @@ model Story {
   tags           StoryTag[]
   emotions       StoryEmotion[]
   comments       Comment[]
+  commentDrafts  CommentDraft[]
   companionships Companionship[] @relation("StoryReceivesCompanionship")
   followers      Follower[]      @relation("StoryFollowers")
   music          StoryMusic[]
@@ -417,6 +434,23 @@ model Comment {
   @@index([storyId, createdAt])
   @@index([status, createdAt])
   @@map("comments")
+}
+
+// Borrador privado del compositor de comentarios, uno por persona y relato.
+// Se guarda en servidor para sobrevivir a recargas y cambios de dispositivo.
+model CommentDraft {
+  id        String   @id @default(uuid())
+  userId    String
+  storyId   String
+  content   String
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId, updatedAt])
+  @@map("comment_drafts")
 }
 
 model Follower {
@@ -687,6 +721,63 @@ model ModerationAction {
   @@index([revertedByUserId])
   @@index([subjectUserId])
   @@map("moderation_actions")
+}
+
+enum SupportTicketCategory {
+  ACCOUNT
+  MODERATION
+  STORY
+  BUG
+  PRIVACY
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// Solicitudes de soporte. El cuerpo es texto libre saneado y la categoría es un
+// catálogo cerrado. Nunca se guardan contraseñas ni secretos: la interfaz lo
+// advierte y el servidor no necesita esos datos para atender el caso.
+model SupportTicket {
+  id             String               @id @default(uuid())
+  userId         String
+  category       SupportTicketCategory @default(OTHER)
+  body           String
+  status         SupportTicketStatus   @default(OPEN)
+  resolutionNote String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  resolvedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // "Mis solicitudes" filtra por autor, estado y fecha. El segundo índice deja
+  // preparada la bandeja de soporte y sus filtros por estado.
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("support_tickets")
+}
+
+// Solicitud de baja reversible. `eligibleAt` es la fecha mínima de purga; el
+// proceso programado solo elimina solicitudes vencidas, no canceladas y no
+// completadas. Se conserva el registro completado como constancia operativa.
+model AccountDeletionRequest {
+  id          String    @id @default(uuid())
+  userId      String
+  requestedAt DateTime  @default(now())
+  eligibleAt  DateTime
+  cancelledAt DateTime?
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, requestedAt])
+  @@index([eligibleAt, completedAt, cancelledAt])
+  @@map("account_deletion_requests")
 }
 
 // Tu árbol: crecimiento emocional privado. Una gota por camino y día, con el

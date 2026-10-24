@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
   ConflictException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -15,16 +16,7 @@ import { PasswordBreachService } from '../auth/password-breach.service';
 
 describe('AccountService', () => {
   let service: AccountService;
-  let prisma: {
-    user: {
-      findUnique: ReturnType<typeof vi.fn>;
-      findFirst: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
-    };
-    userPreference: { findUnique: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
-    character: { count: ReturnType<typeof vi.fn> };
-    mediaAsset: { count: ReturnType<typeof vi.fn> };
-  };
+  let prisma: any;
   let usersService: { updatePassword: ReturnType<typeof vi.fn> };
   let sessions: {
     revokeAllForUser: ReturnType<typeof vi.fn>;
@@ -45,11 +37,23 @@ describe('AccountService', () => {
         findUnique: vi.fn(),
         findFirst: vi.fn(),
         update: vi.fn(),
+        count: vi.fn(),
+        updateMany: vi.fn(),
       },
       userPreference: { findUnique: vi.fn(), upsert: vi.fn() },
+      accountDeletionRequest: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      session: { updateMany: vi.fn().mockResolvedValue({ count: 3 }) },
       character: { count: vi.fn().mockResolvedValue(1) },
       mediaAsset: { count: vi.fn().mockResolvedValue(4) },
     };
+    (prisma as { $transaction?: unknown }).$transaction = vi.fn(
+      (callback: (tx: unknown) => unknown) => callback(prisma),
+    );
     usersService = { updatePassword: vi.fn().mockResolvedValue({}) };
     sessions = {
       revokeAllForUser: vi.fn().mockResolvedValue(3),
@@ -95,6 +99,8 @@ describe('AccountService', () => {
       expect(result.preferences).toEqual({
         emailNotifications: true,
         pushNotifications: true,
+        notificationsEnabled: true,
+        readingSize: 'NORMAL',
         theme: 'light',
         language: 'es',
       });
@@ -128,6 +134,8 @@ describe('AccountService', () => {
         select: {
           emailNotifications: true,
           pushNotifications: true,
+          notificationsEnabled: true,
+          readingSize: true,
           theme: true,
           language: true,
         },
@@ -398,67 +406,134 @@ describe('AccountService', () => {
     });
   });
 
-  describe('deleteAccount', () => {
+  describe('requestDeletion', () => {
     const dto = { currentPassword: 'Actual1234', confirmation: 'eliminar' };
 
-    it('marca DELETED y cierra sesiones sin borrar datos', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+    function userRow(overrides: Record<string, unknown> = {}) {
+      return {
         id: 'u-1',
         email: 'a@correo.com',
         passwordHash: currentHash,
         role: 'USER',
+        status: 'ACTIVE',
+        ...overrides,
+      };
+    }
+
+    beforeEach(() => {
+      prisma.accountDeletionRequest.create.mockResolvedValue({
+        id: 'del-1',
+        requestedAt: new Date('2026-10-20T10:00:00Z'),
+        eligibleAt: new Date('2026-11-19T10:00:00Z'),
+        cancelledAt: null,
+        completedAt: null,
       });
+      prisma.user.update.mockResolvedValue({});
+    });
 
-      const result = await service.deleteAccount('u-1', dto);
+    it('programa la baja y deja la cuenta en DELETION_PENDING', async () => {
+      prisma.user.findUnique.mockResolvedValue(userRow());
 
+      const result = await service.requestDeletion('u-1', dto);
+
+      expect(prisma.accountDeletionRequest.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'u-1',
+          eligibleAt: expect.any(Date),
+        }),
+      });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'u-1' },
-        data: { status: 'DELETED' },
+        data: { status: 'DELETION_PENDING' },
       });
-      expect(sessions.revokeAllForUser).toHaveBeenCalledWith('u-1');
-      expect(result.message).toContain('baja');
+      expect(prisma.session.updateMany).toHaveBeenCalled();
+      expect(result.deletion.id).toBe('del-1');
+      expect(result.message).toContain('Solicitud');
+      expect(mailer.sendMail).toHaveBeenCalled();
+    });
+
+    it('no permite dos solicitudes pendientes', async () => {
+      prisma.user.findUnique.mockResolvedValue(userRow());
+      prisma.accountDeletionRequest.findFirst.mockResolvedValue({
+        id: 'del-1',
+        requestedAt: new Date(),
+        eligibleAt: new Date(Date.now() + 86_400_000),
+        cancelledAt: null,
+        completedAt: null,
+      });
+
+      await expect(service.requestDeletion('u-1', dto)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(prisma.accountDeletionRequest.create).not.toHaveBeenCalled();
     });
 
     it('exige la palabra de confirmación', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'a@correo.com',
-        passwordHash: currentHash,
-        role: 'USER',
-      });
+      prisma.user.findUnique.mockResolvedValue(userRow());
 
       await expect(
-        service.deleteAccount('u-1', { ...dto, confirmation: 'vale' }),
+        service.requestDeletion('u-1', { ...dto, confirmation: 'vale' }),
       ).rejects.toBeInstanceOf(BadRequestException);
-      expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(prisma.accountDeletionRequest.create).not.toHaveBeenCalled();
     });
 
     it('exige la contraseña actual', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'a@correo.com',
-        passwordHash: currentHash,
-        role: 'USER',
-      });
+      prisma.user.findUnique.mockResolvedValue(userRow());
 
       await expect(
-        service.deleteAccount('u-1', { ...dto, currentPassword: 'Mal1234' }),
+        service.requestDeletion('u-1', { ...dto, currentPassword: 'Mal1234' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('impide que se baje el último SUPERADMIN', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'sa-1',
-        email: 'sa@correo.com',
-        passwordHash: currentHash,
-        role: 'SUPERADMIN',
-      });
-      prisma.user.count = vi.fn().mockResolvedValue(0);
+      prisma.user.findUnique.mockResolvedValue(
+        userRow({ id: 'sa-1', role: 'SUPERADMIN' }),
+      );
+      prisma.user.count.mockResolvedValue(0);
 
-      await expect(service.deleteAccount('sa-1', dto)).rejects.toBeInstanceOf(
+      await expect(service.requestDeletion('sa-1', dto)).rejects.toBeInstanceOf(
         ConflictException,
       );
       expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cancelDeletion', () => {
+    it('cancela la solicitud y reactiva la cuenta', async () => {
+      prisma.accountDeletionRequest.findFirst.mockResolvedValue({
+        id: 'del-1',
+        requestedAt: new Date(),
+        eligibleAt: new Date(Date.now() + 86_400_000),
+        cancelledAt: null,
+        completedAt: null,
+      });
+      prisma.accountDeletionRequest.update.mockResolvedValue({
+        id: 'del-1',
+        requestedAt: new Date(),
+        eligibleAt: new Date(Date.now() + 86_400_000),
+        cancelledAt: new Date(),
+        completedAt: null,
+      });
+
+      const result = await service.cancelDeletion('u-1');
+
+      expect(prisma.accountDeletionRequest.update).toHaveBeenCalledWith({
+        where: { id: 'del-1' },
+        data: { cancelledAt: expect.any(Date) },
+      });
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: 'u-1', status: 'DELETION_PENDING' },
+        data: { status: 'ACTIVE' },
+      });
+      expect(result.message).toContain('cancelada');
+    });
+
+    it('responde 404 si no hay una baja pendiente', async () => {
+      prisma.accountDeletionRequest.findFirst.mockResolvedValue(null);
+
+      await expect(service.cancelDeletion('u-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });

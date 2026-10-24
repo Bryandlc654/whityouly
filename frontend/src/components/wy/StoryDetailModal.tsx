@@ -9,6 +9,8 @@ import {
   deleteStoryStage,
   editStoryStage,
   getMyStory,
+  pauseStoryComments,
+  resumeStoryComments,
   type MyStory,
   type StoryStage,
 } from '@/lib/stories';
@@ -33,6 +35,7 @@ function formatDate(value: string): string {
 
 export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
   const [stages, setStages] = useState<StoryStage[]>(story.updates);
+  const [commentsPaused, setCommentsPaused] = useState(story.commentsPaused);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -148,6 +151,23 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
     setError(result.message);
   }
 
+  async function toggleComments() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    const result = commentsPaused
+      ? await resumeStoryComments(story.id)
+      : await pauseStoryComments(story.id);
+    setBusy(false);
+
+    if (result.status === 'ok') {
+      setCommentsPaused(result.data.commentsPaused);
+      onChanged();
+      return;
+    }
+    setError(result.message);
+  }
+
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-label="Etapas del relato">
       <div className="modal-head">
@@ -158,9 +178,22 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
             {story.status === 'PUBLISHED' ? 'Publicado' : 'Borrador'}
           </p>
         </div>
-        <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
-          <Icon name="x" />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {story.status === 'PUBLISHED' ? (
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => void toggleComments()}
+              disabled={busy}
+            >
+              <Icon name="message" />{' '}
+              {commentsPaused ? 'Reabrir comentarios' : 'Pausar comentarios'}
+            </button>
+          ) : null}
+          <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
+            <Icon name="x" />
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -392,7 +425,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
         </button>
       </div>
 
-      <CommentSection storyId={story.id} />
+      <CommentSection storyId={story.id} commentsPaused={commentsPaused} />
     </div>
   );
 }

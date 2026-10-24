@@ -3,6 +3,7 @@ import "./globals.css";
 // Sistema visual del prototipo Withyouly v7: las reglas viven bajo .wy, así que
 // solo afectan a las pantallas que envuelven su contenido en esa clase.
 import "./withyouly.css";
+import ReadingSizeSync from "@/components/ReadingSizeSync";
 
 export const metadata: Metadata = {
   title: "Whityouly",
@@ -24,6 +25,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       </head>
       <body className={`antialiased font-body-md`}>
+        <ReadingSizeSync />
         {children}
       </body>
     </html>

@@ -62,6 +62,7 @@ interface StoryScope {
   characterId: string;
   status: StoryStatus;
   visibility: string;
+  commentsPaused: boolean;
 }
 
 const STAGE_SELECT = {
@@ -93,6 +94,7 @@ const STORY_DETAIL_SELECT = {
   status: true,
   featuredAt: true,
   withdrawnAt: true,
+  commentsPaused: true,
   createdAt: true,
   updatedAt: true,
   character: { select: { name: true, avatarUrl: true } },
@@ -110,6 +112,7 @@ const STORY_LIST_SELECT = {
   status: true,
   featuredAt: true,
   withdrawnAt: true,
+  commentsPaused: true,
   createdAt: true,
   updatedAt: true,
   categories: { select: { category: { select: { name: true } } } },
@@ -534,6 +537,37 @@ export class StoriesService {
     return this.getOwnedDetail(userId, storyId);
   }
 
+  /** El autor pausa los comentarios sin ocultar los que ya existen. */
+  async pauseComments(userId: string, storyId: string) {
+    const story = await this.findOwnedStory(userId, storyId);
+
+    if (story.status !== StoryStatus.PUBLISHED) {
+      throw new ConflictException('Solo se pueden pausar comentarios de relatos publicados.');
+    }
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: { commentsPaused: true, updatedAt: new Date() },
+    });
+
+    return this.getOwnedDetail(userId, storyId);
+  }
+
+  async resumeComments(userId: string, storyId: string) {
+    const story = await this.findOwnedStory(userId, storyId);
+
+    if (story.status !== StoryStatus.PUBLISHED) {
+      throw new ConflictException('Solo se pueden reabrir comentarios de relatos publicados.');
+    }
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: { commentsPaused: false, updatedAt: new Date() },
+    });
+
+    return this.getOwnedDetail(userId, storyId);
+  }
+
   /**
    * Retira un relato publicado sin borrarlo. Se conservan etapas, medios,
    * comentarios y vínculos; el resto de la app deja de mostrarlo. Es la acción
@@ -946,7 +980,13 @@ export class StoriesService {
   async assertStoryVisible(
     userId: string,
     storyId: string,
-  ): Promise<{ id: string; characterId: string; ownerUserId: string; isOwner: boolean }> {
+  ): Promise<{
+    id: string;
+    characterId: string;
+    ownerUserId: string;
+    isOwner: boolean;
+    commentsPaused: boolean;
+  }> {
     const scope = await this.prisma.story.findFirst({
       where: { id: storyId, status: { not: StoryStatus.DELETED } },
       select: {
@@ -954,6 +994,7 @@ export class StoriesService {
         status: true,
         visibility: true,
         characterId: true,
+        commentsPaused: true,
         character: { select: { userId: true } },
       },
     });
@@ -984,7 +1025,13 @@ export class StoriesService {
       }
     }
 
-    return { id: scope.id, characterId: scope.characterId, ownerUserId: scope.character.userId, isOwner };
+    return {
+      id: scope.id,
+      characterId: scope.characterId,
+      ownerUserId: scope.character.userId,
+      isOwner,
+      commentsPaused: scope.commentsPaused,
+    };
   }
 
   /**
@@ -1300,7 +1347,13 @@ export class StoriesService {
         character: { userId },
         status: { not: StoryStatus.DELETED },
       },
-      select: { id: true, characterId: true, status: true, visibility: true },
+      select: {
+        id: true,
+        characterId: true,
+        status: true,
+        visibility: true,
+        commentsPaused: true,
+      },
     });
 
     if (!story) {
@@ -1504,6 +1557,7 @@ export class StoriesService {
     status: StoryStatus;
     featuredAt?: Date | null;
     withdrawnAt?: Date | null;
+    commentsPaused?: boolean;
     createdAt: Date;
     updatedAt: Date;
     character?: { name: string; avatarUrl: string | null } | null;
@@ -1520,6 +1574,7 @@ export class StoriesService {
       status: story.status,
       featuredAt: story.featuredAt ?? null,
       withdrawnAt: story.withdrawnAt ?? null,
+      commentsPaused: story.commentsPaused === true,
       author: story.character
         ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
         : null,
@@ -1545,6 +1600,7 @@ export class StoriesService {
     status: StoryStatus;
     featuredAt?: Date | null;
     withdrawnAt?: Date | null;
+    commentsPaused?: boolean;
     createdAt: Date;
     updatedAt: Date;
     categories: { category: { name: string } }[];
@@ -1561,6 +1617,7 @@ export class StoriesService {
       status: story.status,
       featuredAt: story.featuredAt ?? null,
       withdrawnAt: story.withdrawnAt ?? null,
+      commentsPaused: story.commentsPaused === true,
       categories: story.categories.map(({ category }) => category.name),
       emotions: story.emotions.map(({ emotion }) => ({
         name: emotion.name,
@@ -1600,6 +1657,7 @@ export class StoriesService {
     id: string;
     title: string;
     visibility: string;
+    commentsPaused?: boolean;
     createdAt: Date;
     updatedAt: Date;
     character: { name: string; avatarUrl: string | null };
@@ -1614,6 +1672,7 @@ export class StoriesService {
       id: story.id,
       title: story.title,
       author: { name: story.character.name, avatarUrl: story.character.avatarUrl },
+      commentsPaused: story.commentsPaused === true,
       categories: story.categories.map(({ category }) => category.name),
       emotions: story.emotions.map(({ emotion }) => ({
         name: emotion.name,

@@ -131,7 +131,11 @@ export default function StoryViewer({
               </div>
 
               <div className="story-reader-comments">
-                <CommentSection storyId={story.id} onNotify={onNotify} />
+                <CommentSection
+                  storyId={story.id}
+                  onNotify={onNotify}
+                  commentsPaused={story.commentsPaused}
+                />
               </div>
             </>
           )}

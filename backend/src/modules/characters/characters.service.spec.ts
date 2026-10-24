@@ -168,6 +168,43 @@ describe('CharactersService', () => {
     expect(prisma.character.create).not.toHaveBeenCalled();
   });
 
+  it('acepta un avatar del catálogo ilustrado', async () => {
+    prisma.character.findUnique.mockResolvedValue(null);
+    prisma.character.create.mockResolvedValue({
+      id: 'char-1',
+      name: 'ElViajero',
+      avatarUrl: '/avatars/12.svg',
+      bio: null,
+      privacySettings: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await service.create('user-1', {
+      name: 'ElViajero',
+      avatarUrl: '/avatars/12.svg',
+    } as any);
+
+    expect(prisma.character.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ avatarUrl: '/avatars/12.svg' }),
+      }),
+    );
+    expect(result.avatarUrl).toBe('/avatars/12.svg');
+  });
+
+  it('rechaza rutas de avatar fuera del catálogo', async () => {
+    prisma.character.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.create('user-1', {
+        name: 'ElViajero',
+        avatarUrl: '/avatars/25.svg',
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.character.create).not.toHaveBeenCalled();
+  });
+
   it('lanza NotFound al consultar una identidad inexistente', async () => {
     prisma.character.findUnique.mockResolvedValue(null);
 

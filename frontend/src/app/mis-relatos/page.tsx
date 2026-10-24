@@ -233,6 +233,7 @@ export default function MyStoriesPage() {
         },
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
+        { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
         { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
@@ -264,6 +265,9 @@ export default function MyStoriesPage() {
         break;
       case 'tree':
         router.push('/mi-arbol');
+        break;
+      case 'help':
+        router.push('/soporte');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');

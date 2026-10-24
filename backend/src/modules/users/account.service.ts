@@ -63,11 +63,15 @@ export class AccountService {
       throw new NotFoundException('Cuenta no encontrada.');
     }
 
-    const [preferences, characters, mediaCount, activeSessions] = await Promise.all([
+    const [preferences, characters, mediaCount, activeSessions, deletion] = await Promise.all([
       this.prisma.userPreference.findUnique({ where: { userId } }),
       this.prisma.character.count({ where: { userId } }),
       this.prisma.mediaAsset.count({ where: { userId } }),
       this.sessionsService.listActiveForUser(userId),
+      this.prisma.accountDeletionRequest.findFirst({
+        where: { userId, completedAt: null, cancelledAt: null },
+        orderBy: { requestedAt: 'desc' },
+      }),
     ]);
 
     return {
@@ -76,12 +80,22 @@ export class AccountService {
         ? {
             emailNotifications: preferences.emailNotifications,
             pushNotifications: preferences.pushNotifications,
+            notificationsEnabled: preferences.notificationsEnabled,
+            readingSize: preferences.readingSize,
             theme: preferences.theme,
             language: preferences.language,
           }
-        : { emailNotifications: true, pushNotifications: true, theme: 'light', language: 'es' },
+        : {
+            emailNotifications: true,
+            pushNotifications: true,
+            notificationsEnabled: true,
+            readingSize: 'NORMAL',
+            theme: 'light',
+            language: 'es',
+          },
       usage: { characters, media: mediaCount },
       activeSessions: activeSessions.length,
+      deletion: deletion ? this.toDeletionView(deletion) : null,
     };
   }
 
@@ -99,6 +113,8 @@ export class AccountService {
       select: {
         emailNotifications: true,
         pushNotifications: true,
+        notificationsEnabled: true,
+        readingSize: true,
         theme: true,
         language: true,
       },
@@ -292,16 +308,14 @@ export class AccountService {
   }
 
   /**
-   * Baja de cuenta. No se borra nada de la base de datos: se marca el estado como
-   * DELETED y se cierran las sesiones. El login ya solo admite cuentas ACTIVE, así
-   * que la cuenta queda inutilizable de inmediato y sin perder los datos que
-   * referencian otros usuarios (relatos, comentarios, música). El borrado
-   * definitivo de filas y objetos es una tarea de mantenimiento aparte.
+   * Solicita la baja reversible. La cuenta pasa a DELETION_PENDING y podrá
+   * cancelarse hasta la fecha `eligibleAt`; la purga real la ejecuta un proceso
+   * programado, nunca esta petición.
    */
-  async deleteAccount(userId: string, dto: DeleteAccountDto) {
+  async requestDeletion(userId: string, dto: DeleteAccountDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, passwordHash: true, role: true },
+      select: { id: true, email: true, passwordHash: true, role: true, status: true },
     });
 
     if (!user?.passwordHash) {
@@ -312,6 +326,14 @@ export class AccountService {
 
     if (dto.confirmation?.trim().toUpperCase() !== CONFIRMATION_WORD) {
       throw new BadRequestException(`Escribe ${CONFIRMATION_WORD} para confirmar la baja.`);
+    }
+
+    if (user.status === 'DELETED') {
+      throw new ConflictException('Esta cuenta ya fue eliminada.');
+    }
+
+    if (user.status !== 'ACTIVE' && user.status !== 'DELETION_PENDING') {
+      throw new ConflictException('Esta cuenta no puede solicitar la baja en su estado actual.');
     }
 
     if (user.role === 'SUPERADMIN') {
@@ -325,28 +347,133 @@ export class AccountService {
       }
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { status: 'DELETED' },
+    const pending = await this.prisma.accountDeletionRequest.findFirst({
+      where: { userId, completedAt: null, cancelledAt: null },
+      orderBy: { requestedAt: 'desc' },
     });
 
-    const revoked = await this.sessionsService.revokeAllForUser(user.id);
+    if (pending) {
+      throw new ConflictException(
+        'Ya tienes una solicitud de baja pendiente. Puedes cancelarla desde Configuración.',
+      );
+    }
+
+    const now = new Date();
+    const eligibleAt = new Date(now.getTime() + env.deletion.graceDays * 24 * 60 * 60_000);
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const request = await tx.accountDeletionRequest.create({
+        data: { userId, requestedAt: now, eligibleAt },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { status: 'DELETION_PENDING' },
+      });
+
+      // Cerrar sesiones reduce el riesgo si la solicitud no la hizo la persona
+      // titular. Puede volver a entrar (estado pendiente) para cancelarla.
+      const revoked = await tx.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: now },
+      });
+
+      return { request, revoked: revoked.count };
+    });
 
     this.dispatchMail(
       {
         to: user.email,
-        subject: 'Whityouly - Tu cuenta se ha dado de baja',
-        text: 'Tu cuenta se ha dado de baja y ya no puedes iniciar sesión. Si no fuiste tú, contacta con soporte cuanto antes.',
+        subject: 'Whityouly - Solicitud de baja recibida',
+        text: `Recibimos tu solicitud de baja. La cuenta se eliminará el ${eligibleAt.toLocaleDateString('es-ES')} salvo que la canceles antes iniciando sesión en Configuración. Si no fuiste tú, cambia tu contraseña y contacta con soporte.`,
         html: `
-          <h3>Cuenta dada de baja</h3>
-          <p>Tu cuenta se ha dado de baja y ya no puedes iniciar sesión.</p>
-          <p>Si no fuiste tú, contacta con soporte cuanto antes.</p>
+          <h3>Solicitud de baja recibida</h3>
+          <p>Tu cuenta se eliminará el <strong>${eligibleAt.toLocaleDateString('es-ES')}</strong> salvo que canceles la solicitud antes.</p>
+          <p>Puedes cancelarla iniciando sesión y entrando en Configuración. Si no fuiste tú, cambia tu contraseña y contacta con soporte cuanto antes.</p>
         `,
       },
-      'aviso de baja de cuenta',
+      'aviso de baja programada',
     );
 
-    return { message: 'Tu cuenta se ha dado de baja.', revokedSessions: revoked };
+    return {
+      message: 'Solicitud de baja registrada.',
+      deletion: this.toDeletionView(result.request),
+      revokedSessions: result.revoked,
+    };
+  }
+
+  async getDeletion(userId: string) {
+    const [user, request] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { status: true },
+      }),
+      this.prisma.accountDeletionRequest.findFirst({
+        where: { userId, completedAt: null, cancelledAt: null },
+        orderBy: { requestedAt: 'desc' },
+      }),
+    ]);
+
+    if (!user) {
+      throw new NotFoundException('Cuenta no encontrada.');
+    }
+
+    return {
+      status: user.status,
+      deletion: request ? this.toDeletionView(request) : null,
+    };
+  }
+
+  async cancelDeletion(userId: string) {
+    const request = await this.prisma.accountDeletionRequest.findFirst({
+      where: { userId, completedAt: null, cancelledAt: null },
+      orderBy: { requestedAt: 'desc' },
+    });
+
+    if (!request) {
+      throw new NotFoundException('No hay una solicitud de baja pendiente.');
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const cancelled = await tx.accountDeletionRequest.update({
+        where: { id: request.id },
+        data: { cancelledAt: now },
+      });
+
+      await tx.user.updateMany({
+        where: { id: userId, status: 'DELETION_PENDING' },
+        data: { status: 'ACTIVE' },
+      });
+
+      return cancelled;
+    });
+
+    return {
+      message: 'Solicitud de baja cancelada. Tu cuenta sigue activa.',
+      deletion: this.toDeletionView(updated),
+    };
+  }
+
+  /** Compatibilidad: la antigua baja inmediata ahora inicia el periodo de gracia. */
+  async deleteAccount(userId: string, dto: DeleteAccountDto) {
+    return this.requestDeletion(userId, dto);
+  }
+
+  private toDeletionView(row: {
+    id: string;
+    requestedAt: Date;
+    eligibleAt: Date;
+    cancelledAt: Date | null;
+    completedAt: Date | null;
+  }) {
+    return {
+      id: row.id,
+      requestedAt: row.requestedAt,
+      eligibleAt: row.eligibleAt,
+      cancelledAt: row.cancelledAt,
+      completedAt: row.completedAt,
+    };
   }
 
   private async assertExists(userId: string) {
@@ -379,6 +506,10 @@ export class AccountService {
     return {
       ...(dto.emailNotifications === undefined ? {} : { emailNotifications: dto.emailNotifications }),
       ...(dto.pushNotifications === undefined ? {} : { pushNotifications: dto.pushNotifications }),
+      ...(dto.notificationsEnabled === undefined
+        ? {}
+        : { notificationsEnabled: dto.notificationsEnabled }),
+      ...(dto.readingSize === undefined ? {} : { readingSize: dto.readingSize }),
       ...(dto.theme === undefined ? {} : { theme: dto.theme }),
       ...(dto.language === undefined ? {} : { language: dto.language }),
     };

@@ -1,5 +1,6 @@
-import { API_URL } from './api';
+﻿import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
 import type { FollowingStory, StoryEmotion, StoryStage } from './stories';
 
@@ -85,7 +86,7 @@ function parseStoryItem(value: unknown, extra: Partial<FollowingStory> = {}): Fo
   return {
     id,
     title,
-    author: { name: authorName, avatarUrl: safeUrl(authorRecord.avatarUrl) },
+    author: { name: authorName, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),
     tags: parseNames(record.tags),
@@ -93,6 +94,7 @@ function parseStoryItem(value: unknown, extra: Partial<FollowingStory> = {}): Fo
     stageCount: numberOr(record.stageCount),
     supportCount: numberOr(record.supportCount),
     commentCount: numberOr(record.commentCount),
+    commentsPaused: record.commentsPaused === true,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
     ...extra,
@@ -141,7 +143,7 @@ async function request<T>(
   }
 }
 
-/** Contenido destacado (curado por administración). No requiere sesión. */
+/** Contenido destacado (curado por administraciÃ³n). No requiere sesiÃ³n. */
 export function getFeaturedStories(limit = 12): Promise<LoadResult<DiscoveryFeatured>> {
   return request(
     `/discover/featured?limit=${limit}`,
@@ -167,7 +169,7 @@ export function getFeaturedStories(limit = 12): Promise<LoadResult<DiscoveryFeat
   );
 }
 
-/** Relatos en tendencia por interacción reciente. */
+/** Relatos en tendencia por interacciÃ³n reciente. */
 export function getTrendingStories(limit = 12): Promise<LoadResult<{ items: TrendStory[] }>> {
   return request(
     `/discover/trends?limit=${limit}`,
@@ -190,7 +192,7 @@ export function getTrendingStories(limit = 12): Promise<LoadResult<{ items: Tren
   );
 }
 
-/** Personajes recomendados según los intereses y seguidos del usuario. */
+/** Personajes recomendados segÃºn los intereses y seguidos del usuario. */
 export function getRecommendedCharacters(
   limit = 12,
 ): Promise<LoadResult<{ items: RecommendedCharacter[] }>> {
@@ -209,7 +211,7 @@ export function getRecommendedCharacters(
               return {
                 name,
                 tagline: typeof row.tagline === 'string' ? row.tagline : null,
-                avatarUrl: safeUrl(row.avatarUrl),
+                avatarUrl: safeAvatarUrl(row.avatarUrl),
                 interests: parseNames(row.interests),
                 stories: numberOr(row.stories),
                 followers: numberOr(row.followers),

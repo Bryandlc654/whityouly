@@ -99,6 +99,10 @@ export default function EditProfilePage() {
       tagline: values.tagline || null,
       bio: values.bio || null,
       interests: values.interests,
+      avatarUrl:
+        !values.avatarFile && !values.removeAvatar
+          ? values.avatarPresetUrl ?? undefined
+          : undefined,
       privacySettings: values.privacySettings,
     });
 

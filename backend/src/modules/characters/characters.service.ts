@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCharacterDto, PrivacySettingsDto, UpdateCharacterDto } from './dto/character.dto';
 import { env } from '../../config/env';
 import { isOwnMediaUrl } from '../../common/storage/media-keys';
+import { isAvatarPresetUrl } from './avatar-presets';
 
 // Vista del propietario: incluye sus ajustes de privacidad pero nunca `userId`.
 const OWNER_CHARACTER_SELECT = {
@@ -542,6 +543,10 @@ export class CharactersService {
    */
   private assertAvatarBelongsToUs(avatarUrl: string | null | undefined) {
     if (!avatarUrl) {
+      return;
+    }
+    // Los avatares ilustrados son un catálogo estático cerrado.
+    if (isAvatarPresetUrl(avatarUrl)) {
       return;
     }
     if (!isOwnMediaUrl(avatarUrl, env.storage.publicBaseUrl)) {

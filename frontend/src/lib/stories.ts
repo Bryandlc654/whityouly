@@ -1,5 +1,6 @@
-import { API_URL } from './api';
+﻿import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { ReportReason } from './comments';
 import type { LoadResult } from './account';
 
@@ -41,7 +42,8 @@ export interface MyStory {
   commentCount: number;
   followerCount: number;
   withdrawnAt: string | null;
-  /** La API devuelve una ficha sin contenido cuando el autor retiró el relato. */
+  commentsPaused: boolean;
+  /** La API devuelve una ficha sin contenido cuando el autor retirÃ³ el relato. */
   withdrawn: boolean;
   createdAt: string;
   updatedAt: string;
@@ -61,6 +63,7 @@ export interface MyStoryListItem {
   supportCount: number;
   commentCount: number;
   withdrawnAt: string | null;
+  commentsPaused: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,7 +156,7 @@ function parseStory(value: unknown): MyStory | null {
     status: (record.status as StoryStatus) ?? 'DRAFT',
     author:
       typeof authorRecord.name === 'string'
-        ? { name: authorRecord.name, avatarUrl: safeUrl(authorRecord.avatarUrl) }
+        ? { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) }
         : null,
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),
@@ -167,6 +170,7 @@ function parseStory(value: unknown): MyStory | null {
     commentCount: numberOr(record.commentCount),
     followerCount: numberOr(record.followerCount),
     withdrawnAt: typeof record.withdrawnAt === 'string' ? record.withdrawnAt : null,
+    commentsPaused: record.commentsPaused === true,
     withdrawn: record.withdrawn === true,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
@@ -193,6 +197,7 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
     supportCount: numberOr(record.supportCount),
     commentCount: numberOr(record.commentCount),
     withdrawnAt: typeof record.withdrawnAt === 'string' ? record.withdrawnAt : null,
+    commentsPaused: record.commentsPaused === true,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
   };
@@ -312,7 +317,7 @@ export function getMyStory(id: string): Promise<LoadResult<MyStory>> {
 }
 
 /**
- * Detalle autenticado: sirve tanto para relatos públicos como para los que solo
+ * Detalle autenticado: sirve tanto para relatos pÃºblicos como para los que solo
  * ven los seguidores. La API decide si el relato es visible para el usuario.
  */
 export function viewStory(id: string): Promise<LoadResult<MyStory>> {
@@ -373,7 +378,7 @@ export function deleteStoryStage(
   );
 }
 
-/** Destaca/quita de destacadas un relato propio en el perfil público. */
+/** Destaca/quita de destacadas un relato propio en el perfil pÃºblico. */
 export function featureStory(id: string): Promise<LoadResult<MyStory>> {
   return authedRequest(
     `/stories/me/${encodeURIComponent(id)}/feature`,
@@ -410,6 +415,24 @@ export function unpublishStory(id: string): Promise<LoadResult<MyStory>> {
   );
 }
 
+export function pauseStoryComments(id: string): Promise<LoadResult<MyStory>> {
+  return authedRequest(
+    `/stories/me/${encodeURIComponent(id)}/comments/pause`,
+    { method: 'POST' },
+    'No se pudieron pausar los comentarios.',
+    (body) => parseStory(body),
+  );
+}
+
+export function resumeStoryComments(id: string): Promise<LoadResult<MyStory>> {
+  return authedRequest(
+    `/stories/me/${encodeURIComponent(id)}/comments/pause`,
+    { method: 'DELETE' },
+    'No se pudieron reabrir los comentarios.',
+    (body) => parseStory(body),
+  );
+}
+
 /** Retira un relato sin borrarlo; se conserva para poder restaurarlo. */
 export function withdrawStory(id: string): Promise<LoadResult<MyStory>> {
   return authedRequest(
@@ -431,7 +454,7 @@ export function restoreStory(id: string): Promise<LoadResult<MyStory>> {
 
 /**
  * Reporta un relato ajeno. La API rechaza auto-reportes y reportes duplicados,
- * así que el mensaje de error se muestra tal cual llega.
+ * asÃ­ que el mensaje de error se muestra tal cual llega.
  */
 export function reportStory(
   id: string,
@@ -471,6 +494,7 @@ export interface FollowingStory {
   stageCount: number;
   supportCount: number;
   commentCount: number;
+  commentsPaused: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -490,7 +514,7 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
   return {
     id,
     title,
-    author: { name: authorRecord.name, avatarUrl: safeUrl(authorRecord.avatarUrl) },
+    author: { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),
     tags: parseNames(record.tags),
@@ -498,6 +522,7 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
     stageCount: numberOr(record.stageCount),
     supportCount: numberOr(record.supportCount),
     commentCount: numberOr(record.commentCount),
+    commentsPaused: record.commentsPaused === true,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
   };
@@ -516,7 +541,7 @@ function parseFollowingPage(body: unknown): FollowingPage {
   };
 }
 
-/** Relatos publicados por los personajes que sigues (públicos y para seguidores). */
+/** Relatos publicados por los personajes que sigues (pÃºblicos y para seguidores). */
 export function listFollowingStories(
   params: { cursor?: string } = {},
 ): Promise<LoadResult<FollowingPage>> {
@@ -538,7 +563,7 @@ function parseFeedSection(value: unknown): FollowingStory[] {
     .filter((item: FollowingStory | null): item is FollowingStory => item !== null);
 }
 
-/** Feed principal unificado (requiere sesión): el algoritmo ordena todo el contenido por relevancia. */
+/** Feed principal unificado (requiere sesiÃ³n): el algoritmo ordena todo el contenido por relevancia. */
 export function getFeed(): Promise<LoadResult<{ items: FollowingStory[] }>> {
   return authedRequest(
     '/feed',
@@ -551,7 +576,7 @@ export function getFeed(): Promise<LoadResult<{ items: FollowingStory[] }>> {
   );
 }
 
-/** Feed público (relatos publicados con visibilidad pública). */
+/** Feed pÃºblico (relatos publicados con visibilidad pÃºblica). */
 export function listPublicStories(
   params: { cursor?: string; q?: string; category?: string; emotion?: string; tag?: string } = {},
 ): Promise<LoadResult<FollowingPage>> {

@@ -35,6 +35,10 @@ describe('NotificationsService', () => {
       },
       character: { findMany: vi.fn().mockResolvedValue([]) },
       story: { findMany: vi.fn().mockResolvedValue([]) },
+      userPreference: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -66,6 +70,35 @@ describe('NotificationsService', () => {
         actorCharacterId: 'char-1',
       },
     });
+  });
+
+  it('respeta la preferencia de avisos dentro de la app', async () => {
+    prisma.userPreference.findUnique.mockResolvedValue({ notificationsEnabled: false });
+
+    await service.create({
+      userId: 'user-2',
+      type: NOTIFICATION_TYPES.FOLLOW,
+      entityType: 'CHARACTER',
+      entityId: 'char-2',
+      actorCharacterId: 'char-1',
+      actorUserId: 'user-1',
+    });
+
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+  });
+
+  it('entrega siempre los avisos de moderación', async () => {
+    prisma.userPreference.findUnique.mockResolvedValue({ notificationsEnabled: false });
+
+    await service.create({
+      userId: 'user-2',
+      type: NOTIFICATION_TYPES.MODERATION,
+      entityType: 'STORY',
+      entityId: 'story-1',
+      actorUserId: 'admin-1',
+    });
+
+    expect(prisma.notification.create).toHaveBeenCalled();
   });
 
   it('descarta las notificaciones a uno mismo', async () => {

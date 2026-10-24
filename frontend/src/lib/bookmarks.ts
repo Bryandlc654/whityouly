@@ -1,5 +1,6 @@
-import { API_URL } from './api';
+﻿import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
 
 export interface SavedStory {
@@ -78,7 +79,7 @@ function parseSaved(value: unknown): SavedStory | null {
     visibility: typeof record.visibility === 'string' ? record.visibility : 'PUBLIC',
     author:
       typeof authorRecord.name === 'string'
-        ? { name: authorRecord.name, avatarUrl: safeUrl(authorRecord.avatarUrl) }
+        ? { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) }
         : null,
     opening: openingRecord
       ? {

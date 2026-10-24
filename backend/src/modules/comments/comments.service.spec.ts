@@ -40,6 +40,11 @@ describe('CommentsService', () => {
         findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({}),
       },
+      commentDraft: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        upsert: vi.fn(),
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
       commentHelpful: {
         findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn().mockResolvedValue(null),
@@ -89,6 +94,52 @@ describe('CommentsService', () => {
     await expect(service.create('user-1', 'story-1', { content: 'Hola' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('no permite comentar si el autor pausó los comentarios', async () => {
+    storiesService.assertStoryVisible.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-owner',
+      ownerUserId: 'user-owner',
+      isOwner: false,
+      commentsPaused: true,
+    });
+
+    await expect(
+      service.create('user-1', 'story-1', { content: 'Hola' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.comment.create).not.toHaveBeenCalled();
+  });
+
+  it('guarda el borrador privado y lo elimina cuando queda vacío', async () => {
+    prisma.commentDraft.upsert.mockResolvedValue({
+      content: 'Texto en curso',
+      updatedAt: new Date(),
+    });
+
+    const saved = await service.saveDraft('user-1', 'story-1', '  Texto   en curso  ');
+    expect(saved.content).toBe('Texto en curso');
+    expect(prisma.commentDraft.upsert).toHaveBeenCalled();
+
+    await service.saveDraft('user-1', 'story-1', '   ');
+    expect(prisma.commentDraft.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', storyId: 'story-1' },
+    });
+  });
+
+  it('recupera solo el borrador de la persona autenticada', async () => {
+    prisma.commentDraft.findUnique.mockResolvedValue({
+      content: 'Borrador',
+      updatedAt: new Date(),
+    });
+
+    const draft = await service.getDraft('user-1', 'story-1');
+
+    expect(draft.content).toBe('Borrador');
+    expect(prisma.commentDraft.findUnique).toHaveBeenCalledWith({
+      where: { userId_storyId: { userId: 'user-1', storyId: 'story-1' } },
+      select: { content: true, updatedAt: true },
+    });
   });
 
   it('crea un comentario de primer nivel', async () => {

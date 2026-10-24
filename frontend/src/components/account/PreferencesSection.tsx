@@ -15,6 +15,12 @@ const THEMES = [
   { value: 'system', label: 'Según el sistema' },
 ];
 
+const READING_SIZES: { value: AccountPreferences['readingSize']; label: string }[] = [
+  { value: 'NORMAL', label: 'Normal' },
+  { value: 'LARGE', label: 'Grande' },
+  { value: 'LARGER', label: 'Más grande' },
+];
+
 export default function PreferencesSection({ account, onSaved }: Props) {
   const [preferences, setPreferences] = useState<AccountPreferences>(account.preferences);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -23,7 +29,9 @@ export default function PreferencesSection({ account, onSaved }: Props) {
   const dirty =
     preferences.theme !== account.preferences.theme ||
     preferences.pushNotifications !== account.preferences.pushNotifications ||
-    preferences.emailNotifications !== account.preferences.emailNotifications;
+    preferences.emailNotifications !== account.preferences.emailNotifications ||
+    preferences.notificationsEnabled !== account.preferences.notificationsEnabled ||
+    preferences.readingSize !== account.preferences.readingSize;
 
   async function save() {
     setSaving(true);
@@ -33,12 +41,19 @@ export default function PreferencesSection({ account, onSaved }: Props) {
       theme: preferences.theme,
       pushNotifications: preferences.pushNotifications,
       emailNotifications: preferences.emailNotifications,
+      notificationsEnabled: preferences.notificationsEnabled,
+      readingSize: preferences.readingSize,
     });
 
     setSaving(false);
 
     if (result.status === 'ok') {
       onSaved({ ...account, preferences: { ...preferences, ...result.data } });
+      window.dispatchEvent(
+        new CustomEvent('withyouly:reading-size', {
+          detail: result.data.readingSize ?? preferences.readingSize,
+        }),
+      );
       setStatus({ kind: 'ok', text: 'Preferencias guardadas.' });
       return;
     }
@@ -73,8 +88,52 @@ export default function PreferencesSection({ account, onSaved }: Props) {
       </div>
 
       <div>
+        <label className="field-label">Lectura</label>
+        <p className="hint" style={{ margin: '0 0 8px' }}>
+          Ajusta el tamaño de los relatos, etapas y comentarios.
+        </p>
+        <div className="segmented">
+          {READING_SIZES.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={preferences.readingSize === option.value ? 'active' : undefined}
+              aria-pressed={preferences.readingSize === option.value}
+              onClick={() =>
+                setPreferences((prev) => ({ ...prev, readingSize: option.value }))
+              }
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <label className="field-label">Avisos</label>
         <div className="settings-list">
+          <label className="settings-row">
+            <span>
+              <Icon name="bell" />
+            </span>
+            <span>
+              <b>Avisos dentro de la app</b>
+              <small>Seguidores, comentarios y etapas de relatos que sigues.</small>
+            </span>
+            <span>
+              <input
+                type="checkbox"
+                checked={preferences.notificationsEnabled}
+                onChange={(event) =>
+                  setPreferences((prev) => ({
+                    ...prev,
+                    notificationsEnabled: event.target.checked,
+                  }))
+                }
+              />
+            </span>
+          </label>
+
           <label className="settings-row">
             <span>
               <Icon name="mail" />

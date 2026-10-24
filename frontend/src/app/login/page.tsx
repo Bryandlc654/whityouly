@@ -37,6 +37,7 @@ export default function LoginPage() {
       const data = await res.json();
       // El refresh token viaja en una cookie httpOnly; solo guardamos el access token.
       tokenStorage.setAccess(data.accessToken);
+      window.dispatchEvent(new Event('withyouly:session-changed'));
 
       setSuccess(true);
 

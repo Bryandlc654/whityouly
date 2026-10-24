@@ -884,3 +884,22 @@
 .wy .social-person>.secondary.on{background:var(--purple-3);color:var(--purple)}
 @media (max-width:640px){.wy .profile-stats.card{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:600px){.wy .social-person{grid-template-columns:38px minmax(0,1fr) auto;gap:9px}.wy .social-person .avatar-sm{width:38px;height:38px;font-size:12px}.wy .social-person>.secondary{max-width:104px;font-size:12px;padding:9px}}
+
+/* Tamano de lectura elegido por la persona (normal/grande/mas grande). */
+html[data-reading-size="LARGE"] .wy .post-text,
+html[data-reading-size="LARGE"] .wy .story-stage-text,
+html[data-reading-size="LARGE"] .wy .comment-body,
+html[data-reading-size="LARGE"] .wy .profile-bio{font-size:17px;line-height:1.7}
+html[data-reading-size="LARGER"] .wy .post-text,
+html[data-reading-size="LARGER"] .wy .story-stage-text,
+html[data-reading-size="LARGER"] .wy .comment-body,
+html[data-reading-size="LARGER"] .wy .profile-bio{font-size:19px;line-height:1.75}
+
+/* Selector de 24 avatares ilustrados (sin datos personales). */
+.wy .avatar-presets{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:6px}
+.wy .avatar-preset{border:2px solid transparent;background:#fff;border-radius:14px;padding:3px;cursor:pointer;line-height:0;transition:border-color .15s ease,transform .12s ease}
+.wy .avatar-preset img{width:100%;height:auto;border-radius:10px;display:block}
+.wy .avatar-preset:hover{transform:translateY(-1px);border-color:#c9bcff}
+.wy .avatar-preset.active{border-color:var(--purple);box-shadow:0 0 0 3px rgba(104,71,245,.12)}
+.wy .avatar-preset:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:520px){.wy .avatar-presets{grid-template-columns:repeat(6,1fr)}}

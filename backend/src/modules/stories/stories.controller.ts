@@ -153,6 +153,26 @@ export class StoriesController {
     return this.storiesService.unfeature(req.user.userId, id);
   }
 
+  @Post('me/:id/comments/pause')
+  @ApiOperation({ summary: 'Pausar los comentarios de un relato propio' })
+  @ApiResponse({ status: 409, description: 'El relato no está publicado.' })
+  pauseComments(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.storiesService.pauseComments(req.user.userId, id);
+  }
+
+  @Delete('me/:id/comments/pause')
+  @ApiOperation({ summary: 'Reabrir los comentarios de un relato propio' })
+  @ApiResponse({ status: 409, description: 'El relato no está publicado.' })
+  resumeComments(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.storiesService.resumeComments(req.user.userId, id);
+  }
+
   @Post('me/:id/withdraw')
   @ApiOperation({ summary: 'Retirar un relato publicado (reversible)' })
   @ApiResponse({ status: 409, description: 'El relato no está publicado.' })

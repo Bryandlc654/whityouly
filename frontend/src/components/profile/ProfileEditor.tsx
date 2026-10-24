@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
-import { AVATAR_ACCEPT, validateAvatarFile } from '@/lib/avatar';
+import {
+  AVATAR_ACCEPT,
+  AVATAR_PRESETS,
+  isAvatarPresetUrl,
+  validateAvatarFile,
+} from '@/lib/avatar';
 import { checkNameAvailability, listInterests, type OwnerCharacter } from '@/lib/characters';
 import type { PrivacySettings } from '@/components/feed/types';
 
@@ -31,6 +36,7 @@ export interface ProfileEditorValues {
   privacySettings: PrivacySettings;
   avatarFile: File | null;
   removeAvatar: boolean;
+  avatarPresetUrl: string | null;
 }
 
 interface Props {
@@ -103,6 +109,9 @@ export default function ProfileEditor({
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(initial?.avatarUrl ?? null);
+  const [avatarPresetUrl, setAvatarPresetUrl] = useState<string | null>(
+    isAvatarPresetUrl(initial?.avatarUrl) ? initial!.avatarUrl! : null,
+  );
   const [removeAvatar, setRemoveAvatar] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -212,6 +221,21 @@ export default function ProfileEditor({
     previewUrlRef.current = url;
     setAvatarPreview(url);
     setAvatarFile(file);
+    setAvatarPresetUrl(null);
+    setRemoveAvatar(false);
+    setLocalError('');
+  };
+
+  const choosePreset = (url: string) => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    setAvatarFile(null);
+    setAvatarPresetUrl(url);
+    setAvatarPreview(url);
     setRemoveAvatar(false);
     setLocalError('');
   };
@@ -230,11 +254,13 @@ export default function ProfileEditor({
       // Se descarta la selección nueva y se vuelve al avatar ya guardado.
       setAvatarFile(null);
       setAvatarPreview(initial?.avatarUrl ?? null);
+      setAvatarPresetUrl(isAvatarPresetUrl(initial?.avatarUrl) ? initial!.avatarUrl! : null);
       setRemoveAvatar(false);
       return;
     }
 
     setAvatarPreview(null);
+    setAvatarPresetUrl(null);
     setRemoveAvatar(Boolean(initial?.avatarUrl));
   };
 
@@ -276,6 +302,7 @@ export default function ProfileEditor({
       privacySettings: privacy,
       avatarFile,
       removeAvatar,
+      avatarPresetUrl,
     });
   };
 
@@ -327,9 +354,28 @@ export default function ProfileEditor({
             </button>
           ) : null}
           <p className="hint" style={{ margin: '6px 0 0' }}>
-            JPEG, PNG o WebP · máximo 2 MB.
+            JPEG, PNG o WebP · máximo 2 MB. Si prefieres no usar una foto, elige un
+            avatar ilustrado.
           </p>
         </div>
+      </div>
+
+      <label>Avatares ilustrados</label>
+      <div className="avatar-presets" role="group" aria-label="Avatares ilustrados">
+        {AVATAR_PRESETS.map((url) => (
+          <button
+            key={url}
+            type="button"
+            className={`avatar-preset${avatarPresetUrl === url ? ' active' : ''}`}
+            aria-pressed={avatarPresetUrl === url}
+            aria-label={`Elegir avatar ${url.slice('/avatars/'.length, -4)}`}
+            onClick={() => choosePreset(url)}
+            disabled={busy}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" width={48} height={48} />
+          </button>
+        ))}
       </div>
 
       <label htmlFor="profile-name">Seudónimo</label>

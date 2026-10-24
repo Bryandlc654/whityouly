@@ -19,6 +19,7 @@ import {
 
 const THEMES = ['light', 'dark', 'system'] as const;
 const LANGUAGES = ['es'] as const;
+const READING_SIZES = ['NORMAL', 'LARGE', 'LARGER'] as const;
 
 export class UpdatePreferencesDto {
   @ApiPropertyOptional({ example: true })
@@ -30,6 +31,19 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   pushNotifications?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Avisos dentro de la aplicación, independientes de correo y push.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  notificationsEnabled?: boolean;
+
+  @ApiPropertyOptional({ enum: READING_SIZES, example: 'NORMAL' })
+  @IsOptional()
+  @IsIn(READING_SIZES, { message: `El tamaño de lectura debe ser uno de: ${READING_SIZES.join(', ')}` })
+  readingSize?: (typeof READING_SIZES)[number];
 
   @ApiPropertyOptional({ enum: THEMES, example: 'dark' })
   @IsOptional()

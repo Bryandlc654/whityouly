@@ -1,5 +1,6 @@
-import { API_URL } from './api';
+﻿import { API_URL } from './api';
 import { authFetch } from './auth';
+import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
 
 export type NotificationStatus = 'UNREAD' | 'READ';
@@ -10,7 +11,7 @@ export interface NotificationItem {
   status: NotificationStatus;
   entityType: string;
   entityId: string | null;
-  /** Cuántos eventos agrupa (1 = aviso individual). */
+  /** CuÃ¡ntos eventos agrupa (1 = aviso individual). */
   count: number;
   createdAt: string;
   actor: { name: string; avatarUrl: string | null } | null;
@@ -28,16 +29,6 @@ export interface NotificationsPage {
 }
 
 const REQUEST_TIMEOUT_MS = 10_000;
-
-function safeUrl(value: unknown): string | null {
-  if (typeof value !== 'string' || value === '') return null;
-  try {
-    const { protocol } = new URL(value);
-    return protocol === 'https:' || protocol === 'http:' ? value : null;
-  } catch {
-    return null;
-  }
-}
 
 function messageFrom(body: unknown, fallback: string): string {
   const record = (body ?? {}) as Record<string, unknown>;
@@ -103,7 +94,7 @@ function parseItem(value: unknown): NotificationItem | null {
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     actor:
       typeof actorRecord.name === 'string'
-        ? { name: actorRecord.name, avatarUrl: safeUrl(actorRecord.avatarUrl) }
+        ? { name: actorRecord.name, avatarUrl: safeAvatarUrl(actorRecord.avatarUrl) }
         : null,
     story: storyRecord && typeof storyRecord.id === 'string' && typeof storyRecord.title === 'string'
       ? {
@@ -113,7 +104,7 @@ function parseItem(value: unknown): NotificationItem | null {
             typeof (storyRecord.author as Record<string, unknown>)?.name === 'string'
               ? {
                   name: (storyRecord.author as Record<string, unknown>).name as string,
-                  avatarUrl: safeUrl(
+                  avatarUrl: safeAvatarUrl(
                     (storyRecord.author as Record<string, unknown>).avatarUrl,
                   ),
                 }
@@ -176,7 +167,7 @@ export function markNotificationRead(id: string): Promise<LoadResult<{ id: strin
   return request(
     `/notifications/${encodeURIComponent(id)}/read`,
     { method: 'POST' },
-    'No se pudo marcar la notificación.',
+    'No se pudo marcar la notificaciÃ³n.',
     (body) => {
       const record = (body ?? {}) as Record<string, unknown>;
       return typeof record.id === 'string' ? { id: record.id, status: 'READ' as const } : null;

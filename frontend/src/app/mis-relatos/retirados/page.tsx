@@ -129,6 +129,7 @@ export default function WithdrawnStoriesPage() {
           onClick: () => router.push('/perfil/editar'),
         },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
+        { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
         {
           label: 'Configuración de la cuenta',
           icon: 'settings',
@@ -164,6 +165,9 @@ export default function WithdrawnStoriesPage() {
         break;
       case 'tree':
         router.push('/mi-arbol');
+        break;
+      case 'help':
+        router.push('/soporte');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');

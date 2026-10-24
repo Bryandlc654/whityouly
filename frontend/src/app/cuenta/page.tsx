@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { fetchAccount, type Account } from '@/lib/account';
+import { exportAccountData, fetchAccount, type Account } from '@/lib/account';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -44,6 +44,7 @@ export default function AccountPage() {
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const notify = useCallback((message: string) => {
@@ -102,6 +103,29 @@ export default function AccountPage() {
     router.push('/login');
   }, [router]);
 
+  const downloadData = useCallback(async () => {
+    if (exporting) return;
+
+    setExporting(true);
+    const result = await exportAccountData();
+    setExporting(false);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
+      return;
+    }
+
+    const url = URL.createObjectURL(result.data.blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = result.data.filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    notify('Copia de tus datos descargada.');
+  }, [exporting, notify]);
+
   const openAccount = () => {
     setSheet({
       title: 'Tu cuenta',
@@ -136,6 +160,9 @@ export default function AccountPage() {
         router.push('/explorar');
         break;
       case 'profile':
+        break;
+      case 'help':
+        router.push('/soporte');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');
@@ -183,6 +210,11 @@ export default function AccountPage() {
                 {account.activeSessions}{' '}
                 {account.activeSessions === 1 ? 'sesión activa' : 'sesiones activas'}
               </span>
+              {account.deletion ? (
+                <span className="account-badge" style={{ borderColor: '#f0cdd1', color: '#a13c48' }}>
+                  <Icon name="trash" /> Baja programada
+                </span>
+              ) : null}
               {character ? (
                 <button
                   className="secondary"
@@ -245,7 +277,9 @@ export default function AccountPage() {
               />
             )}
             {tab === 'archivos' && <FilesSection usage={account.usage} />}
-            {tab === 'baja' && <DeleteAccountSection />}
+            {tab === 'baja' && (
+              <DeleteAccountSection account={account} onReload={load} />
+            )}
 
             <p className="account-note">
               Tu correo se usa solo para iniciar sesión y recuperar la cuenta: nunca aparece en tu
@@ -265,6 +299,39 @@ export default function AccountPage() {
                 onClick={() => router.push('/mis-reportes')}
               >
                 <Icon name="flag" /> Ver mis reportes
+              </button>
+            </section>
+
+            <section className="card pad row-between" aria-labelledby="soporte-title">
+              <div>
+                <b id="soporte-title">Ayuda y soporte</b>
+                <p className="hint" style={{ margin: '4px 0 0' }}>
+                  Escríbenos o consulta el estado de tus solicitudes.
+                </p>
+              </div>
+              <button
+                className="secondary"
+                type="button"
+                onClick={() => router.push('/soporte')}
+              >
+                <Icon name="mail" /> Contactar soporte
+              </button>
+            </section>
+
+            <section className="card pad row-between" aria-labelledby="datos-title">
+              <div>
+                <b id="datos-title">Tus datos</b>
+                <p className="hint" style={{ margin: '4px 0 0' }}>
+                  Descarga un JSON con tu cuenta, relatos, comentarios, diario y actividad.
+                </p>
+              </div>
+              <button
+                className="secondary"
+                type="button"
+                onClick={() => void downloadData()}
+                disabled={exporting}
+              >
+                <Icon name="book" /> {exporting ? 'Preparando…' : 'Descargar mis datos'}
               </button>
             </section>
           </>
