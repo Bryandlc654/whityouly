@@ -119,6 +119,251 @@ body {
   background: var(--purple);
 }
 
+/* Menú desplegable de notificaciones del encabezado. */
+.wy .notif-menu {
+  position: relative;
+  display: flex;
+}
+
+.wy .notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 70;
+  width: min(380px, calc(100vw - 20px));
+  overflow: hidden;
+  border: 1px solid #e2e3e8;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 55px rgba(20, 14, 50, 0.18);
+}
+
+.wy .notif-dropdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e3e8;
+}
+
+.wy .notif-dropdown-head h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.25;
+  color: #191a20;
+}
+
+.wy .notif-dropdown-head small {
+  display: block;
+  margin-top: 2px;
+  color: #50535d;
+  font-size: 11px;
+}
+
+.wy .notif-dropdown-head .text-link {
+  flex: 0 0 auto;
+  font-size: 12px;
+  min-height: 32px;
+}
+
+.wy .notif-dropdown-list {
+  max-height: min(400px, 60vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.wy .notif-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 8px;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #f0f0f3;
+  background: #fff;
+  padding: 12px 16px;
+  text-align: left;
+  font: inherit;
+  color: #191a20;
+  cursor: pointer;
+}
+
+.wy .notif-row:last-child {
+  border-bottom: 0;
+}
+
+.wy .notif-row:hover {
+  background: #f7f4ff;
+}
+
+.wy .notif-row.unread {
+  background: #fbf9ff;
+}
+
+.wy .notif-row-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f1edff;
+  color: #6246f5;
+}
+
+.wy .notif-row-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.wy .notif-row-copy {
+  min-width: 0;
+}
+
+.wy .notif-row-copy b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #191a20;
+  overflow-wrap: anywhere;
+}
+
+.wy .notif-row-copy small {
+  display: block;
+  margin-top: 3px;
+  color: #50535d;
+  font-size: 11px;
+}
+
+.wy .notif-row-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6246f5;
+}
+
+.wy .notif-dropdown-status {
+  margin: 0;
+  padding: 20px 16px;
+  color: #50535d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wy .notif-dropdown-foot {
+  padding: 10px 12px 12px;
+  border-top: 1px solid #e2e3e8;
+}
+
+.wy .notif-dropdown-foot .secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 42px;
+  text-decoration: none;
+}
+
+.wy .notif-dropdown-foot .secondary svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Página de notificaciones. */
+.wy .notifications-screen {
+  gap: 12px;
+}
+
+.wy .notifications-screen .screen-heading {
+  padding: 2px 0;
+}
+
+.wy .notice-section-title {
+  margin: 9px 0 1px;
+  color: #191a20;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.wy .notification-link {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid #e2e3e8;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px 18px;
+  text-align: left;
+  font: inherit;
+  color: #191a20;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.wy .notification-link:hover {
+  background: #fbfaff;
+}
+
+.wy .notification-link.unread {
+  border-left: 3px solid #6246f5;
+  background: #fbf9ff;
+}
+
+.wy .notification-link b {
+  display: block;
+  color: #191a20;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.wy .notification-link small {
+  display: block;
+  margin-top: 5px;
+  color: #50535d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.wy .notification-link > svg {
+  width: 18px;
+  height: 18px;
+  color: #50535d;
+}
+
+.wy .notifications-screen > .private-line {
+  margin: 10px 0 0;
+}
+
+@media (max-width: 820px) {
+  .wy .notif-dropdown {
+    position: fixed;
+    top: calc(var(--top) + 8px);
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .wy .notifications-screen {
+    padding: 0 16px;
+  }
+
+  .wy .notification-link {
+    grid-template-columns: 38px minmax(0, 1fr) 16px;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .wy .notification-link b {
+    font-size: 13px;
+  }
+}
+
 .wy .chip {
   border: 1px solid var(--line);
   background: #fff;

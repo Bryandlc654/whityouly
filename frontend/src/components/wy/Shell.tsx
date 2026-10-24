@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import Icon from './Icon';
 import type { IconName } from './icons';
 import HeaderSearch from './HeaderSearch';
+import NotificationsMenu from './NotificationsMenu';
 import StoryViewer from './StoryViewer';
 
 export type WyRoute =
@@ -72,19 +73,7 @@ function TopBar({
           >
             <Icon name="help" />
           </button>
-          <button
-            className="icon-btn"
-            type="button"
-            onClick={() => onNavigate('notifications')}
-            aria-label="Notificaciones"
-          >
-            <Icon name="bell" />
-            {unreadNotifications > 0 ? (
-              <span className="notif-badge" aria-hidden>
-                {unreadNotifications > 9 ? '9+' : unreadNotifications}
-              </span>
-            ) : null}
-          </button>
+          <NotificationsMenu unreadCount={unreadNotifications} onOpenStory={onOpenStory} />
           <button
             className="avatar avatar-sm"
             type="button"
