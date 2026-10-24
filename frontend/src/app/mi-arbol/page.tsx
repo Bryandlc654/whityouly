@@ -175,8 +175,6 @@ export default function MiArbolPage() {
         <RightRail
           summaryHidden={false}
           onToggleSummary={() => notify('Tu árbol es privado: solo tú lo ves.')}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar “${category}” llega pronto.`)}
           onMood={() => router.push('/mi-estado')}
         />
       }

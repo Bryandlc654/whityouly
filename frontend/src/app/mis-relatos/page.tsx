@@ -174,6 +174,11 @@ export default function MyStoriesPage() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('compose') === '1') setComposerOpen(true);
+  }, []);
+
+  useEffect(() => {
     if (loading) return;
     if (view === 'saved') {
       void loadSaved();
@@ -493,10 +498,7 @@ export default function MyStoriesPage() {
       rightRail={
         <RightRail
           summaryHidden={summaryHidden}
-          onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={() => router.push('/mi-estado')}
+          onToggleSummary={() => setSummaryHidden((value) => !value)}          onMood={() => router.push('/mi-estado')}
         />
       }
     >

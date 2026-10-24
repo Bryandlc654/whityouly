@@ -20,11 +20,10 @@ import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
 import { unreadNotificationsCount } from '@/lib/notifications';
-import NotificationsPanel from '@/components/wy/NotificationsPanel';
-import type { DemoStory } from '@/components/wy/feedData';
+import type { FeedStory } from '@/components/wy/feedData';
 import { createEmotionalLog, daypartToLoggedAt } from '@/lib/emotionalMap';
 
-interface FeedEntry extends DemoStory {
+interface FeedEntry extends FeedStory {
   isOwn: boolean;
   status?: 'DRAFT' | 'PUBLISHED';
   mediaUrl?: string | null;
@@ -101,7 +100,6 @@ export default function FeedPage() {
   const [toast, setToast] = useState('');
   const [feedTab, setFeedTab] = useState<'for-you' | 'following'>('for-you');
   const [summaryHidden, setSummaryHidden] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -387,7 +385,7 @@ export default function FeedPage() {
         router.push('/mi-arbol');
         break;
       case 'notifications':
-        setNotificationsOpen(true);
+        router.push('/notificaciones');
         break;
       case 'help':
         router.push('/soporte');
@@ -465,20 +463,7 @@ export default function FeedPage() {
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={
-        notificationsOpen ? (
-          <NotificationsPanel
-            onClose={() => setNotificationsOpen(false)}
-            onUnreadChange={setUnreadCount}
-            onOpenStory={(storyId) => {
-              setNotificationsOpen(false);
-              setReader({ id: storyId, title: '' });
-            }}
-            onOpenCharacter={(name) => {
-              setNotificationsOpen(false);
-              router.push(`/personaje/${encodeURIComponent(name)}`);
-            }}
-          />
-        ) : reader ? (
+        reader ? (
           <StoryViewer
             storyId={reader.id}
             title={reader.title}
@@ -506,10 +491,7 @@ export default function FeedPage() {
       rightRail={
         <RightRail
           summaryHidden={summaryHidden}
-          onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={() => router.push('/mi-estado')}
+          onToggleSummary={() => setSummaryHidden((value) => !value)}          onMood={() => router.push('/mi-estado')}
         />
       }
     >

@@ -1,4 +1,4 @@
-﻿/* Generado desde el prototipo Withyouly v7 (app.css). Acotado a .wy para no
+/* Generado desde el prototipo Withyouly v7 (app.css). Acotado a .wy para no
    afectar al resto de la app. No editar a mano: regenerar con el transformador. */
 .wy{
   --ink:#182034;--muted:#70778d;--muted-2:#9ba1b2;--line:#e9e8f1;--surface:#fff;
@@ -895,8 +895,8 @@ html[data-reading-size="LARGER"] .wy .story-stage-text,
 html[data-reading-size="LARGER"] .wy .comment-body,
 html[data-reading-size="LARGER"] .wy .profile-bio{font-size:19px;line-height:1.75}
 
-/* Selector de 24 avatares ilustrados (sin datos personales). */
-.wy .avatar-presets{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:6px}
+/* Selector de 36 avatares ilustrados (sin datos personales). */
+.wy .avatar-presets{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-top:6px}
 .wy .avatar-preset{border:2px solid transparent;background:#fff;border-radius:14px;padding:3px;cursor:pointer;line-height:0;transition:border-color .15s ease,transform .12s ease}
 .wy .avatar-preset img{width:100%;height:auto;border-radius:10px;display:block}
 .wy .avatar-preset:hover{transform:translateY(-1px);border-color:#c9bcff}

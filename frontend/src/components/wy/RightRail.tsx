@@ -15,8 +15,6 @@ import { getTree, type TreeView } from '@/lib/tree';
 interface RightRailProps {
   summaryHidden: boolean;
   onToggleSummary: () => void;
-  onDaily: () => void;
-  onCategory: (category: string) => void;
   onMood: () => void;
 }
 
@@ -27,15 +25,10 @@ function dayLabel(value: string, index: number) {
   if (Number.isNaN(date.getTime())) return DAYS[index] ?? '';
   return DAYS[(date.getDay() + 6) % 7];
 }
-const WEEK: { value: number; color: string }[] = [
-  { value: 7, color: '#f1a83b' },
-  { value: 6, color: '#43c8d9' },
-  { value: 5, color: '#8b5cff' },
-  { value: 8, color: '#37a978' },
-  { value: 9, color: '#7655f4' },
-  { value: 7, color: '#43c8d9' },
-  { value: 8, color: '#f1a83b' },
-];
+const WEEK: { value: number; color: string }[] = DAYS.map(() => ({
+  value: 0,
+  color: '#dfe1e8',
+}));
 
 const EMOJI: Record<string, string> = {
   Calma: '😌',
@@ -111,7 +104,6 @@ function BonsaiMark() {
 export default function RightRail({
   summaryHidden,
   onToggleSummary,
-  onDaily,
   onMood,
 }: RightRailProps) {
   const [summary, setSummary] = useState<EmotionalSummary | null>(null);
@@ -273,9 +265,9 @@ export default function RightRail({
         <span className="micro-label">TEMA PARA CONVERSAR</span>
         <h3>Una conversación que suma</h3>
         <p>¿Qué pequeño gesto te hizo sentir acompañado esta semana?</p>
-        <button className="secondary" type="button" onClick={onDaily}>
+        <Link className="secondary" href="/mis-relatos?compose=1">
           Responder en privado o publicar
-        </button>
+        </Link>
       </div>
     </>
   );

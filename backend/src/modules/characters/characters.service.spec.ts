@@ -199,7 +199,7 @@ describe('CharactersService', () => {
     await expect(
       service.create('user-1', {
         name: 'ElViajero',
-        avatarUrl: '/avatars/25.svg',
+        avatarUrl: '/avatars/37.svg',
       } as any),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.character.create).not.toHaveBeenCalled();

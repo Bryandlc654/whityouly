@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Avatar ilustrado 26">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#BE185D"/><stop offset="1" stop-color="#F472B6"/></linearGradient></defs>
+<rect width="96" height="96" rx="48" fill="url(#bg)"/>
+<circle cx="48" cy="48" r="45" fill="#FFF" opacity=".08"/>
+<path d="M24 46c-3-19 9-31 24-31s27 12 24 31l-4 31c-3 7-10 10-20 10s-17-3-20-10z" fill="#4A2C2A"/>
+<path d="M18 96c2-18 13-25 30-25s28 7 30 25z" fill="#7C3AED"/>
+<path d="M40 64c2 6 14 6 16 0l4 5c-3 7-21 7-24 0z" fill="#D8A663" opacity=".55"/>
+<rect x="43" y="56" width="10" height="15" rx="5" fill="#D8A663"/>
+<ellipse cx="48" cy="45" rx="17.5" ry="21" fill="#F1C27D"/>
+<circle cx="30" cy="47" r="4.2" fill="#F1C27D"/>
+<circle cx="66" cy="47" r="4.2" fill="#F1C27D"/>
+<path d="M29 45c-2-16 8-26 19-26s22 10 20 26c-2-8-4-13-9-16-6-3-15-3-21 0-5 3-8 8-9 16z" fill="#4A2C2A"/><path d="M28 39c2-11 9-18 20-18s19 7 21 18c-1 3-2 5-4 7l-3-9c-5-4-24-4-29 0l-3 9c-1-2-2-4-2-7z" fill="#4A2C2A" opacity=".55"/>
+
+<path d="M38 37c2-2 5-2 7 0M51 37c2-2 5-2 7 0" fill="none" stroke="#4A2C2A" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+<circle cx="41" cy="45" r="1.9" fill="#241B18"/>
+<circle cx="55" cy="45" r="1.9" fill="#241B18"/>
+<path d="M48 47c1 4 2 6 0 7" fill="none" stroke="#D8A663" stroke-width="1.8" stroke-linecap="round"/>
+<path d="M43 56c3 3 7 3 10 0" fill="none" stroke="#6B2F32" stroke-width="2" stroke-linecap="round"/>
+<circle cx="37" cy="53" r="3" fill="#E88B8B" opacity=".35"/>
+<circle cx="59" cy="53" r="3" fill="#E88B8B" opacity=".35"/>
+
+</svg>

@@ -184,8 +184,6 @@ export default function AccountPage() {
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
           onMood={() => router.push('/mi-estado')}
         />
       }

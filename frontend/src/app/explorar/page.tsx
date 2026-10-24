@@ -534,11 +534,6 @@ export default function ExplorePage() {
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el próximo módulo.')}
-          onCategory={(category) => {
-            setSelCat(category);
-            setSelEmo(null);
-          }}
           onMood={() => router.push('/mi-estado')}
         />
       }

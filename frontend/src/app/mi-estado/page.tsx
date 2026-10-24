@@ -484,10 +484,7 @@ export default function EmotionalMapPage() {
       rightRail={
         <RightRail
           summaryHidden={false}
-          onToggleSummary={() => notify('Tu resumen es privado: solo tú lo ves.')}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={() => setRange(30)}
+          onToggleSummary={() => notify('Tu resumen es privado: solo tú lo ves.')}          onMood={() => setRange(30)}
         />
       }
     >

@@ -234,8 +234,6 @@ export default function WithdrawnStoriesPage() {
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => router.push(`/explorar?category=${encodeURIComponent(category)}`)}
           onMood={() => router.push('/mi-estado')}
         />
       }

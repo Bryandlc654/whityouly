@@ -105,8 +105,8 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
         category={category}
         emotions={emotions}
         tags={tags}
-        onVisibility={setVisibility}
         onCategory={setCategory}
+        onVisibility={setVisibility}
         onEmotions={setEmotions}
         onTags={setTags}
         maxEmotions={MAX_EMOTIONS}

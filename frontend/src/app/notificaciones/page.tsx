@@ -240,8 +240,6 @@ export default function NotificationsPage() {
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el próximo módulo.')}
-          onCategory={(category) => notify(`Explorar “${category}” llega pronto.`)}
           onMood={() => router.push('/mi-estado')}
         />
       }

@@ -9,11 +9,11 @@ export const AVATAR_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] a
 export const AVATAR_ACCEPT = AVATAR_ACCEPTED_TYPES.join(',');
 
 /** Catálogo cerrado de avatares ilustrados incluidos en `/public/avatars`. */
-export const AVATAR_PRESETS = Array.from({ length: 24 }, (_, index) =>
+export const AVATAR_PRESETS = Array.from({ length: 36 }, (_, index) =>
   `/avatars/${String(index + 1).padStart(2, '0')}.svg`,
 );
 
-const AVATAR_PRESET_PATTERN = /^\/avatars\/(?:0[1-9]|1[0-9]|2[0-4])\.svg$/;
+const AVATAR_PRESET_PATTERN = /^\/avatars\/(?:0[1-9]|[12][0-9]|3[0-6])\.svg$/;
 
 export function isAvatarPresetUrl(value: unknown): value is string {
   return typeof value === 'string' && AVATAR_PRESET_PATTERN.test(value);

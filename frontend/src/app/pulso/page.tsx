@@ -181,8 +181,6 @@ export default function PulsoPage() {
         <RightRail
           summaryHidden={false}
           onToggleSummary={() => notify('El pulso se muestra siempre agregado y anónimo.')}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar “${category}” llega pronto.`)}
           onMood={() => router.push('/mi-estado')}
         />
       }

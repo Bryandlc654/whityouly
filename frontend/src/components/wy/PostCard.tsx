@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import Icon from './Icon';
-import type { DemoStory } from './feedData';
+import type { FeedStory } from './feedData';
 
 interface PostCardProps {
-  story: DemoStory;
+  story: FeedStory;
   supported: boolean;
   saved: boolean;
   followingAuthor: boolean;

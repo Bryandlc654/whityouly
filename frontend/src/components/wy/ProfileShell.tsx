@@ -8,7 +8,6 @@ import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from './Shell';
 import RightRail from './RightRail';
 import { Sheet, type SheetRow } from './Overlays';
-import NotificationsPanel from './NotificationsPanel';
 import StoryViewer from './StoryViewer';
 import { unreadNotificationsCount } from '@/lib/notifications';
 
@@ -28,7 +27,6 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
 
@@ -103,7 +101,7 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
         router.push('/mi-arbol');
         break;
       case 'notifications':
-        setNotificationsOpen(true);
+        router.push('/notificaciones');
         break;
       case 'character':
         break;
@@ -125,20 +123,7 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={
-        notificationsOpen ? (
-          <NotificationsPanel
-            onClose={() => setNotificationsOpen(false)}
-            onUnreadChange={setUnreadCount}
-            onOpenStory={(storyId) => {
-              setNotificationsOpen(false);
-              setReader({ id: storyId, title: '' });
-            }}
-            onOpenCharacter={(name) => {
-              setNotificationsOpen(false);
-              router.push(`/personaje/${encodeURIComponent(name)}`);
-            }}
-          />
-        ) : reader ? (
+        reader ? (
           <StoryViewer storyId={reader.id} title={reader.title} onClose={() => setReader(null)} />
         ) : null
       }
@@ -147,10 +132,6 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => {
-            router.push(`/explorar?category=${encodeURIComponent(category)}`);
-          }}
           onMood={() => router.push('/mi-estado')}
         />
       }
