@@ -1,32 +1,45 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
-import WyFrame, { type WyRoute } from '@/components/wy/Shell';
-import RightRail from '@/components/wy/RightRail';
-import Icon from '@/components/wy/Icon';
-import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import StoryViewer from '@/components/wy/StoryViewer';
-import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
-import { listPublicStories, viewStory, type FollowingStory, type MyStory } from '@/lib/stories';
-import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
-import {
-  getFeaturedStories,
-  getRecommendedCharacters,
-  getTrendingStories,
-  type FeaturedStory,
-  type RecommendedCharacter,
-  type TrendStory,
-} from '@/lib/discovery';
-import { unreadNotificationsCount } from '@/lib/notifications';
-import NotificationsPanel from '@/components/wy/NotificationsPanel';
 import Avatar from '@/components/wy/Avatar';
-import { CATEGORY_EMOJI, EMOTION_EMOJI } from '@/components/wy/StoryTaxonomyFields';
+import Icon from '@/components/wy/Icon';
+import type { IconName } from '@/components/wy/icons';
+import RightRail from '@/components/wy/RightRail';
+import WyFrame, { type WyRoute } from '@/components/wy/Shell';
+import { Sheet, type SheetRow } from '@/components/wy/Overlays';
+import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
+import { listPublicStories, type FollowingStory } from '@/lib/stories';
+import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
+import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
+import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
 
-type Tab = 'historias' | 'personajes';
+type SearchTab = 'all' | 'stories' | 'people' | 'categories';
+
+const TABS: { key: SearchTab; label: string }[] = [
+  { key: 'all', label: 'Todos' },
+  { key: 'stories', label: 'Relatos' },
+  { key: 'people', label: 'Personas' },
+  { key: 'categories', label: 'Categorías' },
+];
+
+const TOPIC_META: Record<string, { description: string; icon: IconName }> = {
+  Ansiedad: { description: 'Cuando la mente no se detiene', icon: 'pulse' },
+  Aprendizaje: { description: 'Lo que una experiencia te dejó', icon: 'book' },
+  Autoestima: { description: 'Cómo te miras y te tratas', icon: 'user' },
+  Cambio: { description: 'Nuevas etapas y decisiones', icon: 'trend' },
+  Esperanza: { description: 'Relatos que miran hacia delante', icon: 'sparkle' },
+  Familia: { description: 'Vínculos, crianza y convivencia', icon: 'home' },
+  Gratitud: { description: 'Momentos que quieres guardar', icon: 'heart' },
+  Pérdida: { description: 'Despedidas, duelos y nuevas etapas', icon: 'sparkle' },
+  Relaciones: { description: 'Amor, amistad y vínculos', icon: 'users' },
+  Salud: { description: 'Cuerpo, descanso y bienestar', icon: 'shield' },
+  Soledad: { description: 'Días silenciosos y compañía', icon: 'users' },
+  Trabajo: { description: 'Rutinas, esfuerzo y logros', icon: 'book' },
+};
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -47,14 +60,12 @@ function relativeTime(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
 }
 
-/** «3 📖 · 5 👥» en vez de «3 relatos · 5 seguidores». */
-function PersonStats({ stories, followers }: { stories: number; followers: number }) {
-  return (
-    <span className="explore-stats">
-      <span>{stories} 📖</span>
-      <span>{followers} 👥</span>
-    </span>
-  );
+function normalizeSearch(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 }
 
 export default function ExplorePage() {
@@ -62,33 +73,32 @@ export default function ExplorePage() {
 
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [tab, setTab] = useState<Tab>('historias');
-  const [q, setQ] = useState('');
   const [taxo, setTaxo] = useState<TaxonomyCatalog | null>(null);
+  const [featured, setFeatured] = useState<FeaturedStory[]>([]);
+
+  const [q, setQ] = useState('');
   const [selCat, setSelCat] = useState<string | null>(null);
   const [selEmo, setSelEmo] = useState<string | null>(null);
-  const [selTag, setSelTag] = useState<string | null>(null);
-  const [showTags, setShowTags] = useState(false);
+  const [tab, setTab] = useState<SearchTab>('all');
 
   const [stories, setStories] = useState<FollowingStory[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [people, setPeople] = useState<CharacterSearchItem[]>([]);
+  const [following, setFollowing] = useState<Set<string>>(new Set());
+  const [busyAuthor, setBusyAuthor] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const [view, setView] = useState<MyStory | null>(null);
-  const [viewBusy, setViewBusy] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftCat, setDraftCat] = useState('');
+  const [draftEmo, setDraftEmo] = useState('');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [featured, setFeatured] = useState<FeaturedStory[]>([]);
-  const [trends, setTrends] = useState<TrendStory[]>([]);
-  const [recommended, setRecommended] = useState<RecommendedCharacter[]>([]);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const term = q.trim();
+  const searchMode = Boolean(term || selCat || selEmo);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -106,6 +116,7 @@ export default function ExplorePage() {
         router.replace('/login');
         return;
       }
+
       try {
         const res = await authFetch(`${API_URL}/characters/me`);
         if (res.status === 401) {
@@ -113,86 +124,100 @@ export default function ExplorePage() {
           router.replace('/login');
           return;
         }
+        if (res.status === 404) {
+          router.replace('/onboarding');
+          return;
+        }
         if (res.ok) setCharacter(await res.json());
-      } catch (error) {
-        console.error('Error verificando sesión', error);
+      } catch (err) {
+        console.error('Error verificando sesión', err);
       } finally {
         setLoading(false);
       }
     };
 
     void verify();
+
     void fetchTaxonomy().then((result) => {
       if (result.status === 'ok') setTaxo(result.data);
     });
 
-    void Promise.all([
-      getFeaturedStories(),
-      getTrendingStories(),
-      getRecommendedCharacters(),
-      unreadNotificationsCount(),
-    ]).then(([featuredResult, trendsResult, recommendedResult, unread]) => {
-      if (featuredResult.status === 'ok') setFeatured(featuredResult.data.items);
-      if (trendsResult.status === 'ok') setTrends(trendsResult.data.items);
-      if (recommendedResult.status === 'ok') setRecommended(recommendedResult.data.items);
-      if (unread.status === 'ok') setUnreadCount(unread.data.count);
+    void getFeaturedStories(6).then((result) => {
+      if (result.status === 'ok') setFeatured(result.data.items);
+    });
+
+    void listFollowing().then((result) => {
+      if (result.status === 'ok') {
+        setFollowing(new Set(result.data.items.map((item) => item.name)));
+      }
     });
   }, [router]);
 
-  // La búsqueda del encabezado llega aquí como parámetros de la URL.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const initialQ = params.get('q');
     const initialTab = params.get('tab');
     const category = params.get('category');
     const emotion = params.get('emotion');
-    const tag = params.get('tag');
 
     if (initialQ) setQ(initialQ);
     if (category) setSelCat(category);
     if (emotion) setSelEmo(emotion);
-    if (tag) setSelTag(tag);
-    if (initialTab === 'personajes' || initialTab === 'historias') setTab(initialTab);
+    if (initialTab === 'personajes') setTab('people');
+    else if (initialTab === 'historias') setTab('stories');
   }, []);
 
-  const run = useCallback(async (cursor?: string) => {
-    setBusy(true);
-    setError('');
-
-    if (tab === 'personajes') {
-      const result = await searchCharacters(q);
+  useEffect(() => {
+    if (!searchMode) {
+      setStories([]);
+      setPeople([]);
       setBusy(false);
-      if (result.status === 'ok') setPeople(result.data.items);
-      else setError(result.message);
+      setError('');
       return;
     }
 
-    const result = await listPublicStories({
-      q: q.trim() || undefined,
-      category: selCat ?? undefined,
-      emotion: selEmo ?? undefined,
-      tag: selTag ?? undefined,
-      cursor,
-    });
-    setBusy(false);
+    let active = true;
+    setBusy(true);
+    setError('');
 
-    if (result.status === 'ok') {
-      setStories((prev) => (cursor ? [...prev, ...result.data.items] : result.data.items));
-      setNextCursor(result.data.nextCursor);
-    } else {
-      setError(result.message);
-      setStories([]);
-    }
-  }, [tab, q, selCat, selEmo, selTag]);
+    const timer = setTimeout(async () => {
+      const [storyResult, peopleResult] = await Promise.all([
+        listPublicStories({
+          q: term || undefined,
+          category: selCat ?? undefined,
+          emotion: selEmo ?? undefined,
+        }),
+        term
+          ? searchCharacters(term, 12)
+          : Promise.resolve({
+              status: 'ok' as const,
+              data: { items: [] as CharacterSearchItem[] },
+            }),
+      ]);
+
+      if (!active) return;
+      setBusy(false);
+
+      if (storyResult.status === 'ok') {
+        setStories(storyResult.data.items);
+      } else {
+        setStories([]);
+        setError(storyResult.message);
+      }
+
+      setPeople(peopleResult.status === 'ok' ? peopleResult.data.items : []);
+    }, 220);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [searchMode, term, selCat, selEmo]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setStories([]);
-      setNextCursor(null);
-      void run();
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [run]);
+    if (!searchMode) return;
+    setTab(term ? 'all' : 'stories');
+  }, [searchMode, term, selCat, selEmo]);
 
   const logout = useCallback(async () => {
     await endSession();
@@ -242,7 +267,7 @@ export default function ExplorePage() {
         router.push('/mi-arbol');
         break;
       case 'notifications':
-        setNotificationsOpen(true);
+        router.push('/notificaciones');
         break;
       case 'help':
         router.push('/soporte');
@@ -252,130 +277,192 @@ export default function ExplorePage() {
     }
   };
 
-  const openStory = async (storyId: string) => {
-    setViewBusy(true);
-    const result = await viewStory(storyId);
-    setViewBusy(false);
-    if (result.status === 'ok') {
-      setView(result.data);
+  const openFilters = () => {
+    setDraftCat(selCat ?? '');
+    setDraftEmo(selEmo ?? '');
+    setFiltersOpen(true);
+  };
+
+  const applyFilters = () => {
+    setSelCat(draftCat || null);
+    setSelEmo(draftEmo || null);
+    setFiltersOpen(false);
+  };
+
+  const clearFilters = () => {
+    setSelCat(null);
+    setSelEmo(null);
+    setDraftCat('');
+    setDraftEmo('');
+    setFiltersOpen(false);
+  };
+
+  const toggleFollow = async (name: string) => {
+    const isFollowing = following.has(name);
+    setBusyAuthor(name);
+    const result = isFollowing ? await unfollowCharacter(name) : await followCharacter(name);
+    setBusyAuthor(null);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
       return;
     }
-    notify(result.message);
+
+    setFollowing((prev) => {
+      const next = new Set(prev);
+      if (isFollowing) next.delete(name);
+      else next.add(name);
+      return next;
+    });
   };
 
-  const hasFilters = Boolean(selCat || selEmo || selTag);
+  const openStory = (storyId: string) => {
+    router.push(`/relato/${encodeURIComponent(storyId)}`);
+  };
 
-  const renderFeatured = (items: FeaturedStory[]) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="feed-group">
-        <h2 className="feed-group-title">✨ Destacado</h2>
-        <div className="featured-strip">
-          {items.map((story) => (
-            <article key={story.id} className="card featured-card">
-              <span className="featured-label">
-                <Icon name="sparkle" />
-                {story.note || 'Destacado'}
-              </span>
-              <h3>{story.title}</h3>
-              <p className="story-row-meta">
-                <Icon name="user" />
-                <span>{story.author.name}</span>
-                {story.categories[0] ? (
-                  <>
-                    <span className="dot" aria-hidden />
-                    <span>
-                      {CATEGORY_EMOJI[story.categories[0]] ?? '🏷️'} {story.categories[0]}
-                    </span>
-                  </>
-                ) : null}
-              </p>
-              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
-              {story.opening?.mediaUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={story.opening.mediaUrl} alt="" className="post-media" />
-              ) : null}
-              <div className="story-row-actions">
-                <button className="action-link" type="button" onClick={() => void openStory(story.id)}>
-                  <Icon name="book" /> Leer
-                </button>
-              </div>
-            </article>
-          ))}
+  const categories = taxo?.categories ?? [];
+  const emotions = taxo?.emotions ?? [];
+  const quickTopics = categories.filter((item) => item.name === 'Esperanza' || item.name === 'Aprendizaje');
+  const categoryMatches = term
+    ? [
+        ...categories
+          .filter((item) => normalizeSearch(item.name).includes(normalizeSearch(term)))
+          .map((item) => ({ name: item.name, kind: 'category' as const })),
+        ...emotions
+          .filter((item) => normalizeSearch(item.name).includes(normalizeSearch(term)))
+          .map((item) => ({ name: item.name, kind: 'emotion' as const })),
+      ]
+    : [];
+
+  const activeFilters = [
+    selCat ? { key: 'category' as const, label: selCat } : null,
+    selEmo ? { key: 'emotion' as const, label: selEmo } : null,
+  ].filter((item): item is { key: 'category' | 'emotion'; label: string } => item !== null);
+
+  const renderStory = (story: FollowingStory) => (
+    <article key={story.id} className="card story-row explore-story">
+      <div>
+        <div className="story-row-head">
+          <h2>{story.title}</h2>
+          <span className="hint">{relativeTime(story.createdAt)}</span>
         </div>
+        <p className="story-row-meta">
+          <Icon name="user" />
+          <span>{story.author.name}</span>
+          {story.categories[0] ? (
+            <>
+              <span className="dot" aria-hidden />
+              <span>{story.categories[0]}</span>
+            </>
+          ) : null}
+        </p>
+        {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
       </div>
+      <div className="story-row-actions">
+        <button className="secondary" type="button" onClick={() => openStory(story.id)}>
+          Leer relato
+        </button>
+      </div>
+    </article>
+  );
+
+  const renderPerson = (person: CharacterSearchItem) => {
+    const isSelf = person.name === character?.name;
+    const isFollowing = following.has(person.name);
+    return (
+      <article key={person.name} className="card follow-row explore-person">
+        <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
+        <div>
+          <b>{person.name}</b>
+          <small>@{person.name.toLowerCase()}</small>
+          {person.tagline ? <small>{person.tagline}</small> : null}
+        </div>
+        {isSelf ? (
+          <button className="text-link" type="button" onClick={() => router.push('/cuenta')}>
+            Ver perfil
+          </button>
+        ) : (
+          <button
+            className={`secondary${isFollowing ? ' following' : ''}`}
+            type="button"
+            disabled={busyAuthor === person.name}
+            onClick={() => void toggleFollow(person.name)}
+          >
+            {isFollowing ? 'Siguiendo' : 'Seguir autor'}
+          </button>
+        )}
+      </article>
     );
   };
 
-  const renderTrends = (items: TrendStory[]) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="feed-group" style={{ marginTop: 16 }}>
-        <h2 className="feed-group-title">🔥 Tendencias</h2>
-        <div className="stack">
-          {items.slice(0, 6).map((story) => (
-            <article key={story.id} className="card story-row">
-              <div className="story-row-head">
-                <h2>{story.title}</h2>
-                <span className="status-pill featured">🔥 {story.trendScore}</span>
-              </div>
-              <p className="story-row-meta">
-                <Icon name="user" />
-                <span>{story.author.name}</span>
-                {story.categories[0] ? (
-                  <>
-                    <span className="dot" aria-hidden />
-                    <span>
-                      {CATEGORY_EMOJI[story.categories[0]] ?? '🏷️'} {story.categories[0]}
-                    </span>
-                  </>
-                ) : null}
-              </p>
-              {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
-              <div className="story-row-actions">
-                <button className="action-link" type="button" onClick={() => void openStory(story.id)}>
-                  <Icon name="book" /> Leer
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  const renderCategoryMatches = () =>
+    categoryMatches.map((item) => {
+      const active = item.kind === 'category' ? selCat === item.name : selEmo === item.name;
+      return (
+        <button
+          key={`${item.kind}-${item.name}`}
+          className={`filter-pill${active ? ' active' : ''}`}
+          type="button"
+          onClick={() => {
+            if (item.kind === 'category') setSelCat(active ? null : item.name);
+            else setSelEmo(active ? null : item.name);
+          }}
+        >
+          {item.name}
+        </button>
+      );
+    });
 
-  const renderRecommended = (items: RecommendedCharacter[]) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="feed-group" style={{ marginTop: 16 }}>
-        <h2 className="feed-group-title">🌟 Personajes</h2>
-        <div className="stack">
-          {items.map((person) => (
-            <button
-              key={person.name}
-              type="button"
-              className="card pad recommend-person"
-              onClick={() => router.push(`/personaje/${encodeURIComponent(person.name)}`)}
-            >
-              <div className="recommend-row">
-                <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
-                <div style={{ minWidth: 0 }}>
-                  <b>{person.name}</b>
-                  {person.tagline ? <p className="hint" style={{ margin: 0 }}>{person.tagline}</p> : null}
-                </div>
-              </div>
-              <div className="recommend-meta">
-                {person.sharedInterests > 0 ? (
-                  <span className="chip on">✨ {person.sharedInterests} en común</span>
-                ) : null}
-                <PersonStats stories={person.stories} followers={person.followers} />
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+  const emptyResults = (
+    <div className="empty-state">
+      <h2>No encontramos coincidencias</h2>
+      <p>Prueba con otra palabra o ajusta los filtros.</p>
+      {activeFilters.length > 0 ? (
+        <button className="secondary" type="button" onClick={clearFilters}>
+          Limpiar filtros
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const storyResults = stories.length > 0 ? stories.map(renderStory) : null;
+  const personResults = people.length > 0 ? people.map(renderPerson) : null;
+  const categoryResults = categoryMatches.length > 0 ? (
+    <div className="filter-row">{renderCategoryMatches()}</div>
+  ) : null;
+
+  let results: ReactNode = null;
+  if (tab === 'people') {
+    results = personResults ?? emptyResults;
+  } else if (tab === 'stories') {
+    results = storyResults ?? emptyResults;
+  } else if (tab === 'categories') {
+    results = categoryResults ?? emptyResults;
+  } else {
+    results = (
+      <>
+        {personResults ? (
+          <>
+            <h2 className="search-section-title">Personas</h2>
+            {personResults}
+          </>
+        ) : null}
+        {categoryResults ? (
+          <>
+            <h2 className="search-section-title">Temas y emociones</h2>
+            {categoryResults}
+          </>
+        ) : null}
+        {storyResults ? (
+          <>
+            <h2 className="search-section-title">Relatos</h2>
+            {storyResults}
+          </>
+        ) : null}
+        {!personResults && !categoryResults && !storyResults ? emptyResults : null}
+      </>
     );
-  };
+  }
 
   if (loading) {
     return (
@@ -385,8 +472,6 @@ export default function ExplorePage() {
     );
   }
 
-  const name = character?.name ?? '';
-
   return (
     <WyFrame
       characterInitials={initialsOf(character?.name)}
@@ -395,23 +480,53 @@ export default function ExplorePage() {
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
-      unreadNotifications={unreadCount}
       overlay={
-        notificationsOpen ? (
-          <NotificationsPanel
-            onClose={() => setNotificationsOpen(false)}
-            onUnreadChange={setUnreadCount}
-            onOpenStory={(storyId) => {
-              setNotificationsOpen(false);
-              void openStory(storyId);
-            }}
-            onOpenCharacter={(name) => {
-              setNotificationsOpen(false);
-              router.push(`/personaje/${encodeURIComponent(name)}`);
-            }}
-          />
-        ) : view ? (
-          <StoryViewer story={view} onNotify={notify} onClose={() => setView(null)} />
+        filtersOpen ? (
+          <div className="modal discovery-filter-modal" role="dialog" aria-modal="true" aria-label="Filtrar relatos">
+            <div className="modal-head">
+              <div>
+                <h2>Filtrar relatos</h2>
+                <p>Ajusta el tema o la emoción para encontrar otros relatos.</p>
+              </div>
+              <button className="close" type="button" onClick={() => setFiltersOpen(false)} aria-label="Cerrar filtros">
+                <Icon name="x" />
+              </button>
+            </div>
+
+            <div className="discovery-filter-fields">
+              <div>
+                <label htmlFor="filterTopic">Tema</label>
+                <select id="filterTopic" value={draftCat} onChange={(event) => setDraftCat(event.target.value)}>
+                  <option value="">Todos los temas</option>
+                  {categories.map((item) => (
+                    <option key={item.id} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="filterEmotion">Emoción o estado</label>
+                <select id="filterEmotion" value={draftEmo} onChange={(event) => setDraftEmo(event.target.value)}>
+                  <option value="">Todas las emociones</option>
+                  {emotions.map((item) => (
+                    <option key={item.id} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="ghost" type="button" onClick={clearFilters}>
+                Quitar filtros
+              </button>
+              <button className="primary" type="button" onClick={applyFilters}>
+                Aplicar filtros
+              </button>
+            </div>
+          </div>
         ) : null
       }
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
@@ -419,265 +534,169 @@ export default function ExplorePage() {
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
+          onDaily={() => notify('La consigna diaria llega con el próximo módulo.')}
           onCategory={(category) => {
             setSelCat(category);
-            setTab('historias');
+            setSelEmo(null);
           }}
           onMood={() => router.push('/mi-estado')}
         />
       }
     >
       <section className="screen explore-page">
-        <div className="welcome-row">
+        <div className="screen-heading">
           <div>
-            <h1>Explorar</h1>
-            <p className="muted small">
-              {name ? `${name}, encuentra historias y personas afines.` : 'Descubre contenido para ti.'}
+            <h1>{searchMode ? 'Buscar' : 'Explorar'}</h1>
+            <p>
+              {searchMode
+                ? 'Encuentra relatos, emociones, categorías y personas por su seudónimo.'
+                : 'Encuentra relatos por emoción, tema o seudónimo.'}
             </p>
           </div>
+          <button className="secondary" type="button" onClick={openFilters}>
+            <Icon name="settings" /> Filtros
+          </button>
         </div>
 
-        <div className="search-row">
+        <label className="search-input">
           <Icon name="search" />
           <input
             type="search"
             value={q}
-            placeholder={tab === 'personajes' ? 'Buscar seudónimos…' : 'Buscar historias, emociones o etiquetas…'}
+            placeholder="Relatos, emociones o seudónimos"
+            aria-label="Buscar en Withyouly"
             onChange={(event) => setQ(event.target.value)}
           />
-        </div>
-
-        <div className="segmented" role="tablist" aria-label="Tipo de búsqueda">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'historias'}
-            className={tab === 'historias' ? 'active' : undefined}
-            onClick={() => setTab('historias')}
-          >
-            📖 Historias
+          <button className="ghost" type="button" onClick={() => setQ(q.trim())}>
+            Buscar
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'personajes'}
-            className={tab === 'personajes' ? 'active' : undefined}
-            onClick={() => setTab('personajes')}
-          >
-            👤 Personajes
-          </button>
-        </div>
+        </label>
 
-        {tab === 'historias' && taxo ? (
-          <div className="card explore-filters">
-            <div className="explore-filter-head">
-              <span className="explore-filter-title">Filtros</span>
-              {hasFilters ? (
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => {
-                    setSelCat(null);
-                    setSelEmo(null);
-                    setSelTag(null);
-                  }}
-                >
-                  Limpiar
-                </button>
-              ) : null}
-            </div>
-
-            {taxo.categories.length > 0 ? (
-              <div className="opt-block">
-                <span className="opt-label">🏷️ Categoría</span>
-                <div className="emoji-chips" role="group" aria-label="Categoría">
-                  {taxo.categories.map((item) => {
-                    const on = selCat === item.name;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`emoji-chip${on ? ' on' : ''}`}
-                        aria-pressed={on}
-                        onClick={() => setSelCat(on ? null : item.name)}
-                      >
-                        <span className="emoji-chip-ico" aria-hidden>
-                          {CATEGORY_EMOJI[item.name] ?? '🏷️'}
-                        </span>
-                        {item.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            {taxo.emotions.length > 0 ? (
-              <div className="opt-block">
-                <span className="opt-label">💗 Emoción</span>
-                <div className="emoji-chips" role="group" aria-label="Emoción">
-                  {taxo.emotions.map((item) => {
-                    const on = selEmo === item.name;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`emoji-chip${on ? ' on' : ''}`}
-                        style={on && item.colorHex ? ({ '--c': item.colorHex } as CSSProperties) : undefined}
-                        aria-pressed={on}
-                        onClick={() => setSelEmo(on ? null : item.name)}
-                      >
-                        <span className="emoji-chip-ico" aria-hidden>
-                          {EMOTION_EMOJI[item.name] ?? '💗'}
-                        </span>
-                        {item.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            {taxo.tags.length > 0 ? (
-              <div className="opt-block">
-                <button
-                  type="button"
-                  className="opt-collapse"
-                  aria-expanded={showTags}
-                  onClick={() => setShowTags((value) => !value)}
-                >
-                  <span className="opt-collapse-label">🎯 Etiquetas</span>
-                  {selTag ? <span className="opt-count">1</span> : null}
-                  <Icon name="chevron" className={`opt-chevron${showTags ? ' open' : ''}`} />
-                </button>
-
-                {!showTags && selTag ? (
-                  <div className="mini-tags">
-                    <span className="mini-tag">{selTag}</span>
-                  </div>
-                ) : null}
-
-                {showTags ? (
-                  <div className="chip-row" style={{ marginTop: 10 }} role="group" aria-label="Etiqueta">
-                    {taxo.tags.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`chip${selTag === item.name ? ' on' : ''}`}
-                        aria-pressed={selTag === item.name}
-                        onClick={() => setSelTag(selTag === item.name ? null : item.name)}
-                      >
-                        {item.name}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+        {activeFilters.length > 0 ? (
+          <div className="active-discovery-filters" aria-label="Filtros aplicados">
+            {activeFilters.map((filter) => (
+              <button
+                key={filter.key}
+                className="filter-pill active"
+                type="button"
+                aria-label={`Quitar filtro: ${filter.label}`}
+                onClick={() => {
+                  if (filter.key === 'category') setSelCat(null);
+                  else setSelEmo(null);
+                }}
+              >
+                {filter.label}
+                <Icon name="x" />
+              </button>
+            ))}
+            <button className="text-link" type="button" onClick={clearFilters}>
+              Limpiar filtros
+            </button>
           </div>
         ) : null}
 
-        {busy ? <p className="muted small">Buscando…</p> : null}
-
-        {!q && !hasFilters ? (
+        {!searchMode ? (
           <>
-            {renderFeatured(featured)}
-            {renderTrends(trends)}
-            {renderRecommended(recommended)}
-          </>
-        ) : null}
-
-        {error ? (
-          <div className="auth-error" role="alert">
-            {error}
-          </div>
-        ) : null}
-
-        {!busy && !error && tab === 'personajes' ? (
-          people.length > 0 ? (
-            <div className="stack">
-              {people.map((person) => (
+            <div className="filter-row" role="group" aria-label="Descubrimiento">
+              <button className={`filter-pill${!selCat && !selEmo ? ' active' : ''}`} type="button" onClick={clearFilters}>
+                Recomendados
+              </button>
+              {quickTopics.map((item) => (
                 <button
-                  key={person.name}
+                  key={item.id}
+                  className={`filter-pill${selCat === item.name ? ' active' : ''}`}
                   type="button"
-                  className="card pad explore-person"
-                  onClick={() => router.push(`/personaje/${encodeURIComponent(person.name)}`)}
+                  onClick={() => setSelCat(item.name)}
                 >
-                  <div className="row-between">
-                    <div style={{ minWidth: 0 }}>
-                      <b>{person.name}</b>
-                      {person.tagline ? <p className="hint" style={{ margin: 0 }}>{person.tagline}</p> : null}
-                    </div>
-                    <PersonStats stories={person.stories} followers={person.followers} />
-                  </div>
+                  {item.name}
                 </button>
               ))}
             </div>
-          ) : !q && !busy ? (
-            <div className="empty card">
-              <div className="empty-icon"><Icon name="users" /></div>
-              <h2>Busca a alguien</h2>
-              <p>Escribe un seudónimo para encontrar personas con las que conectar.</p>
-            </div>
-          ) : (
-            <div className="empty card">
-              <div className="empty-icon"><Icon name="search" /></div>
-              <h2>Sin resultados</h2>
-              <p>Prueba con otro nombre.</p>
-            </div>
-          )
-        ) : null}
 
-        {!busy && !error && tab === 'historias' ? (
-          stories.length > 0 ? (
-            <div className="story-list">
-              {stories.map((story) => (
-                <article key={story.id} className="card story-row">
-                  <div className="story-row-head">
-                    <h2>{story.title}</h2>
-                    <span className="hint">{relativeTime(story.createdAt)}</span>
-                  </div>
-                  <p className="story-row-meta">
-                    <Icon name="user" />
-                    <span>{story.author.name}</span>
-                    {story.categories[0] ? (
-                      <>
-                        <span className="dot" aria-hidden />
-                        <span>
-                          {CATEGORY_EMOJI[story.categories[0]] ?? '🏷️'} {story.categories[0]}
-                        </span>
-                      </>
-                    ) : null}
-                  </p>
-                  {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
-                  <div className="story-row-actions">
-                    <button
-                      className="action-link"
-                      type="button"
-                      disabled={viewBusy}
-                      onClick={() => void openStory(story.id)}
-                    >
-                      <Icon name="book" /> Leer
-                    </button>
-                  </div>
-                </article>
+            <h2 className="discovery-section-title">Explorar por tema</h2>
+            <div className="category-grid">
+              {categories.map((item) => {
+                const meta = TOPIC_META[item.name] ?? {
+                  description: 'Relatos sobre este tema',
+                  icon: 'book' as IconName,
+                };
+                return (
+                  <button
+                    key={item.id}
+                    className="category-tile"
+                    type="button"
+                    onClick={() => setSelCat(item.name)}
+                  >
+                    <span>
+                      <Icon name={meta.icon} />
+                    </span>
+                    <b>{item.name}</b>
+                    <small>{meta.description}</small>
+                  </button>
+                );
+              })}
+            </div>
+
+            <section className="emotion-discovery">
+              <h2 className="discovery-section-title">Explorar por emoción</h2>
+              <div className="filter-row">
+                {emotions.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`filter-pill${selEmo === item.name ? ' active' : ''}`}
+                    type="button"
+                    onClick={() => setSelEmo(item.name)}
+                  >
+                    <span
+                      className="discovery-emotion-dot"
+                      style={{ background: item.colorHex ?? '#9ba1b2' }}
+                      aria-hidden
+                    />
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {featured.length > 0 ? (
+              <>
+                <h2 className="discovery-section-title">Relatos que podrían acompañarte</h2>
+                <div className="story-list">{featured.slice(0, 3).map(renderStory)}</div>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <div className="filter-row search-result-tabs" role="tablist" aria-label="Tipo de resultado">
+              {TABS.map((item) => (
+                <button
+                  key={item.key}
+                  className={`filter-pill${tab === item.key ? ' active' : ''}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item.key}
+                  onClick={() => setTab(item.key)}
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
-          ) : (
-            <div className="empty card">
-              <div className="empty-icon"><Icon name="book" /></div>
-              <h2>Sin historias</h2>
-              <p>Prueba con otro texto o cambia los filtros de emoción, categoría y etiqueta.</p>
-            </div>
-          )
-        ) : null}
 
-        {nextCursor ? (
-          <button className="btn-outline" type="button" onClick={() => void run(nextCursor)}>
-            Ver más
-          </button>
-        ) : null}
+            <p className="search-result-query">
+              {term ? `Resultados para “${term}”` : 'Relatos según tus filtros'}
+              {tab === 'stories' ? ` · ${stories.length} ${stories.length === 1 ? 'relato' : 'relatos'}` : ''}
+            </p>
+
+            {busy ? <p className="muted small">Buscando…</p> : null}
+            {error ? (
+              <div className="auth-error" role="alert">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="search-results">{!busy && !error ? results : null}</div>
+          </>
+        )}
       </section>
     </WyFrame>
   );

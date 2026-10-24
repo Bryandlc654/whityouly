@@ -73,7 +73,7 @@ function TopBar({
           >
             <Icon name="help" />
           </button>
-          <NotificationsMenu unreadCount={unreadNotifications} onOpenStory={onOpenStory} />
+          <NotificationsMenu unreadCount={unreadNotifications} />
           <button
             className="avatar avatar-sm"
             type="button"

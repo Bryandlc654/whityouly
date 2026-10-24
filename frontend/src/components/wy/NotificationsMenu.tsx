@@ -14,12 +14,11 @@ import { describeNotification, notificationTime } from './notificationText';
 
 interface NotificationsMenuProps {
   unreadCount: number;
-  onOpenStory: (storyId: string, title: string) => void;
 }
 
 const PREVIEW_LIMIT = 6;
 
-export default function NotificationsMenu({ unreadCount, onOpenStory }: NotificationsMenuProps) {
+export default function NotificationsMenu({ unreadCount }: NotificationsMenuProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -84,7 +83,7 @@ export default function NotificationsMenu({ unreadCount, onOpenStory }: Notifica
 
     setOpen(false);
     if (item.entityType === 'STORY' && item.entityId) {
-      onOpenStory(item.entityId, item.story?.title ?? '');
+      router.push(`/relato/${encodeURIComponent(item.entityId)}`);
     } else if (item.actor && item.entityType === 'CHARACTER') {
       router.push(`/personaje/${encodeURIComponent(item.actor.name)}`);
     }

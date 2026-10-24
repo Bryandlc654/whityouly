@@ -8,7 +8,6 @@ import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
-import StoryViewer from '@/components/wy/StoryViewer';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import {
   listNotifications,
@@ -37,7 +36,6 @@ export default function NotificationsPage() {
   const [listLoading, setListLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
@@ -168,7 +166,7 @@ export default function NotificationsPage() {
     }
 
     if (item.entityType === 'STORY' && item.entityId) {
-      setReader({ id: item.entityId, title: item.story?.title ?? '' });
+      router.push(`/relato/${encodeURIComponent(item.entityId)}`);
     } else if (item.actor && item.entityType === 'CHARACTER') {
       router.push(`/personaje/${encodeURIComponent(item.actor.name)}`);
     }
@@ -237,16 +235,6 @@ export default function NotificationsPage() {
       onOpenAccount={openAccount}
       toast={toast}
       unreadNotifications={unread}
-      overlay={
-        reader ? (
-          <StoryViewer
-            storyId={reader.id}
-            title={reader.title}
-            onNotify={notify}
-            onClose={() => setReader(null)}
-          />
-        ) : null
-      }
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={
         <RightRail

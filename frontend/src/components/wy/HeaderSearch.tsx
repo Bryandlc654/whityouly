@@ -159,7 +159,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
 
           {people.length > 0 ? (
             <div className="header-search-group">
-              <p className="header-search-group-title">👤 Personajes</p>
+              <div className="header-search-group-title"><Icon name="users" /> Personajes</div>
               {people.map((person) => (
                 <button
                   key={person.name}
@@ -179,7 +179,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
 
           {stories.length > 0 ? (
             <div className="header-search-group">
-              <p className="header-search-group-title">📖 Relatos</p>
+              <div className="header-search-group-title"><Icon name="book" /> Relatos</div>
               {stories.map((story) => (
                 <button
                   key={story.id}
@@ -187,9 +187,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
                   className="header-search-item"
                   onClick={() => openStory(story)}
                 >
-                  <span className="header-search-item-ico" aria-hidden>
-                    📖
-                  </span>
+                  <span className="header-search-item-ico" aria-hidden><Icon name="book" /></span>
                   <span className="header-search-item-main">
                     <b>{story.title}</b>
                     <small>

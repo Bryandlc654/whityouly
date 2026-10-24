@@ -340,6 +340,81 @@ body {
   margin: 10px 0 0;
 }
 
+/* Página pública de un relato abierta desde una notificación. */
+.wy .story-page {
+  gap: 12px;
+}
+
+.wy .story-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: max-content;
+  min-height: 38px;
+  padding: 0;
+  font-size: 13px;
+}
+
+.wy .story-back svg {
+  width: 16px;
+  height: 16px;
+  transform: rotate(180deg);
+}
+
+.wy .story-page-card {
+  padding: 24px;
+}
+
+.wy .story-page-card .post-head {
+  margin-bottom: 4px;
+}
+
+.wy .story-page-card .post-tags {
+  margin: 15px 0 10px;
+}
+
+.wy .story-page-title {
+  margin: 0 0 12px;
+  color: #111;
+  font-size: 26px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.wy .story-page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0 0 14px;
+  color: #50535d;
+  font-size: 13px;
+}
+
+.wy .story-page-card .story-viewer-page {
+  border-top: 1px solid #e2e3e8;
+  padding-top: 18px;
+}
+
+.wy .story-page-card .story-stage-text {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #111;
+}
+
+@media (max-width: 820px) {
+  .wy .story-page {
+    padding: 0 16px;
+  }
+
+  .wy .story-page-card {
+    padding: 19px 16px;
+  }
+
+  .wy .story-page-title {
+    font-size: 22px;
+  }
+}
+
 @media (max-width: 820px) {
   .wy .notif-dropdown {
     position: fixed;
@@ -2150,3 +2225,285 @@ body {
   }
 }
 
+
+/* Explorar v42: temas, emociones y resultados de b�squeda sin emojis. */
+.wy .explore-page {
+  gap: 16px;
+}
+
+.wy .explore-page .screen-heading {
+  align-items: flex-start;
+}
+
+.wy .explore-page .screen-heading .secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.wy .explore-page .search-input .ghost {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.wy .discovery-section-title {
+  margin: 20px 0 12px;
+  color: #111;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.wy .explore-page .category-grid {
+  margin-top: 2px;
+}
+
+.wy .explore-page .category-tile {
+  min-height: 126px;
+  border-radius: 16px;
+}
+
+.wy .explore-page .category-tile:hover {
+  box-shadow: none;
+  background: #fbfaff;
+}
+
+.wy .explore-page .category-tile > span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: #f1edff;
+  color: #6246f5;
+  font-size: 18px;
+}
+
+.wy .explore-page .category-tile > span svg {
+  width: 22px;
+  height: 22px;
+}
+
+.wy .explore-page .category-tile b {
+  margin-top: 12px;
+  color: #191a20;
+  font-size: 15px;
+}
+
+.wy .explore-page .category-tile small {
+  margin-top: 5px;
+  color: #50535d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wy .emotion-discovery {
+  margin-bottom: 6px;
+}
+
+.wy .emotion-discovery .filter-row {
+  padding-bottom: 4px;
+}
+
+.wy .discovery-emotion-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  flex: 0 0 8px;
+}
+
+.wy .active-discovery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+}
+
+.wy .active-discovery-filters .filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+.wy .active-discovery-filters .filter-pill svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.wy .search-result-tabs {
+  border-bottom: 1px solid #e2e3e8;
+  padding-bottom: 10px;
+}
+
+.wy .search-result-query {
+  margin: 0;
+  color: #50535d;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.wy .search-results {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.wy .search-section-title {
+  margin: 7px 0 0;
+  color: #111;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.wy .explore-story {
+  align-items: center;
+}
+
+.wy .explore-story .story-row-actions .secondary {
+  min-height: 40px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.wy .explore-person > div {
+  min-width: 0;
+}
+
+.wy .explore-person .secondary {
+  max-width: 150px;
+  min-height: 40px;
+  font-size: 12px;
+  white-space: normal;
+}
+
+.wy .explore-person .text-link {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.wy .empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 38px 22px;
+  text-align: center;
+}
+
+.wy .empty-state h2 {
+  margin: 0;
+  color: #191a20;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.wy .empty-state p {
+  max-width: 390px;
+  margin: 0;
+  color: #50535d;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.wy .empty-state .secondary {
+  margin-top: 4px;
+}
+
+.wy .discovery-filter-modal {
+  width: min(540px, 100%);
+  max-height: 92dvh;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.wy .discovery-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wy .discovery-filter-fields label {
+  display: block;
+  margin: 10px 0 7px;
+  color: #111;
+  font-size: 14px;
+}
+
+.wy .discovery-filter-fields select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 30px 10px 12px;
+  border: 1px solid #b9bdc6;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+}
+
+.wy .discovery-filter-modal .modal-actions {
+  margin-top: 22px;
+}
+
+@media (max-width: 820px) {
+  .wy .explore-page .screen-heading,
+  .wy .explore-page .search-input,
+  .wy .explore-page .active-discovery-filters,
+  .wy .explore-page .discovery-section-title,
+  .wy .explore-page .category-grid,
+  .wy .explore-page .emotion-discovery,
+  .wy .explore-page .story-list,
+  .wy .explore-page .search-result-query,
+  .wy .explore-page .search-results,
+  .wy .explore-page > .filter-row {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .wy .explore-page .screen-heading {
+    gap: 10px;
+  }
+
+  .wy .explore-page .screen-heading h1 {
+    font-size: 22px;
+  }
+
+  .wy .explore-page .screen-heading .secondary {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+
+  .wy .discovery-filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .wy .discovery-filter-modal {
+    padding: 20px 18px;
+  }
+}
+
+.wy .main-content,
+.wy .screen,
+.wy .screen > * {
+  min-width: 0;
+}
+
+.wy .explore-page .search-input {
+  width: 100%;
+}
+
+.wy .explore-page .category-tile b,
+.wy .explore-page .category-tile small {
+  overflow-wrap: anywhere;
+}
+
+.wy .explore-story .story-row-head .hint {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

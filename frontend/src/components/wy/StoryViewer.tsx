@@ -15,7 +15,7 @@ interface Props {
   onClose: () => void;
   onNotify?: (message: string) => void;
   /** 'modal' dibuja su propia caja (Feed, Explorar, Siguiendo); 'inline' va dentro de otro contenedor (buscador). */
-  variant?: 'modal' | 'inline';
+  variant?: 'modal' | 'inline' | 'page';
 }
 
 function initialsOf(name?: string | null) {
@@ -167,6 +167,10 @@ export default function StoryViewer({
         {body}
       </div>
     );
+  }
+
+  if (variant === 'page') {
+    return <div className="story-viewer story-viewer-page">{body}</div>;
   }
 
   return (

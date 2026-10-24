@@ -1134,3 +1134,8 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
  .wy.feed-reference .post-author button{font-size:10px}
  .wy.feed-reference .post-actions button .action-label{font-size:10.5px}
 }
+
+/* Buscador del encabezado sin emojis: iconos del sistema. */
+.wy .header-search-group-title{display:flex;align-items:center;gap:6px}
+.wy .header-search-group-title svg{width:14px;height:14px;flex:0 0 14px}
+.wy .header-search-item-ico svg{width:16px;height:16px}
