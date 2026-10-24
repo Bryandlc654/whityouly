@@ -1139,3 +1139,15 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .header-search-group-title{display:flex;align-items:center;gap:6px}
 .wy .header-search-group-title svg{width:14px;height:14px;flex:0 0 14px}
 .wy .header-search-item-ico svg{width:16px;height:16px}
+
+/* Mi espacio v42: hero blanco y acciones planas. */
+.wy .mood-page .mood-hero{background:#FFF!important;color:#191A20;border:1px solid #E2E3E8;border-radius:12px;box-shadow:none;padding:22px}
+.wy .mood-page .mood-hero:after{display:none}
+.wy .mood-page .mood-hero h1{color:#191A20;margin:7px 0 0;font-size:26px;line-height:1.2}
+.wy .mood-page .mood-hero p{color:#5F5966}
+.wy .mood-page .mood-hero .micro-label{color:#50535D}
+.wy .mood-page .mood-hero-cta{background:#6246F5;color:#FFF;box-shadow:none}
+.wy .mood-page .mood-hero-cta:hover{background:#5539DB;box-shadow:none;transform:none}
+.wy .my-stories-trash{justify-self:start;width:max-content}
+.wy .my-story-card .story-row-actions{border-top:0;padding-top:0}
+.wy .following-story .story-row-actions{border-top:0;padding-top:0}

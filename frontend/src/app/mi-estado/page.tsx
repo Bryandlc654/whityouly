@@ -23,12 +23,12 @@ import {
   type EmotionalTrend,
 } from '@/lib/emotionalMap';
 
-type RangeDays = 7 | 30 | 90;
+type RangeDays = 1 | 7 | 30;
 
 const RANGES: { id: RangeDays; label: string }[] = [
-  { id: 7, label: '7 días' },
-  { id: 30, label: '30 días' },
-  { id: 90, label: '90 días' },
+  { id: 1, label: 'Día' },
+  { id: 7, label: 'Semana' },
+  { id: 30, label: 'Mes' },
 ];
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -149,7 +149,7 @@ export default function EmotionalMapPage() {
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [range, setRange] = useState<RangeDays>(30);
+  const [range, setRange] = useState<RangeDays>(7);
   const [summary, setSummary] = useState<EmotionalSummary | null>(null);
   const [summaryError, setSummaryError] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -404,7 +404,6 @@ export default function EmotionalMapPage() {
   const barLabelEvery = Math.max(1, Math.ceil(bars.length / 12));
 
   const dominant = summary?.emotions[0] ?? null;
-  const name = character?.name ?? '';
 
   const weekdayMoments = summary?.weekdays ?? [];
   const daypartMoments = summary?.dayparts ?? [];
@@ -416,6 +415,43 @@ export default function EmotionalMapPage() {
   const busiestCell = heatmap
     .filter((cell) => cell.entries > 0)
     .sort((a, b) => b.entries - a.entries)[0] ?? null;
+
+  const recommendation = (() => {
+    switch (dominant?.name) {
+      case 'Ansiedad':
+        return {
+          icon: 'pulse' as const,
+          title: 'Respira conmigo',
+          copy: 'Una pausa breve para bajar el ritmo y volver al momento presente.',
+        };
+      case 'Tristeza':
+        return {
+          icon: 'heart' as const,
+          title: 'Un espacio para ti',
+          copy: 'Una actividad suave para acompañar la tristeza sin exigirte.',
+        };
+      case 'Calma':
+        return {
+          icon: 'sparkle' as const,
+          title: 'Sostén esta calma',
+          copy: 'Registra qué te ayudó a llegar aquí para poder volver a ello.',
+        };
+      case 'Esperanza':
+        return {
+          icon: 'sparkle' as const,
+          title: 'Cuida lo que está creciendo',
+          copy: 'Anota el pequeño paso que te dio un poco de luz esta semana.',
+        };
+      default:
+        return {
+          icon: 'sparkle' as const,
+          title: 'Un momento para ti',
+          copy: 'Elige una práctica breve para acompañar lo que sientes hoy.',
+        };
+    }
+  })();
+
+  const rangeLabel = RANGES.find((item) => item.id === range)?.label.toLowerCase() ?? 'semana';
 
   return (
     <WyFrame
@@ -451,78 +487,96 @@ export default function EmotionalMapPage() {
           onToggleSummary={() => notify('Tu resumen es privado: solo tú lo ves.')}
           onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
           onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
-          onMood={() => setRange(90)}
+          onMood={() => setRange(30)}
         />
       }
     >
       <section className="screen mood-page">
-        {/* Cabecera */}
-        <div className="card mood-hero">
-          <div className="mood-hero-copy">
-            <span className="privacy-badge">
-              <Icon name="lock" /> Solo tú puedes verlo
-            </span>
-            <h1>Mi mapa emocional</h1>
-            <p>
-              {loading
-                ? 'Cargando tu diario…'
-                : name
-                  ? `${name}, este es tu espacio privado para mirar cómo te has sentido.`
-                  : 'Tu diario privado de estados de ánimo.'}
-            </p>
-          </div>
-          <button className="mood-hero-cta" type="button" onClick={() => openCreate()}>
-            <Icon name="plus" /> Registrar cómo me siento
+        <nav className="emotion-nav card" aria-label="Mi espacio personal">
+          <button className="active" type="button">
+            <Icon name="pulse" />
+            <span>Resumen</span>
           </button>
+          <button type="button" onClick={() => router.push('/pulso')}>
+            <Icon name="heart" />
+            <span>Actividades</span>
+          </button>
+          <button type="button" onClick={() => router.push('/mi-arbol')}>
+            <Icon name="trend" />
+            <span>Mi árbol</span>
+          </button>
+        </nav>
+
+        <section className="card mood-hero">
+          <div className="mood-hero-copy">
+            <span className="micro-label">TU ESPACIO PRIVADO</span>
+            <h1>Mi espacio emocional</h1>
+            <div className="purpose-copy">
+              <b>¿Para qué sirve?</b>
+              <span>
+                Registra cómo te sientes, recibe una actividad relacionada con ese momento y observa
+                tus cambios con el tiempo. No es un diagnóstico.
+              </span>
+            </div>
+          </div>
+          <div className="hero-actions">
+            <button className="primary mood-hero-cta" type="button" onClick={() => openCreate()}>
+              <Icon name="plus" /> Registrar ahora
+            </button>
+          </div>
+        </section>
+
+        <div className="care-cycle card" aria-label="Recorrido de Mi espacio">
+          <span><b>1</b> Registrar</span>
+          <i />
+          <span><b>2</b> Elegir</span>
+          <i />
+          <span><b>3</b> Practicar</span>
+          <i />
+          <span><b>4</b> Observar</span>
+          <i />
+          <span><b>5</b> Crecer</span>
         </div>
 
-        {/* Resumen rápido */}
-        {!loading ? (
-          <div className="mood-stats" aria-label="Resumen de tu diario">
-            <div className="mood-stat">
-              <span className="mood-stat-icon">
-                <Icon name="pulse" />
-              </span>
-              <div>
-                <b>{summary?.totalEntries ?? 0}</b>
-                <small>Registros en {range} días</small>
-              </div>
-            </div>
-            <div className="mood-stat">
-              <span className="mood-stat-icon">
-                <Icon name="calendar" />
-              </span>
-              <div>
-                <b>{summary?.currentStreak ?? 0}</b>
-                <small>{summary?.currentStreak === 1 ? 'Día de racha' : 'Días de racha'}</small>
-              </div>
-            </div>
-            <div className="mood-stat">
-              <span className="mood-stat-icon">
-                <Icon name="trend" />
-              </span>
-              <div>
-                <b>{summary?.averageIntensity ?? '—'}</b>
-                <small>Intensidad media /10</small>
-              </div>
-            </div>
-            <div className="mood-stat">
-              <span
-                className="mood-stat-icon mood-stat-emoji"
-                style={{
-                  background: tint(dominant?.colorHex, '#f0ecff'),
-                  color: '#3b3357',
-                }}
-              >
-                {moodEmoji(dominant?.name)}
-              </span>
-              <div>
-                <b>{dominant?.name ?? '—'}</b>
-                <small>Emoción dominante</small>
-              </div>
-            </div>
+        <section className="recommended-card card mood-recommendation">
+          <div className="recommended-icon">
+            <Icon name={recommendation.icon} />
           </div>
-        ) : null}
+          <div className="recommended-copy">
+            <span className="micro-label">
+              {dominant ? 'RECOMENDADO SEGÚN TU ÚLTIMO REGISTRO' : 'RECOMENDADO PARA HOY'}
+            </span>
+            <h3>{recommendation.title}</h3>
+            <p>{recommendation.copy}</p>
+            {dominant ? (
+              <small>
+                {dominant.name} · {dominant.count} {dominant.count === 1 ? 'registro' : 'registros'}
+              </small>
+            ) : null}
+          </div>
+          <button className="secondary" type="button" onClick={() => router.push('/pulso')}>
+            Abrir actividad
+          </button>
+        </section>
+
+        <div className="period-row">
+          <div className="segmented" role="tablist" aria-label="Periodo">
+            {RANGES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={range === item.id ? 'active' : undefined}
+                aria-current={range === item.id ? 'true' : undefined}
+                onClick={() => setRange(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <span className="privacy-badge">
+            <Icon name="lock" /> Solo tú puedes verlo
+          </span>
+        </div>
 
         {/* Intensidad y tendencia */}
         <div className="card chart-card">
@@ -532,22 +586,9 @@ export default function EmotionalMapPage() {
                 <Icon name="trend" />
               </span>
               <div>
-                <h2>Intensidad emocional</h2>
-                <p>Promedio diario de tus registros en una escala de 1 a 10.</p>
+                <h2>Resumen de {range === 1 ? 'hoy' : `la ${rangeLabel}`}</h2>
+                <p>Cada color representa una emoción; la altura representa intensidad.</p>
               </div>
-            </div>
-            <div className="segmented" role="tablist" aria-label="Rango de tiempo">
-              {RANGES.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={range === item.id ? 'active' : undefined}
-                  aria-current={range === item.id ? 'true' : undefined}
-                  onClick={() => setRange(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
             </div>
           </div>
 
@@ -604,6 +645,17 @@ export default function EmotionalMapPage() {
                   ) : null}
                 </div>
               ))}
+            </div>
+          ) : null}
+
+          {summary ? (
+            <div className="chart-foot">
+              <span>
+                Emoción frecuente: <b>{dominant?.name ?? 'Sin registros'}</b>
+              </span>
+              <span>
+                {summary.totalEntries} {summary.totalEntries === 1 ? 'registro' : 'registros'}
+              </span>
             </div>
           ) : null}
 

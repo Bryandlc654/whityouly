@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,7 @@ import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryComposer from '@/components/wy/StoryComposer';
 import StoryMetaModal, { type EditableStory } from '@/components/wy/StoryMetaModal';
 import StoryDetailModal from '@/components/wy/StoryDetailModal';
+import { listSavedStories, unsaveStory, type SavedStory } from '@/lib/bookmarks';
 import {
   deleteStory,
   featureStory,
@@ -33,7 +34,8 @@ import {
   type Appeal,
 } from '@/lib/moderation';
 
-type StatusFilter = 'ALL' | 'DRAFT' | 'PUBLISHED';
+type StatusFilter = 'DRAFT' | 'PUBLISHED';
+type StoryView = 'published' | 'drafts' | 'saved';
 
 // Estados en los que un relato propio está oculto (moderado) y, por tanto, se
 // puede apelar. Coincide con las condiciones del backend.
@@ -56,10 +58,10 @@ const APPEAL_STATUS_LABELS: Record<Appeal['status'], string> = {
   REJECTED: 'Apelación rechazada',
 };
 
-const FILTERS: { id: StatusFilter; label: string }[] = [
-  { id: 'ALL', label: 'Todos' },
-  { id: 'DRAFT', label: 'Borradores' },
-  { id: 'PUBLISHED', label: 'Publicados' },
+const VIEWS: { id: StoryView; label: string }[] = [
+  { id: 'published', label: 'Publicados' },
+  { id: 'drafts', label: 'Borradores' },
+  { id: 'saved', label: 'Guardados' },
 ];
 
 function initialsOf(name?: string | null) {
@@ -73,17 +75,6 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
-function visibilityLabel(visibility: MyStoryListItem['visibility']): string {
-  if (visibility === 'PUBLIC') return 'Público';
-  if (visibility === 'FOLLOWERS') return 'Seguidores';
-  return 'Privado';
-}
-
-function visibilityIcon(visibility: MyStoryListItem['visibility']): 'globe' | 'users' | 'lock' {
-  if (visibility === 'PUBLIC') return 'globe';
-  if (visibility === 'FOLLOWERS') return 'users';
-  return 'lock';
-}
 
 export default function MyStoriesPage() {
   const router = useRouter();
@@ -95,7 +86,11 @@ export default function MyStoriesPage() {
   const [stories, setStories] = useState<MyStoryListItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [filter, setFilter] = useState<StatusFilter>('ALL');
+  const [view, setView] = useState<StoryView>('published');
+  const [saved, setSaved] = useState<SavedStory[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedError, setSavedError] = useState('');
+  const filter: StatusFilter = view === 'drafts' ? 'DRAFT' : 'PUBLISHED';
 
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -108,7 +103,6 @@ export default function MyStoriesPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [metaStory, setMetaStory] = useState<EditableStory | null>(null);
   const [detail, setDetail] = useState<MyStory | null>(null);
-  const [detailBusy, setDetailBusy] = useState(false);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -127,10 +121,7 @@ export default function MyStoriesPage() {
 
   const loadStories = useCallback(async (status: StatusFilter, cursor?: string) => {
     if (!cursor) setListError('');
-    const result = await listMyStories({
-      status: status === 'ALL' ? undefined : status,
-      cursor,
-    });
+    const result = await listMyStories({ status, cursor });
 
     if (result.status !== 'ok') {
       setListError(result.message);
@@ -167,9 +158,29 @@ export default function MyStoriesPage() {
     void verify();
   }, [router]);
 
+  const loadSaved = useCallback(async () => {
+    setSavedLoading(true);
+    setSavedError('');
+    const result = await listSavedStories();
+    setSavedLoading(false);
+
+    if (result.status === 'ok') {
+      setSaved(result.data.items);
+      return;
+    }
+
+    setSavedError(result.message);
+    setSaved([]);
+  }, []);
+
   useEffect(() => {
-    if (!loading) void loadStories(filter);
-  }, [filter, loading, loadStories]);
+    if (loading) return;
+    if (view === 'saved') {
+      void loadSaved();
+      return;
+    }
+    void loadStories(filter);
+  }, [view, filter, loading, loadStories, loadSaved]);
 
   const loadAppeals = useCallback(async () => {
     const result = await listMyAppeals({ limit: 50 });
@@ -371,9 +382,7 @@ export default function MyStoriesPage() {
   };
 
   const openDetail = async (story: MyStoryListItem) => {
-    setDetailBusy(true);
     const result = await getMyStory(story.id);
-    setDetailBusy(false);
 
     if (result.status === 'ok') {
       setDetail(result.data);
@@ -388,7 +397,76 @@ export default function MyStoriesPage() {
     void loadStories(filter);
   };
 
-  const name = character?.name ?? '';
+  const openStoryMenu = (story: MyStoryListItem) => {
+    const rows: SheetRow[] = [
+      {
+        label: 'Continuar relato',
+        icon: 'book',
+        onClick: () => void openDetail(story),
+      },
+      {
+        label: 'Editar relato',
+        icon: 'edit',
+        onClick: () =>
+          setMetaStory({
+            id: story.id,
+            title: story.title,
+            visibility: story.visibility,
+            categories: story.categories,
+            emotions: story.emotions,
+            tags: story.tags,
+          }),
+      },
+      {
+        label: story.featuredAt ? 'Quitar de destacados' : 'Destacar en mi perfil',
+        icon: 'sparkle',
+        onClick: () => void toggleFeatured(story),
+      },
+    ];
+
+    if (story.status === 'PUBLISHED') {
+      rows.push({ label: 'Abrir relato publicado', icon: 'globe', onClick: () => router.push(`/relato/${story.id}`) });
+    }
+
+    if (isAppealable(story.status)) {
+      if (!appeals[story.id]) {
+        rows.push({ label: 'Apelar decisión', icon: 'flag', onClick: () => openAppeal(story.id) });
+      }
+    } else {
+      rows.push({
+        label: story.status === 'PUBLISHED' ? 'Volver a borrador' : 'Publicar relato',
+        icon: story.status === 'PUBLISHED' ? 'lock' : 'globe',
+        onClick: () => void toggleStatus(story),
+      });
+    }
+
+    if (story.status === 'PUBLISHED') {
+      rows.push({
+        label: 'Retirar relato',
+        icon: 'lock',
+        danger: true,
+        onClick: () => confirmWithdraw(story),
+      });
+    } else if (story.status === 'DRAFT') {
+      rows.push({
+        label: 'Eliminar borrador',
+        icon: 'trash',
+        danger: true,
+        onClick: () => confirmDelete(story),
+      });
+    }
+
+    setSheet({ title: story.title, rows });
+  };
+
+  const removeSaved = async (storyId: string) => {
+    const result = await unsaveStory(storyId);
+    if (result.status === 'ok') {
+      setSaved((prev) => prev.filter((item) => item.id !== storyId));
+      return;
+    }
+    notify(result.message);
+  };
 
   return (
     <WyFrame
@@ -422,39 +500,33 @@ export default function MyStoriesPage() {
         />
       }
     >
-      <section className="screen">
-        <div className="welcome-row">
+      <section className="screen my-stories-page">
+        <div className="screen-heading">
           <div>
             <h1>Mis relatos</h1>
-            <p className="muted small">
-              {name
-                ? `${name}, este es tu espacio para escribir y volver cuando quieras.`
-                : 'Tus historias y su evolución.'}
-            </p>
+            <p>Puedes volver, editar o continuar cuando lo necesites.</p>
           </div>
-          <div className="heading-actions">
-            <button
-              className="secondary keep-mobile"
-              type="button"
-              onClick={() => router.push('/mis-relatos/retirados')}
-            >
-              <Icon name="lock" /> Relatos retirados
-            </button>
-            <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
-              <Icon name="plus" />
-              Compartir relato
-            </button>
-          </div>
+          <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
+            <Icon name="plus" /> Nuevo relato
+          </button>
         </div>
 
-        <div className="segmented">
-          {FILTERS.map((item) => (
+        <button
+          className="text-link my-stories-trash"
+          type="button"
+          onClick={() => router.push('/mis-relatos/retirados')}
+        >
+          Ver relatos retirados
+        </button>
+
+        <div className="segmented my-stories-tabs">
+          {VIEWS.map((item) => (
             <button
               key={item.id}
               type="button"
-              className={filter === item.id ? 'active' : undefined}
-              aria-current={filter === item.id ? 'page' : undefined}
-              onClick={() => setFilter(item.id)}
+              className={view === item.id ? 'active' : undefined}
+              aria-current={view === item.id ? 'page' : undefined}
+              onClick={() => setView(item.id)}
             >
               {item.label}
             </button>
@@ -463,7 +535,7 @@ export default function MyStoriesPage() {
 
         {loading ? <p className="muted small">Verificando acceso…</p> : null}
 
-        {!loading && listError ? (
+        {!loading && view !== 'saved' && listError ? (
           <div className="auth-error" role="alert">
             {listError}
             <button
@@ -477,143 +549,93 @@ export default function MyStoriesPage() {
           </div>
         ) : null}
 
-        {!loading && !listError && stories.length === 0 ? (
-          <div className="empty card">
-            <div className="empty-icon">
-              <Icon name="book" />
-            </div>
-            <h2>Todavía no has escrito</h2>
-            <p>Comparte lo que necesitas sacar de tu pecho. Puedes guardarlo en privado y decidir después.</p>
+        {!loading && view === 'saved' && savedError ? (
+          <div className="auth-error" role="alert">
+            {savedError}
             <button
-              className="primary"
+              className="text-link"
               type="button"
-              style={{ padding: '12px 18px' }}
-              onClick={() => setComposerOpen(true)}
+              onClick={() => void loadSaved()}
+              style={{ marginLeft: 8 }}
             >
-              Escribir mi primer relato
+              Reintentar
             </button>
           </div>
         ) : null}
 
-        {stories.length > 0 ? (
-          <div className="story-list">
+        {!loading && view !== 'saved' && !listError && stories.length === 0 ? (
+          <div className="empty-state">
+            <h2>{view === 'drafts' ? 'No tienes borradores' : 'Todavía no has publicado relatos'}</h2>
+            <p>
+              {view === 'drafts'
+                ? 'Lo que escribas se conservará aquí hasta que decidas publicarlo.'
+                : 'Comparte lo que necesitas sacar de tu pecho. Puedes guardarlo en privado y decidir después.'}
+            </p>
+            <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
+              Comparte tu relato
+            </button>
+          </div>
+        ) : null}
+
+        {!loading && view === 'saved' && !savedLoading && !savedError && saved.length === 0 ? (
+          <div className="empty-state">
+            <h2>Aún no guardaste relatos</h2>
+            <p>Usa “Guardar” en cualquier relato para volver a él después.</p>
+            <button className="secondary" type="button" onClick={() => router.push('/feed')}>
+              Explorar el feed
+            </button>
+          </div>
+        ) : null}
+
+        {!loading && view === 'saved' && savedLoading ? (
+          <p className="muted small">Cargando guardados…</p>
+        ) : null}
+
+        {view !== 'saved' && stories.length > 0 ? (
+          <div className="story-list my-story-list">
             {stories.map((story) => (
-              <article key={story.id} className="card story-row">
-                <div className="story-row-head">
-                  <h2>{story.title}</h2>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {story.featuredAt ? (
-                      <span className="status-pill featured">Destacado</span>
+              <article key={story.id} className="card my-story-card">
+                <div className="my-story-line">
+                  <div>
+                    {story.categories[0] ? <span className="tag">{story.categories[0]}</span> : null}
+                    <h3>
+                      <button
+                        className="story-title-button"
+                        type="button"
+                        onClick={() => void openDetail(story)}
+                      >
+                        {story.title}
+                      </button>
+                    </h3>
+                    <p>
+                      {formatDate(story.updatedAt)} · {story.commentCount}{' '}
+                      {story.commentCount === 1 ? 'comentario' : 'comentarios'}
+                    </p>
+                    {isAppealable(story.status) ? (
+                      <span className="my-story-note">{statusLabel(story.status)}</span>
                     ) : null}
-                    <span
-                      className={`status-pill ${
-                        story.status === 'PUBLISHED'
-                          ? 'published'
-                          : isAppealable(story.status)
-                            ? 'featured'
-                            : 'draft'
-                      }`}
+                    {appeals[story.id] ? (
+                      <span className="my-story-note">{APPEAL_STATUS_LABELS[appeals[story.id].status]}</span>
+                    ) : null}
+                  </div>
+
+                  <div className="story-row-actions">
+                    <button className="secondary" type="button" onClick={() => void openDetail(story)}>
+                      Continuar relato
+                    </button>
+                    <button
+                      className="icon-btn"
+                      type="button"
+                      disabled={busyId === story.id}
+                      onClick={() => openStoryMenu(story)}
+                      aria-label="Más opciones del relato"
                     >
-                      {statusLabel(story.status)}
-                    </span>
+                      <Icon name="more" />
+                    </button>
                   </div>
                 </div>
 
-                <p className="story-row-meta">
-                  <Icon name={visibilityIcon(story.visibility)} />
-                  <span>{visibilityLabel(story.visibility)}</span>
-                  <span className="dot" aria-hidden />
-                  <span>
-                    {story.stageCount} {story.stageCount === 1 ? 'etapa' : 'etapas'}
-                  </span>
-                  <span className="dot" aria-hidden />
-                  <span>{formatDate(story.updatedAt)}</span>
-                  {story.categories[0] ? (
-                    <>
-                      <span className="dot" aria-hidden />
-                      <span>{story.categories[0]}</span>
-                    </>
-                  ) : null}
-                </p>
-
-                {story.opening ? <p className="post-text clamp">{story.opening.content}</p> : null}
-
-                <div className="story-row-actions">
-                  <button
-                    className="action-link"
-                    type="button"
-                    disabled={busyId === story.id || detailBusy}
-                    onClick={() => void openDetail(story)}
-                  >
-                    <Icon name="book" /> Etapas
-                  </button>
-                  <button
-                    className="action-link"
-                    type="button"
-                    disabled={busyId === story.id}
-                    onClick={() =>
-                      setMetaStory({
-                        id: story.id,
-                        title: story.title,
-                        visibility: story.visibility,
-                        categories: story.categories,
-                        emotions: story.emotions,
-                        tags: story.tags,
-                      })
-                    }
-                  >
-                    <Icon name="edit" /> Editar
-                  </button>
-                  <button
-                    className="action-link"
-                    type="button"
-                    disabled={busyId === story.id}
-                    onClick={() => void toggleFeatured(story)}
-                  >
-                    <Icon name="sparkle" /> {story.featuredAt ? 'Quitar destacado' : 'Destacar'}
-                  </button>
-                  {isAppealable(story.status) ? (
-                    <button
-                      className="action-link"
-                      type="button"
-                      disabled={appealBusy || Boolean(appeals[story.id])}
-                      onClick={() => openAppeal(story.id)}
-                    >
-                      <Icon name="flag" /> Apelar
-                    </button>
-                  ) : (
-                    <button
-                      className="action-link"
-                      type="button"
-                      disabled={busyId === story.id}
-                      onClick={() => void toggleStatus(story)}
-                    >
-                      <Icon name={story.status === 'PUBLISHED' ? 'lock' : 'globe'} />
-                      {story.status === 'PUBLISHED' ? 'Volver a borrador' : 'Publicar'}
-                    </button>
-                  )}
-                  {story.status === 'PUBLISHED' ? (
-                    <button
-                      className="action-link danger"
-                      type="button"
-                      disabled={busyId === story.id}
-                      onClick={() => confirmWithdraw(story)}
-                    >
-                      <Icon name="lock" /> Retirar relato
-                    </button>
-                  ) : story.status === 'DRAFT' ? (
-                    <button
-                      className="action-link danger"
-                      type="button"
-                      disabled={busyId === story.id}
-                      onClick={() => confirmDelete(story)}
-                    >
-                      <Icon name="trash" /> Eliminar borrador
-                    </button>
-                  ) : null}
-                </div>
-
-                {isAppealable(story.status) ? (
+                {appealFor === story.id ? (
                   <div className="appeal-block">
                     {appeals[story.id] ? (
                       <div className="appeal-status">
@@ -627,7 +649,7 @@ export default function MyStoriesPage() {
                           </p>
                         ) : null}
                       </div>
-                    ) : appealFor === story.id ? (
+                    ) : (
                       <div className="appeal-form">
                         <label className="field-label" htmlFor={`appeal-${story.id}`}>
                           Cuéntanos por qué deberíamos revisarlo
@@ -663,11 +685,6 @@ export default function MyStoriesPage() {
                           </button>
                         </div>
                       </div>
-                    ) : (
-                      <p className="muted small" style={{ margin: '8px 0 0' }}>
-                        Este relato está oculto por moderación. Si crees que es un error, puedes apelar
-                        con el botón «Apelar».
-                      </p>
                     )}
                   </div>
                 ) : null}
@@ -676,7 +693,44 @@ export default function MyStoriesPage() {
           </div>
         ) : null}
 
-        {nextCursor ? (
+        {view === 'saved' && saved.length > 0 ? (
+          <div className="story-list my-story-list">
+            {saved.map((item) => (
+              <article key={item.id} className="card my-story-card">
+                <div className="my-story-line">
+                  <div>
+                    <h3>
+                      <button
+                        className="story-title-button"
+                        type="button"
+                        onClick={() => router.push(`/relato/${item.id}`)}
+                      >
+                        {item.title}
+                      </button>
+                    </h3>
+                    <p>
+                      {item.author?.name ?? 'Relato'} · Guardado el {formatDate(item.savedAt)}
+                    </p>
+                  </div>
+                  <div className="story-row-actions">
+                    <button className="secondary" type="button" onClick={() => router.push(`/relato/${item.id}`)}>
+                      Leer relato
+                    </button>
+                    <button
+                      className="icon-btn"
+                      type="button"
+                      onClick={() => void removeSaved(item.id)}
+                      aria-label="Quitar de guardados"
+                    >
+                      <Icon name="trash" />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+        {view !== 'saved' && nextCursor ? (
           <div>
             <button
               className="btn-outline"

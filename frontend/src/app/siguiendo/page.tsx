@@ -6,22 +6,19 @@ import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
-import Icon from '@/components/wy/Icon';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import StoryViewer from '@/components/wy/StoryViewer';
 import {
-  followCharacter,
   listFollowing,
   unfollowCharacter,
   whatIFollow,
   type FollowedCharacter,
   type WhatIFollow,
 } from '@/lib/follows';
-import { listFollowingStories, viewStory, type FollowingStory, type MyStory } from '@/lib/stories';
 import { unfollowStory } from '@/lib/interactions';
-import { listSavedStories, unsaveStory, type SavedStory } from '@/lib/bookmarks';
+
+type FollowingTab = 'authors' | 'stories';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -33,17 +30,13 @@ export default function FollowingPage() {
 
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<FollowingTab>('authors');
 
-  const [feed, setFeed] = useState<FollowingStory[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [feedError, setFeedError] = useState('');
   const [following, setFollowing] = useState<FollowedCharacter[]>([]);
   const [sigo, setSigo] = useState<WhatIFollow | null>(null);
-  const [saved, setSaved] = useState<SavedStory[]>([]);
+  const [error, setError] = useState('');
   const [busyAuthor, setBusyAuthor] = useState<string | null>(null);
-
-  const [view, setView] = useState<MyStory | null>(null);
-  const [viewBusy, setViewBusy] = useState(false);
+  const [busyStory, setBusyStory] = useState<string | null>(null);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -60,32 +53,21 @@ export default function FollowingPage() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
-  const loadAll = useCallback(async (cursor?: string) => {
-    if (!cursor) setFeedError('');
-
-    const [feedResult, followingResult, sigoResult, savedResult] = await Promise.all([
-      listFollowingStories({ cursor }),
-      listFollowing(),
-      whatIFollow(),
-      listSavedStories(),
-    ]);
-
-    if (feedResult.status === 'ok') {
-      setFeed((prev) => (cursor ? [...prev, ...feedResult.data.items] : feedResult.data.items));
-      setNextCursor(feedResult.data.nextCursor);
-    } else {
-      setFeedError(feedResult.message);
-      if (!cursor) setFeed([]);
-    }
+  const loadAll = useCallback(async () => {
+    setError('');
+    const [followingResult, sigoResult] = await Promise.all([listFollowing(), whatIFollow()]);
 
     if (followingResult.status === 'ok') {
       setFollowing(followingResult.data.items);
+    } else {
+      setError(followingResult.message);
     }
+
     if (sigoResult.status === 'ok') {
       setSigo(sigoResult.data);
-    }
-    if (savedResult.status === 'ok') {
-      setSaved(savedResult.data.items);
+    } else {
+      setError(sigoResult.message);
+      setSigo(null);
     }
   }, []);
 
@@ -104,8 +86,8 @@ export default function FollowingPage() {
           return;
         }
         if (res.ok) setCharacter(await res.json());
-      } catch (error) {
-        console.error('Error verificando sesión', error);
+      } catch (err) {
+        console.error('Error verificando sesión', err);
       } finally {
         setLoading(false);
       }
@@ -164,6 +146,9 @@ export default function FollowingPage() {
       case 'tree':
         router.push('/mi-arbol');
         break;
+      case 'notifications':
+        router.push('/notificaciones');
+        break;
       case 'help':
         router.push('/soporte');
         break;
@@ -174,53 +159,41 @@ export default function FollowingPage() {
 
   const toggleFollow = async (authorName: string) => {
     setBusyAuthor(authorName);
-    const isFollowing = following.some((item) => item.name === authorName);
-    const result = isFollowing ? await unfollowCharacter(authorName) : await followCharacter(authorName);
+    const result = await unfollowCharacter(authorName);
     setBusyAuthor(null);
 
     if (result.status === 'ok') {
-      notify(isFollowing ? `Dejaste de seguir a ${authorName}.` : `Ahora sigues a ${authorName}.`);
-      void loadAll();
+      setFollowing((prev) => prev.filter((item) => item.name !== authorName));
       return;
     }
+
     notify(result.message);
   };
 
-  const unfollowFollowedStory = async (storyId: string) => {
+  const removeFollowedStory = async (storyId: string) => {
+    setBusyStory(storyId);
     const result = await unfollowStory(storyId);
+    setBusyStory(null);
+
     if (result.status === 'ok') {
       setSigo((prev) =>
         prev ? { ...prev, stories: prev.stories.filter((story) => story.id !== storyId) } : prev,
       );
-      notify('Dejaste de seguir esta historia.');
       return;
     }
-    notify(result.message);
-  };
 
-  const unsave = async (storyId: string) => {
-    const result = await unsaveStory(storyId);
-    if (result.status === 'ok') {
-      setSaved((prev) => prev.filter((item) => item.id !== storyId));
-      notify('Quitado de tus guardados.');
-      return;
-    }
-    notify(result.message);
-  };
-
-  const openStory = async (storyId: string) => {
-    setViewBusy(true);
-    const result = await viewStory(storyId);
-    setViewBusy(false);
-
-    if (result.status === 'ok') {
-      setView(result.data);
-      return;
-    }
     notify(result.message);
   };
 
   const name = character?.name ?? '';
+
+  if (loading) {
+    return (
+      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
+        <p className="muted">Verificando acceso…</p>
+      </div>
+    );
+  }
 
   return (
     <WyFrame
@@ -230,210 +203,145 @@ export default function FollowingPage() {
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
-      overlay={
-        view ? <StoryViewer story={view} onClose={() => setView(null)} />
-          : null
-      }
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={
         <RightRail
           summaryHidden={summaryHidden}
           onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onDaily={() => notify('La consigna diaria llega con el módulo de historias.')}
-          onCategory={(category) => notify(`Explorar «${category}» llega pronto.`)}
+          onDaily={() => notify('La consigna diaria llega con el próximo módulo.')}
+          onCategory={(category) => notify(`Explorar “${category}” llega pronto.`)}
           onMood={() => router.push('/mi-estado')}
         />
       }
     >
-      <section className="screen">
-        <div className="welcome-row">
+      <section className="screen following-page">
+        <div className="screen-heading">
           <div>
-            <h1>Lo que sigo</h1>
-            <p className="muted small">
-              {name
-                ? `${name}, aquí estás al día de lo que te importa.`
-                : 'Lo que sigues y guardas.'}
-            </p>
+            <h1>Siguiendo</h1>
+            <p>{name ? `${name}, ` : ''}elige si quieres ver autores o historias que continúan.</p>
           </div>
-          {name ? (
-            <button
-              className="secondary"
-              type="button"
-              onClick={() => router.push(`/seguidores/${encodeURIComponent(name)}`)}
-            >
-              Ver mis seguidores
-            </button>
-          ) : null}
         </div>
 
-        {following.length > 0 ? (
-          <section className="card pad">
-            <h2 className="h-section" style={{ marginBottom: 10 }}>
-              Personajes que sigues
-            </h2>
-            <div className="chip-row">
-              {following.map((person) => (
-                <button
-                  key={person.name}
-                  type="button"
-                  className="chip on follow-chip"
-                  disabled={busyAuthor === person.name}
-                  onClick={() => void toggleFollow(person.name)}
-                  title="Dejar de seguir"
-                >
-                  {person.name} · Dejar de seguir
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <div className="segmented following-tabs">
+          <button
+            type="button"
+            className={tab === 'authors' ? 'active' : undefined}
+            aria-current={tab === 'authors' ? 'page' : undefined}
+            onClick={() => setTab('authors')}
+          >
+            Autores
+          </button>
+          <button
+            type="button"
+            className={tab === 'stories' ? 'active' : undefined}
+            aria-current={tab === 'stories' ? 'page' : undefined}
+            onClick={() => setTab('stories')}
+          >
+            Relatos
+          </button>
+        </div>
 
-        {sigo && sigo.stories.length > 0 ? (
-          <section className="card pad">
-            <h2 className="h-section" style={{ marginBottom: 10 }}>
-              Historias que sigues
-            </h2>
-            <div className="stack">
-              {sigo.stories.map((story) => (
-                <div key={story.id} className="row-between">
-                  <div style={{ minWidth: 0 }}>
-                    <b>{story.title}</b>
-                    <p className="hint" style={{ margin: 0 }}>
-                      {story.author.name}
-                    </p>
-                  </div>
-                  <button
-                    className="link-danger"
-                    type="button"
-                    onClick={() => void unfollowFollowedStory(story.id)}
-                  >
-                    Dejar de seguir
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <p className="following-explainer">
+          {tab === 'authors'
+            ? 'Seguir a un autor muestra sus nuevos relatos en tu feed Siguiendo.'
+            : 'Seguir un relato te avisa solo cuando el autor añade una continuación.'}
+        </p>
 
-        {saved.length > 0 ? (
-          <section className="card pad">
-            <h2 className="h-section" style={{ marginBottom: 10 }}>
-              Guardados
-            </h2>
-            <div className="story-list" style={{ gap: 8 }}>
-              {saved.map((item) => (
-                <div key={item.id} className="row-between">
-                  <div style={{ minWidth: 0 }}>
-                    <b>{item.title}</b>
-                    <p className="hint" style={{ margin: 0 }}>
-                      {item.author ? item.author.name : 'Relato'}
-                    </p>
-                  </div>
-                  <button className="link-danger" type="button" onClick={() => void unsave(item.id)}>
-                    Quitar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {loading ? <p className="muted small">Verificando acceso…</p> : null}
-
-        {!loading && feedError ? (
+        {error ? (
           <div className="auth-error" role="alert">
-            {feedError}
+            {error}
             <button className="text-link" type="button" onClick={() => void loadAll()} style={{ marginLeft: 8 }}>
               Reintentar
             </button>
           </div>
         ) : null}
 
-        {!loading && !feedError && feed.length === 0 ? (
-          <div className="empty card">
-            <div className="empty-icon">
-              <Icon name="users" />
-            </div>
-            <h2>Aún no sigues a nadie</h2>
-            <p>Explora autores con los que conectes. Aquí aparecerán sus nuevos relatos.</p>
-            <button
-              className="primary"
-              type="button"
-              style={{ padding: '12px 18px' }}
-              onClick={() => router.push('/feed')}
-            >
-              Explorar el feed
-            </button>
-          </div>
-        ) : null}
-
-        <div className="stack">
-          {feed.map((story) => {
-            const isFollowing = following.some((item) => item.name === story.author.name);
-            return (
-              <article key={story.id} className="post card story-card">
-                <div className="post-head">
-                  <Avatar initials={initialsOf(story.author.name)} avatarUrl={story.author.avatarUrl} />
+        {!error && tab === 'authors' ? (
+          following.length > 0 ? (
+            <div className="following-list">
+              {following.map((person) => (
+                <article key={person.name} className="card follow-row following-author">
+                  <Avatar
+                    initials={initialsOf(person.name)}
+                    avatarUrl={person.avatarUrl}
+                    size="sm"
+                  />
                   <div>
-                    <div className="post-author">
-                      <span>{story.author.name}</span>
-                      <button
-                        type="button"
-                        key={isFollowing ? 'following' : 'follow'}
-                        className={`follow-btn${isFollowing ? ' on' : ''}`}
-                        aria-pressed={isFollowing}
-                        disabled={busyAuthor === story.author.name}
-                        onClick={() => void toggleFollow(story.author.name)}
-                      >
-                        <Icon name={isFollowing ? 'check' : 'plus'} />
-                        {isFollowing ? 'Siguiendo' : 'Seguir autor'}
-                      </button>
-                    </div>
-                    <div className="post-time">
-                      {story.stageCount} {story.stageCount === 1 ? 'etapa' : 'etapas'}
-                    </div>
+                    <button
+                      className="author-name"
+                      type="button"
+                      onClick={() => router.push(`/personaje/${encodeURIComponent(person.name)}`)}
+                    >
+                      {person.name}
+                    </button>
+                    {person.tagline ? <small>{person.tagline}</small> : null}
                   </div>
-                </div>
-
-                {story.categories.length > 0 ? (
-                  <div className="post-tags" style={{ marginBottom: 0 }}>
-                    {story.categories.slice(0, 2).map((category) => (
-                      <span key={category} className="tag">
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-
-                <h2 style={{ margin: 0 }}>{story.title}</h2>
-                {story.opening ? <p className="post-text clamp">{story.opening.content}</p> : null}
-
-                <div>
                   <button
                     className="secondary"
                     type="button"
-                    disabled={viewBusy}
-                    onClick={() => void openStory(story.id)}
+                    disabled={busyAuthor === person.name}
+                    onClick={() => void toggleFollow(person.name)}
                   >
-                    Leer relato
+                    Siguiendo
                   </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        {nextCursor ? (
-          <div>
-            <button
-              className="btn-outline"
-              type="button"
-              onClick={() => void loadAll(nextCursor)}
-            >
-              Ver más
-            </button>
-          </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <h2>Aún no sigues autores</h2>
+              <p>Explora relatos y encuentra personas con las que conectar.</p>
+              <button className="secondary" type="button" onClick={() => router.push('/explorar')}>
+                Explorar relatos
+              </button>
+            </div>
+          )
         ) : null}
+
+        {!error && tab === 'stories' ? (
+          sigo && sigo.stories.length > 0 ? (
+            <div className="story-list following-list">
+              {sigo.stories.map((story) => (
+                <article key={story.id} className="card following-story">
+                  <div>
+                    <h3>
+                      <button
+                        className="story-title-button"
+                        type="button"
+                        onClick={() => router.push(`/relato/${story.id}`)}
+                      >
+                        {story.title}
+                      </button>
+                    </h3>
+                    <p>{story.author.name}</p>
+                  </div>
+                  <div className="story-row-actions">
+                    <button className="secondary" type="button" onClick={() => router.push(`/relato/${story.id}`)}>
+                      Leer relato
+                    </button>
+                    <button
+                      className="text-link danger"
+                      type="button"
+                      disabled={busyStory === story.id}
+                      onClick={() => void removeFollowedStory(story.id)}
+                    >
+                      Dejar de seguir
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <h2>Aún no sigues relatos</h2>
+              <p>Cuando sigas un relato, aparecerá aquí para que no pierdas sus continuaciones.</p>
+              <button className="secondary" type="button" onClick={() => router.push('/feed')}>
+                Ir al feed
+              </button>
+            </div>
+          )
+        ) : null}
+
       </section>
     </WyFrame>
   );
