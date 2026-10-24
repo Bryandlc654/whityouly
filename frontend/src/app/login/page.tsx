@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
 import { authFetch, tokenStorage } from '@/lib/auth';
 import AuthCard from '@/components/wy/AuthCard';
+import Icon from '@/components/wy/Icon';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -62,57 +63,80 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      title="Te damos la bienvenida"
-      subtitle="Ingresa de forma segura. La comunidad nunca verá tu correo ni tu nombre real."
-      image="/auth-bg.png"
-      imageAlt="Comunidad de Withyouly"
+      variant="reference"
+      showTrust
+      title="Bienvenido a Withyouly"
+      subtitle="Ingresa para continuar en tu comunidad."
+      image="/withyouly-community.jpeg"
+      imageAlt="Jóvenes conversando. Aquí, lo que sientes importa."
     >
       {error ? <div className="auth-error">{error}</div> : null}
       {success ? <div className="auth-success">Acceso correcto. Entrando…</div> : null}
 
       <form onSubmit={handleLogin}>
         <label htmlFor="identifier">Correo electrónico</label>
-        <input
-          id="identifier"
-          name="identifier"
-          type="email"
-          placeholder="tu@correo.com"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div className="input-with-icon">
+          <Icon name="user" />
+          <input
+            id="identifier"
+            name="identifier"
+            type="email"
+            placeholder="tu@correo.com"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <label htmlFor="password">Contraseña</label>
-        <div className="auth-input-wrap">
+        <div className="label-row">
+          <label htmlFor="password">Contraseña</label>
+          <button type="button" onClick={() => router.push('/forgot-password')}>
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+        <div className="input-with-icon">
+          <Icon name="lock" />
           <input
             id="password"
             name="password"
             type={showPassword ? 'text' : 'password'}
-            placeholder="••••••••••••"
+            placeholder="Tu contraseña"
             autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="button" className="ghost" onClick={() => setShowPassword((v) => !v)}>
-            {showPassword ? 'Ocultar' : 'Ver'}
+          <button
+            type="button"
+            className="password-eye"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={showPassword}
+          >
+            <Icon name={showPassword ? 'lock' : 'eye'} />
           </button>
         </div>
 
-        <button className="primary" type="submit" disabled={loading || success}>
-          {loading && !success ? 'Entrando…' : success ? 'Bienvenido de vuelta' : 'Ingresar a Withyouly'}
+        <button
+          className="primary reference-submit"
+          type="submit"
+          disabled={loading || success}
+        >
+          {loading && !success
+            ? 'Entrando…'
+            : success
+              ? 'Bienvenido de vuelta'
+              : 'Iniciar sesión'}
         </button>
-      </form>
 
-      <div className="auth-links">
-        <button type="button" onClick={() => router.push('/forgot-password')}>
-          ¿Olvidaste tu contraseña?
-        </button>
-        <button type="button" onClick={() => router.push('/register')}>
-          Crear una cuenta
-        </button>
-      </div>
+        <div className="create-account-line">
+          <span>¿Aún no tienes una cuenta?</span>
+          <button type="button" onClick={() => router.push('/register')}>
+            Crear cuenta
+          </button>
+        </div>
+      </form>
     </AuthCard>
   );
 }

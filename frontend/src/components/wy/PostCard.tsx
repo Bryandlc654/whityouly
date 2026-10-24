@@ -156,16 +156,20 @@ export default function PostCard({
 
       <div className="post-actions">
         <button className={supported ? 'on' : undefined} type="button" onClick={onSupport}>
-          <Icon name="heart" /> Estoy contigo
+          <Icon name="heart" />
+          <span className="action-label">Estoy contigo</span>
         </button>
         <button type="button" onClick={onComment}>
-          <Icon name="message" /> Comentar
+          <Icon name="message" />
+          <span className="action-label">Comentar</span>
         </button>
         <button className={followingStory ? 'on' : undefined} type="button" onClick={onFollowStory}>
-          <Icon name="bell" /> {followingStory ? 'Siguiendo' : 'Seguir relato'}
+          <Icon name="bell" />
+          <span className="action-label">{followingStory ? 'Siguiendo' : 'Seguir relato'}</span>
         </button>
         <button className={saved ? 'on' : undefined} type="button" onClick={onSave}>
-          <Icon name="bookmark" /> Guardar
+          <Icon name="bookmark" />
+          <span className="action-label">Guardar</span>
         </button>
       </div>
     </article>

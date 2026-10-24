@@ -42,6 +42,8 @@ interface FrameProps {
   sheet?: ReactNode;
   toast?: string;
   unreadNotifications?: number;
+  /** Clase extra para variantes visuales acotadas (por ejemplo, feed v42). */
+  className?: string;
   children: ReactNode;
 }
 
@@ -188,12 +190,13 @@ export default function WyFrame({
   sheet,
   toast,
   unreadNotifications = 0,
+  className,
   children,
 }: FrameProps) {
   const [searchReader, setSearchReader] = useState<{ id: string; title: string } | null>(null);
 
   return (
-    <div className="wy">
+    <div className={`wy${className ? ` ${className}` : ''}`}>
       <TopBar
         characterInitials={characterInitials}
         avatarUrl={avatarUrl}

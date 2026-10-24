@@ -518,6 +518,7 @@ export default function FeedPage() {
       characterInitials={initials}
       avatarUrl={character?.avatarUrl}
       activeRoute="home"
+      className="feed-reference"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
@@ -653,6 +654,20 @@ export default function FeedPage() {
             </div>
           )}
         </section>
+
+        <div className="feed-tabs" role="tablist" aria-label="Vista del feed">
+          <button type="button" role="tab" aria-selected className="active">
+            Para ti
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={false}
+            onClick={() => router.push('/siguiendo')}
+          >
+            Siguiendo
+          </button>
+        </div>
 
         {feedError ? (
           <div className="auth-error" role="alert">
