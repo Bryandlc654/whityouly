@@ -21,7 +21,7 @@ import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import type { FeedStory } from '@/components/wy/feedData';
-import { createEmotionalLog, daypartToLoggedAt } from '@/lib/emotionalMap';
+import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '@/lib/emotionalMap';
 
 interface FeedEntry extends FeedStory {
   isOwn: boolean;
@@ -95,6 +95,7 @@ export default function FeedPage() {
   const [moodDaypart, setMoodDaypart] = useState('Todo el día');
   const [moodSaving, setMoodSaving] = useState(false);
   const [moodError, setMoodError] = useState('');
+  const [moodRegisteredToday, setMoodRegisteredToday] = useState<boolean | null>(null);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -191,6 +192,28 @@ export default function FeedPage() {
     if (!loading) void loadFeed();
   }, [loading, loadFeed]);
 
+  const loadMoodToday = useCallback(async () => {
+    const result = await getEmotionalTodayStatus();
+    if (result.status === 'ok') setMoodRegisteredToday(result.data.registered);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) void loadMoodToday();
+  }, [loading, loadMoodToday]);
+
+  // Si la pestaña sigue abierta al cambiar el día, se vuelve a comprobar.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadMoodToday();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [loadMoodToday]);
+
   const logout = useCallback(async () => {
     await endSession();
     router.push('/login');
@@ -211,6 +234,11 @@ export default function FeedPage() {
   };
 
   const openMood = (name = 'Esperanza') => {
+    if (moodRegisteredToday === true) {
+      notify('Ya registraste cómo te sientes hoy.');
+      return;
+    }
+
     setMoodName(name);
     setMoodNote('');
     setMoodError('');
@@ -249,6 +277,7 @@ export default function FeedPage() {
 
     setMoodOpen(false);
     setMoodNote('');
+    setMoodRegisteredToday(true);
     notify(`${moodName} ${moodValue}/10 guardado de forma privada`);
   };
 
@@ -503,32 +532,34 @@ export default function FeedPage() {
           </button>
         </div>
 
-        <section className="quick-mood card compact-checkin">
-          <div className="quick-title">
-            <div>
-              <h2>¿Cómo estás ahora?</h2>
-              <p>
-                <Icon name="lock" /> Solo para ti
-              </p>
-            </div>
-            <button className="text-link" type="button" onClick={() => openMood()}>
-              Registrar
-            </button>
-          </div>
-          <div className="mood-choices mood-choices-v2">
-            {MOODS.map((mood) => (
-              <button
-                key={mood.name}
-                className="mood-choice"
-                type="button"
-                onClick={() => openMood(mood.name)}
-              >
-                <span>{mood.emoji}</span>
-                <small>{mood.name}</small>
+        {moodRegisteredToday === false ? (
+          <section className="quick-mood card compact-checkin">
+            <div className="quick-title">
+              <div>
+                <h2>¿Cómo estás ahora?</h2>
+                <p>
+                  <Icon name="lock" /> Solo para ti
+                </p>
+              </div>
+              <button className="text-link" type="button" onClick={() => openMood()}>
+                Registrar
               </button>
-            ))}
-          </div>
-        </section>
+            </div>
+            <div className="mood-choices mood-choices-v2">
+              {MOODS.map((mood) => (
+                <button
+                  key={mood.name}
+                  className="mood-choice"
+                  type="button"
+                  onClick={() => openMood(mood.name)}
+                >
+                  <span>{mood.emoji}</span>
+                  <small>{mood.name}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="composer card" ref={composerRef}>
           <div className="composer-top">
