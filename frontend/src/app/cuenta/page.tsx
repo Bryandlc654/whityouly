@@ -3,48 +3,48 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { exportAccountData, fetchAccount, type Account } from '@/lib/account';
+import { fetchAccount, type Account } from '@/lib/account';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
-import WyFrame, { type WyRoute } from '@/components/wy/Shell';
-import RightRail from '@/components/wy/RightRail';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
-import type { IconName } from '@/components/wy/icons';
+import RightRail from '@/components/wy/RightRail';
+import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import PreferencesSection from '@/components/account/PreferencesSection';
-import SecuritySection from '@/components/account/SecuritySection';
-import PrivacySection from '@/components/account/PrivacySection';
-import FilesSection from '@/components/account/FilesSection';
-import DeleteAccountSection from '@/components/account/DeleteAccountSection';
+import { fetchPublicProfile } from '@/lib/characters';
+import { listFollowersOf, listFollowingOf } from '@/lib/follows';
+import { listMyStories } from '@/lib/stories';
 
-type Tab = 'preferencias' | 'seguridad' | 'privacidad' | 'archivos' | 'baja';
+interface ProfileStats {
+  stories: number;
+  companionships: number;
+  followers: number;
+  following: number;
+}
 
-const TABS: { id: Tab; label: string; icon: IconName; danger?: boolean }[] = [
-  { id: 'preferencias', label: 'Preferencias', icon: 'settings' },
-  { id: 'seguridad', label: 'Seguridad', icon: 'shield' },
-  { id: 'privacidad', label: 'Privacidad', icon: 'lock' },
-  { id: 'archivos', label: 'Archivos', icon: 'book' },
-  { id: 'baja', label: 'Baja', icon: 'trash', danger: true },
-];
+const EMPTY_STATS: ProfileStats = {
+  stories: 0,
+  companionships: 0,
+  followers: 0,
+  following: 0,
+};
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
   return name.trim().slice(0, 2).toUpperCase();
 }
 
-export default function AccountPage() {
+export default function ProfilePage() {
   const router = useRouter();
   const [account, setAccount] = useState<Account | null>(null);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
-  const [tab, setTab] = useState<Tab>('preferencias');
-  const [error, setError] = useState('');
+  const [stats, setStats] = useState<ProfileStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const notify = useCallback((message: string) => {
@@ -57,45 +57,76 @@ export default function AccountPage() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
-  const load = useCallback(async () => {
-    const result = await fetchAccount();
-    if (result.status === 'ok') {
-      setAccount(result.data);
-      setError('');
-    } else {
-      setError(result.message);
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    if (!tokenStorage.getAccess()) {
-      router.replace('/login');
-      return;
-    }
-    void load();
-  }, [load, router]);
+    const load = async () => {
+      if (!tokenStorage.getAccess()) {
+        router.replace('/login');
+        return;
+      }
 
-  useEffect(() => {
-    const loadCharacter = async () => {
+      try {
+        const accountResult = await fetchAccount();
+        if (accountResult.status === 'ok') setAccount(accountResult.data);
+      } catch {
+        /* el perfil puede cargarse sin los datos de la cuenta */
+      }
+
       try {
         const res = await authFetch(`${API_URL}/characters/me`);
-
         if (res.status === 401) {
           tokenStorage.clear();
           router.replace('/login');
           return;
         }
+        if (res.status === 404) {
+          router.replace('/onboarding');
+          return;
+        }
+        if (!res.ok) {
+          setError('No se pudo cargar tu perfil.');
+          setLoading(false);
+          return;
+        }
 
-        if (res.ok) {
-          setCharacter(await res.json());
+        const loadedCharacter: CharacterSummary = await res.json();
+        setCharacter(loadedCharacter);
+
+        const name = loadedCharacter.name;
+        const [publicProfile, followersResult, followingResult, storiesResult] = await Promise.all([
+          fetchPublicProfile(name),
+          listFollowersOf(name, { limit: 1 }),
+          listFollowingOf(name, { limit: 1 }),
+          listMyStories({ status: 'PUBLISHED' }),
+        ]);
+
+        const publishedStories = storiesResult.status === 'ok' ? storiesResult.data.items : [];
+        const fallback: ProfileStats = {
+          stories: publishedStories.length,
+          companionships: publishedStories.reduce((total, story) => total + story.supportCount, 0),
+          followers: followersResult.status === 'ok' ? followersResult.data.total : 0,
+          following: followingResult.status === 'ok' ? followingResult.data.total : 0,
+        };
+
+        if (publicProfile.status === 'found' && publicProfile.profile.stats) {
+          const publicStats = publicProfile.profile.stats;
+          setStats({
+            stories: publicStats.stories,
+            companionships: publicStats.companionshipsReceived,
+            followers: publicStats.followers,
+            following: publicStats.following,
+          });
+        } else {
+          setStats(fallback);
         }
       } catch (err) {
-        console.error('Error cargando personaje', err);
+        console.error('Error cargando el perfil', err);
+        setError('No se pudo cargar tu perfil.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    void loadCharacter();
+    void load();
   }, [router]);
 
   const logout = useCallback(async () => {
@@ -103,34 +134,19 @@ export default function AccountPage() {
     router.push('/login');
   }, [router]);
 
-  const downloadData = useCallback(async () => {
-    if (exporting) return;
-
-    setExporting(true);
-    const result = await exportAccountData();
-    setExporting(false);
-
-    if (result.status !== 'ok') {
-      notify(result.message);
-      return;
-    }
-
-    const url = URL.createObjectURL(result.data.blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = result.data.filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    notify('Copia de tus datos descargada.');
-  }, [exporting, notify]);
-
   const openAccount = () => {
     setSheet({
       title: 'Tu cuenta',
       rows: [
-        { label: 'Ir al Feed', icon: 'home', onClick: () => router.push('/feed') },
+        { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
+        { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
+        { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
+        { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
+        {
+          label: 'Privacidad y configuración',
+          icon: 'settings',
+          onClick: () => router.push('/cuenta/configuracion'),
+        },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
     });
@@ -161,6 +177,9 @@ export default function AccountPage() {
         break;
       case 'profile':
         break;
+      case 'notifications':
+        router.push('/notificaciones');
+        break;
       case 'help':
         router.push('/soporte');
         break;
@@ -170,6 +189,16 @@ export default function AccountPage() {
   };
 
   const name = character?.name ?? '';
+  const isStaff =
+    account?.role === 'MODERATOR' || account?.role === 'ADMIN' || account?.role === 'SUPERADMIN';
+
+  if (loading) {
+    return (
+      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
+        <p className="muted">Verificando acceso…</p>
+      </div>
+    );
+  }
 
   return (
     <WyFrame
@@ -188,151 +217,143 @@ export default function AccountPage() {
         />
       }
     >
-      <section className="screen account">
-        <div className="card account-hero">
-          <Avatar initials={initialsOf(character?.name)} avatarUrl={character?.avatarUrl} size="lg" />
-          <div className="account-hero-info">
-            <h1>Hola, {name || 'tu seudónimo'}</h1>
-            <p>{account ? account.email : loading ? 'Cargando tus datos…' : 'No se pudieron cargar tus datos.'}</p>
-            {account ? (
-              <span className={`account-verified ${account.isEmailVerified ? 'ok' : 'muted-flag'}`}>
-                <Icon name={account.isEmailVerified ? 'check' : 'lock'} />
-                {account.isEmailVerified ? 'Correo verificado' : 'Correo sin verificar'}
-              </span>
-            ) : null}
-          </div>
-          {account ? (
-            <div className="account-hero-badges">
-              <span className="account-badge">
-                <Icon name="lock" />
-                {account.activeSessions}{' '}
-                {account.activeSessions === 1 ? 'sesión activa' : 'sesiones activas'}
-              </span>
-              {account.deletion ? (
-                <span className="account-badge" style={{ borderColor: '#f0cdd1', color: '#a13c48' }}>
-                  <Icon name="trash" /> Baja programada
-                </span>
-              ) : null}
-              {character ? (
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => router.push('/perfil/editar')}
-                >
-                  <Icon name="edit" /> Editar perfil
-                </button>
-              ) : null}
-              {account.role === 'MODERATOR' ||
-              account.role === 'ADMIN' ||
-              account.role === 'SUPERADMIN' ? (
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => router.push('/moderacion')}
-                >
-                  <Icon name="shield" /> Panel de moderación
-                </button>
-              ) : null}
+      <section className="screen profile-page-v42">
+        <section className="profile-card card">
+          <div className="profile-top">
+            <Avatar
+              initials={initialsOf(character?.name)}
+              avatarUrl={character?.avatarUrl}
+              size="lg"
+              alt="Tu avatar"
+            />
+            <div className="profile-copy">
+              <h1>{name || 'Tu seudónimo'}</h1>
+              <p>
+                @{name ? name.toLowerCase() : 'withyouly'}
+                {character?.tagline ? ` · ${character.tagline}` : ''}
+              </p>
             </div>
-          ) : null}
-        </div>
+            <div className="profile-actions">
+              <button className="secondary" type="button" onClick={() => router.push('/perfil/editar')}>
+                <Icon name="edit" /> Editar perfil
+              </button>
+              <button
+                className="text-link"
+                type="button"
+                onClick={() => router.push(`/personaje/${encodeURIComponent(name)}`)}
+              >
+                Ver mi perfil público
+              </button>
+            </div>
+          </div>
 
-        {!loading && error ? (
-          <div className="auth-error" role="alert">
-            {error}
-            <button className="text-link" type="button" onClick={() => void load()} style={{ marginLeft: 8 }}>
-              Reintentar
+          {character?.bio ? <p className="profile-bio">{character.bio}</p> : null}
+
+          <div className="profile-stats">
+            <div className="profile-stat is-static">
+              <b>{stats.stories}</b>
+              <small>Relatos</small>
+            </div>
+            <div className="profile-stat is-static">
+              <b>{stats.companionships}</b>
+              <small>Personas contigo</small>
+            </div>
+            <button
+              className="profile-stat"
+              type="button"
+              onClick={() => router.push(`/seguidores/${encodeURIComponent(name)}`)}
+            >
+              <b>{stats.followers}</b>
+              <small>Seguidores</small>
+            </button>
+            <button
+              className="profile-stat"
+              type="button"
+              onClick={() => router.push(`/seguidores/${encodeURIComponent(name)}?tab=following`)}
+            >
+              <b>{stats.following}</b>
+              <small>Siguiendo</small>
             </button>
           </div>
-        ) : null}
 
-        {!loading && account ? (
-          <>
-            <div className="account-tabs" role="tablist">
-              {TABS.map(({ id, label, icon, danger }) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === id}
-                  className={`${tab === id ? 'active' : ''} ${danger ? 'danger-toggle' : ''}`.trim()}
-                  onClick={() => setTab(id)}
-                >
-                  <Icon name={icon} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
+          <button
+            className="text-link follower-entry"
+            type="button"
+            onClick={() => router.push(`/seguidores/${encodeURIComponent(name)}`)}
+          >
+            Ver seguidores
+          </button>
+        </section>
 
-            {tab === 'preferencias' && <PreferencesSection account={account} onSaved={setAccount} />}
-            {tab === 'seguridad' && <SecuritySection account={account} />}
-            {tab === 'privacidad' && (
-              <PrivacySection
-                settings={character?.privacySettings}
-                onSaved={(settings) =>
-                  setCharacter((prev) => (prev ? { ...prev, privacySettings: settings } : prev))
-                }
-              />
-            )}
-            {tab === 'archivos' && <FilesSection usage={account.usage} />}
-            {tab === 'baja' && (
-              <DeleteAccountSection account={account} onReload={load} />
-            )}
+        <section className="settings-list card">
+          <button className="settings-row" type="button" onClick={() => router.push('/mis-relatos')}>
+            <span>
+              <Icon name="book" />
+            </span>
+            <span>
+              <b>Mis relatos</b>
+              <small>Publicaciones, borradores y guardados</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/mi-estado')}>
+            <span>
+              <Icon name="pulse" />
+            </span>
+            <span>
+              <b>Mi espacio emocional</b>
+              <small>Registros, gráficas y actividades privadas</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/mi-arbol')}>
+            <span>
+              <Icon name="trend" />
+            </span>
+            <span>
+              <b>Mi árbol</b>
+              <small>Tu crecimiento permanece privado</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/cuenta/configuracion')}>
+            <span>
+              <Icon name="settings" />
+            </span>
+            <span>
+              <b>Privacidad y configuración</b>
+              <small>Cuenta, seudónimo y notificaciones</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/soporte')}>
+            <span>
+              <Icon name="shield" />
+            </span>
+            <span>
+              <b>Ayuda y seguridad</b>
+              <small>Reportes y recursos de apoyo</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
+          {isStaff ? (
+            <button className="settings-row" type="button" onClick={() => router.push('/moderacion')}>
+              <span>
+                <Icon name="flag" />
+              </span>
+              <span>
+                <b>Panel de moderación</b>
+                <small>Reportes, apelaciones e historial</small>
+              </span>
+              <Icon name="chevron" />
+            </button>
+          ) : null}
+        </section>
 
-            <p className="account-note">
-              Tu correo se usa solo para iniciar sesión y recuperar la cuenta: nunca aparece en tu
-              perfil público. La comunidad ve únicamente tu seudónimo{name ? ` ${name}` : ''}.
-            </p>
-
-            <section className="card pad row-between" aria-labelledby="mis-reportes-title">
-              <div>
-                <b id="mis-reportes-title">Estado de mis reportes</b>
-                <p className="hint" style={{ margin: '4px 0 0' }}>
-                  Consulta qué ocurrió con el contenido que reportaste.
-                </p>
-              </div>
-              <button
-                className="secondary"
-                type="button"
-                onClick={() => router.push('/mis-reportes')}
-              >
-                <Icon name="flag" /> Ver mis reportes
-              </button>
-            </section>
-
-            <section className="card pad row-between" aria-labelledby="soporte-title">
-              <div>
-                <b id="soporte-title">Ayuda y soporte</b>
-                <p className="hint" style={{ margin: '4px 0 0' }}>
-                  Escríbenos o consulta el estado de tus solicitudes.
-                </p>
-              </div>
-              <button
-                className="secondary"
-                type="button"
-                onClick={() => router.push('/soporte')}
-              >
-                <Icon name="mail" /> Contactar soporte
-              </button>
-            </section>
-
-            <section className="card pad row-between" aria-labelledby="datos-title">
-              <div>
-                <b id="datos-title">Tus datos</b>
-                <p className="hint" style={{ margin: '4px 0 0' }}>
-                  Descarga un JSON con tu cuenta, relatos, comentarios, diario y actividad.
-                </p>
-              </div>
-              <button
-                className="secondary"
-                type="button"
-                onClick={() => void downloadData()}
-                disabled={exporting}
-              >
-                <Icon name="book" /> {exporting ? 'Preparando…' : 'Descargar mis datos'}
-              </button>
-            </section>
-          </>
+        {error ? (
+          <div className="auth-error" role="alert">
+            {error}
+          </div>
         ) : null}
       </section>
     </WyFrame>

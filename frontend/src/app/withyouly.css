@@ -1167,3 +1167,30 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .privacy-tip{position:relative}
 .wy .mood-page .period-row{position:relative;padding-right:40px}
 .wy .mood-page .period-privacy{top:0;right:0}
+
+/* Perfil propio v42 */
+.wy .profile-page-v42{gap:14px}
+.wy .profile-page-v42 .profile-card{padding:22px}
+.wy .profile-page-v42 .profile-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid #E2E3E8;padding-top:16px;margin-top:16px}
+.wy .profile-page-v42 .profile-stat{display:grid;gap:3px;min-width:0;border:0;background:transparent;padding:0;color:#191A20;text-align:left;font:inherit;cursor:pointer}
+.wy .profile-page-v42 .profile-stat.is-static{cursor:default}
+.wy .profile-page-v42 .profile-stat b{font-size:21px;line-height:1.2;color:#191A20}
+.wy .profile-page-v42 .profile-stat small{color:#50535D;font-size:12px;line-height:1.35}
+.wy .profile-page-v42 .profile-stat:hover small{color:#6246F5}
+.wy .profile-page-v42 .follower-entry{margin-top:12px;padding:0;min-height:32px;font-size:13px}
+.wy .profile-page-v42 .settings-list{border-radius:12px}
+.wy .profile-page-v42 .settings-row{padding:16px 18px}
+.wy .profile-page-v42 .settings-row b{font-size:14px}
+.wy .profile-page-v42 .settings-row small{font-size:12px}
+@media(max-width:820px){
+ .wy .profile-page-v42 .profile-card{padding:18px}
+ .wy .profile-page-v42 .profile-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .wy .profile-page-v42 .profile-actions{width:100%;margin-left:0;margin-top:12px}
+ .wy .profile-page-v42 .profile-actions .secondary{flex:0 0 auto}
+ .wy .profile-page-v42 .settings-row{padding:14px 16px}
+}
+
+/* Título y relato sin caja de input al publicar. */
+.wy .story-form .story-field{border:0;border-radius:0;background:transparent;box-shadow:none;padding:8px 0}
+.wy .story-form .story-field:focus{border-color:transparent;box-shadow:none}
+.wy .story-form textarea.story-field{min-height:140px;resize:vertical}

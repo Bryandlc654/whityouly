@@ -220,7 +220,7 @@ export default function StoryForm({ onCreated, onCancel, variant = 'default', he
           <label className="field-label" style={{ marginTop: 10 }}>
             Título
             <input
-              className="field"
+              className="field story-field"
               type="text"
               value={title}
               maxLength={TITLE_MAX}
@@ -232,7 +232,7 @@ export default function StoryForm({ onCreated, onCancel, variant = 'default', he
           <label className="field-label">
             Tu relato
             <textarea
-              className="field"
+              className="field story-field"
               value={content}
               maxLength={CONTENT_MAX}
               style={{ minHeight: 130 }}

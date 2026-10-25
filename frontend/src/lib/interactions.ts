@@ -88,6 +88,20 @@ export function unsupportStory(id: string): Promise<LoadResult<{ supporting: fal
   );
 }
 
+/** Relatos acompañados con "Estoy contigo". */
+export function listSupportedStoryIds(): Promise<LoadResult<{ storyIds: string[] }>> {
+  return request(
+    '/supporting-stories',
+    { method: 'GET' },
+    'No se pudieron cargar tus relatos acompañados.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      if (!Array.isArray(record.storyIds)) return null;
+      return { storyIds: record.storyIds.filter((item): item is string => typeof item === 'string') };
+    },
+  );
+}
+
 /** Seguir un relato (recibir sus actualizaciones). */
 export function followStory(id: string): Promise<LoadResult<{ following: true }>> {
   return request(

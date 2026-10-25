@@ -1,6 +1,7 @@
 import {
   Controller,
   Delete,
+  Get,
   Param,
   ParseUUIDPipe,
   Post,
@@ -21,6 +22,13 @@ type AuthenticatedRequest = Request & { user: { userId: string } };
 @Controller()
 export class InteractionsController {
   constructor(private readonly companionshipsService: CompanionshipsService) {}
+
+  @Get('supporting-stories')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Listar los relatos acompañados con "Estoy contigo"' })
+  listSupportingStories(@Req() req: AuthenticatedRequest) {
+    return this.companionshipsService.listSupportedStoryIds(req.user.userId);
+  }
 
   @Post('stories/:storyId/support')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })

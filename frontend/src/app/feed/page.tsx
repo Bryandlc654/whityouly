@@ -14,8 +14,14 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
 import StoryForm from '@/components/wy/StoryForm';
-import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
-import { followStory, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
+import { followCharacter, listFollowing, unfollowCharacter, whatIFollow } from '@/lib/follows';
+import {
+  followStory,
+  listSupportedStoryIds,
+  supportStory,
+  unfollowStory,
+  unsupportStory,
+} from '@/lib/interactions';
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
@@ -163,14 +169,24 @@ export default function FeedPage() {
     if (!options?.silent) setFeedLoading(true);
     setFeedError('');
 
-    const [feed, follows, unread] = await Promise.all([
+    const [feed, follows, followedStories, supportedStories, unread] = await Promise.all([
       getFeed(),
       listFollowing(),
+      whatIFollow(),
+      listSupportedStoryIds(),
       unreadNotificationsCount(),
     ]);
 
     if (follows.status === 'ok') {
       setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
+    }
+
+    if (followedStories.status === 'ok') {
+      setFollowStories(new Set(followedStories.data.stories.map((story) => story.id)));
+    }
+
+    if (supportedStories.status === 'ok') {
+      setSupported(new Set(supportedStories.data.storyIds));
     }
 
     if (unread.status === 'ok') {
@@ -227,7 +243,7 @@ export default function FeedPage() {
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
         { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
-        { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta') },
+        { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta/configuracion') },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
     });
@@ -319,6 +335,19 @@ export default function FeedPage() {
       return next;
     });
     setSupportCounts((prev) => ({ ...prev, [storyId]: result.data.count }));
+
+    if (active) {
+      // Al retirar el apoyo se elimina el seguimiento conservador, pero un
+      // seguimiento explícito debe permanecer marcado.
+      const followed = await whatIFollow();
+      if (followed.status === 'ok') {
+        setFollowStories(new Set(followed.data.stories.map((story) => story.id)));
+      }
+    } else {
+      // "Estoy contigo" también crea un seguimiento conservador en el backend.
+      setFollowStories((prev) => new Set(prev).add(storyId));
+    }
+
     notify(active ? 'Quitaste tu apoyo.' : 'Tu apoyo fue enviado.');
   };
 

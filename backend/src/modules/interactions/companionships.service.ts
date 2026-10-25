@@ -92,6 +92,21 @@ export class CompanionshipsService {
     return { supporting: false, count };
   }
 
+  async listSupportedStoryIds(userId: string): Promise<{ storyIds: string[] }> {
+    const character = await this.requireCharacter(userId);
+    const rows = await this.prisma.companionship.findMany({
+      where: { characterId: character.id, targetStoryId: { not: null } },
+      select: { targetStoryId: true },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    return {
+      storyIds: rows
+        .map((row) => row.targetStoryId)
+        .filter((storyId): storyId is string => storyId !== null),
+    };
+  }
+
   async supportCharacter(userId: string, rawName: string): Promise<{ supporting: true; count: number }> {
     const character = await this.requireCharacter(userId);
     const target = await this.resolveTarget(rawName);
