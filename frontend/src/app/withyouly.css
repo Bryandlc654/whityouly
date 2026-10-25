@@ -1158,3 +1158,12 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .auth-logo{width:225px;height:60px;background-image:url("/withyouly-logo.png");background-size:contain;background-position:center;background-repeat:no-repeat}
 @media(max-width:900px){.wy .reference-logo{width:230px;height:auto;margin:0 auto 26px}}
 @media(max-width:600px){.wy .reference-logo{width:195px;height:auto;margin:0 auto 20px}.wy .auth-logo{width:190px;height:52px}}
+
+/* Marca de privacidad compacta: solo icono y tooltip al pasar el cursor. */
+.wy .privacy-mark{position:absolute;top:10px;right:10px;z-index:4;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#F4F2FB;color:#50535D;cursor:help;outline:none}
+.wy .privacy-mark svg{width:15px;height:15px}
+.wy .privacy-mark::after,.wy .privacy-tip::after{content:attr(data-tooltip);position:absolute;top:calc(100% + 6px);right:0;z-index:20;width:max-content;max-width:220px;padding:6px 9px;border-radius:7px;background:#191A20;color:#FFF;font-size:11px;font-weight:600;line-height:1.35;white-space:nowrap;opacity:0;visibility:hidden;transform:translateY(-3px);transition:opacity .15s ease,transform .15s ease,visibility .15s ease;pointer-events:none;box-shadow:0 6px 18px rgba(20,14,50,.18)}
+.wy .privacy-mark:hover::after,.wy .privacy-mark:focus-visible::after,.wy .privacy-tip:hover::after,.wy .privacy-tip:focus-visible::after{opacity:1;visibility:visible;transform:translateY(0)}
+.wy .privacy-tip{position:relative}
+.wy .mood-page .period-row{position:relative;padding-right:40px}
+.wy .mood-page .period-privacy{top:0;right:0}

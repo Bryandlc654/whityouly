@@ -166,10 +166,11 @@ export default function RightRail({
         <div className="summary-title">
           <h3>Resumen de tu semana</h3>
           <button
-            className="summary-toggle"
+            className="summary-toggle privacy-tip"
             type="button"
             onClick={onToggleSummary}
             aria-label={summaryHidden ? 'Mostrar resumen' : 'Ocultar resumen'}
+            data-tooltip="Solo tú puedes verlo"
           >
             <Icon name={summaryHidden ? 'eye' : 'lock'} />
           </button>
@@ -207,9 +208,6 @@ export default function RightRail({
               {summary
                 ? `${summary.totalEntries} ${summary.totalEntries === 1 ? 'registro' : 'registros'} esta semana.`
                 : 'Aún no hay registros esta semana.'}
-            </div>
-            <div className="private-line">
-              <Icon name="lock" /> Solo tú puedes verlo
             </div>
             <button className="text-link" type="button" onClick={onMood}>
               Ver todas mis gráficas

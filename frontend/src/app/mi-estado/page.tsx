@@ -8,6 +8,7 @@ import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
+import PrivacyMark from '@/components/wy/PrivacyMark';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import MoodModal, { MOOD_EMOJI } from '@/components/wy/MoodModal';
 import {
@@ -570,9 +571,7 @@ export default function EmotionalMapPage() {
               </button>
             ))}
           </div>
-          <span className="privacy-badge">
-            <Icon name="lock" /> Solo tú puedes verlo
-          </span>
+          <PrivacyMark className="period-privacy" />
         </div>
 
         {/* Intensidad y tendencia */}
