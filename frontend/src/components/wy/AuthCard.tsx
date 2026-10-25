@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import Icon from './Icon';
@@ -60,7 +61,7 @@ export default function AuthCard({
           <div className="reference-login-panel">
             <div className="reference-panel-inner">
               <Link href="/" className="reference-logo" aria-label="Ir a la portada de Withyouly">
-                <span className="brand-crop" />
+                <Image src="/withyouly-logo.png" alt="Withyouly" width={380} height={95} priority />
               </Link>
 
               <div className="reference-form">

@@ -1151,3 +1151,10 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .my-stories-trash{justify-self:start;width:max-content}
 .wy .my-story-card .story-row-actions{border-top:0;padding-top:0}
 .wy .following-story .story-row-actions{border-top:0;padding-top:0}
+
+/* Logo completo en login y pantallas de acceso (sin recorte). */
+.wy .reference-logo{width:min(100%,380px);height:auto;margin:0 0 30px}
+.wy .reference-logo img{display:block;width:100%;height:auto}
+.wy .auth-logo{width:225px;height:60px;background-image:url("/withyouly-logo.png");background-size:contain;background-position:center;background-repeat:no-repeat}
+@media(max-width:900px){.wy .reference-logo{width:230px;height:auto;margin:0 auto 26px}}
+@media(max-width:600px){.wy .reference-logo{width:195px;height:auto;margin:0 auto 20px}.wy .auth-logo{width:190px;height:52px}}
