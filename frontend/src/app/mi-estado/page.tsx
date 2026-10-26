@@ -499,6 +499,10 @@ export default function EmotionalMapPage() {
             <Icon name="heart" />
             <span>Actividades</span>
           </button>
+          <button type="button" onClick={() => router.push('/mi-diario')}>
+            <Icon name="book" />
+            <span>Diario</span>
+          </button>
           <button type="button" onClick={() => router.push('/mi-arbol')}>
             <Icon name="trend" />
             <span>Mi árbol</span>

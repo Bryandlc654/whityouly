@@ -2226,7 +2226,7 @@ body {
 }
 
 
-/* Explorar v42: temas, emociones y resultados de búsqueda sin emojis. */
+/* Explorar v42: temas, emociones y resultados de bï¿½squeda sin emojis. */
 .wy .explore-page {
   gap: 16px;
 }
@@ -2911,7 +2911,7 @@ body {
 @media (max-width: 820px) {
   .wy .mood-page .emotion-nav {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
     margin: 0 12px;
     padding: 6px;
@@ -2960,4 +2960,181 @@ body {
   width: 100%;
   text-align: center;
   text-decoration: none;
+}
+
+/* Mi diario privado */
+.wy .diary-page {
+  gap: 14px;
+}
+
+.wy .diary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.wy .diary-stats b,
+.wy .diary-stats small {
+  display: block;
+}
+
+.wy .diary-stats b {
+  color: #191a20;
+  font-size: 20px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.wy .diary-stats small {
+  margin-top: 3px;
+  color: #50535d;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.wy .diary-day {
+  padding: 0;
+  overflow: hidden;
+}
+
+.wy .diary-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #e2e3e8;
+}
+
+.wy .diary-day-head h2 {
+  margin: 0;
+  color: #191a20;
+  font-size: 16px;
+  line-height: 1.35;
+  text-transform: capitalize;
+}
+
+.wy .diary-day-head span {
+  flex: 0 0 auto;
+  color: #50535d;
+  font-size: 12px;
+}
+
+.wy .diary-entry {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 15px 18px;
+  border-bottom: 1px solid #f0f0f3;
+}
+
+.wy .diary-entry:last-child {
+  border-bottom: 0;
+}
+
+.wy .diary-emoji {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: #f1edff;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.wy .diary-entry-body {
+  min-width: 0;
+}
+
+.wy .diary-entry-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+}
+
+.wy .diary-entry-meta b {
+  color: #191a20;
+  font-size: 14px;
+}
+
+.wy .diary-entry-meta span {
+  color: #6246f5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wy .diary-entry-meta time {
+  color: #50535d;
+  font-size: 11px;
+}
+
+.wy .diary-entry-body p {
+  margin: 5px 0 0;
+  color: #30333b;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wy .diary-entry-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.wy .diary-entry-actions .icon-btn {
+  width: 32px;
+  height: 32px;
+  color: #50535d;
+}
+
+.wy .diary-entry-actions .icon-btn:hover {
+  color: #6246f5;
+  background: #f1edff;
+}
+
+@media (max-width: 820px) {
+  .wy .diary-page .screen-heading {
+    margin-left: 16px;
+    margin-right: 16px;
+    gap: 10px;
+  }
+
+  .wy .diary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-left: 16px;
+    margin-right: 16px;
+    padding: 16px;
+  }
+
+  .wy .diary-day {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .wy .diary-entry {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 14px 15px;
+  }
+
+  .wy .diary-emoji {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .wy .diary-day-head {
+    padding: 13px 15px;
+  }
+
+  .wy .diary-day-head h2 {
+    font-size: 15px;
+  }
 }
