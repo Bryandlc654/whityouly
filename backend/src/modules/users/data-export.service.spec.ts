@@ -23,6 +23,7 @@ describe('DataExportService', () => {
       mediaAsset: { findMany: vi.fn().mockResolvedValue([]) },
       session: { findMany: vi.fn().mockResolvedValue([]) },
       commentDraft: { findMany: vi.fn().mockResolvedValue([]) },
+      capsule: { findMany: vi.fn().mockResolvedValue([]) },
     };
 
     const module: TestingModule = await Test.createTestingModule({

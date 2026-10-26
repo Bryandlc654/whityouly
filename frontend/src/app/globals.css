@@ -2911,10 +2911,10 @@ body {
 @media (max-width: 820px) {
   .wy .mood-page .emotion-nav {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
     margin: 0 12px;
-    padding: 6px;
+    padding: 5px;
     overflow: visible;
   }
 
@@ -3136,5 +3136,271 @@ body {
 
   .wy .diary-day-head h2 {
     font-size: 15px;
+  }
+}
+
+/* Mis c�psulas */
+.wy .capsules-page {
+  gap: 14px;
+}
+
+.wy .capsule-hero {
+  padding: 22px;
+  background: #fff;
+}
+
+.wy .capsule-hero .micro-label {
+  color: #50535d;
+}
+
+.wy .capsule-hero h1 {
+  margin: 7px 0 0;
+  color: #191a20;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.wy .capsules-page .purpose-copy {
+  max-width: 660px;
+  margin-top: 11px;
+  padding-left: 11px;
+  border-left: 3px solid #6246f5;
+  color: #5f5966;
+}
+
+.wy .capsules-page .purpose-copy b,
+.wy .capsules-page .purpose-copy span {
+  display: block;
+}
+
+.wy .capsules-page .purpose-copy b {
+  margin-bottom: 3px;
+  color: #3b3443;
+  font-size: 11px;
+}
+
+.wy .capsules-page .purpose-copy span {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.wy .capsule-editor {
+  padding: 20px;
+}
+
+.wy .capsule-editor > .field-label:first-child {
+  margin-top: 0;
+}
+
+.wy .capsule-editor .field {
+  min-height: 150px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.wy .capsule-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wy .capsule-options select,
+.wy .capsule-options input[type='date'] {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid #b9bdc6;
+  border-radius: 11px;
+  background: #fff;
+  color: #191a20;
+  font-size: 14px;
+}
+
+.wy .privacy-explainer {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-top: 18px;
+  padding: 13px;
+  border: 1px solid #e2e3e8;
+  border-radius: 12px;
+  background: #faf9fc;
+}
+
+.wy .privacy-explainer > svg {
+  width: 19px;
+  height: 19px;
+  color: #6246f5;
+}
+
+.wy .privacy-explainer b,
+.wy .privacy-explainer span {
+  display: block;
+}
+
+.wy .privacy-explainer b {
+  color: #30323a;
+  font-size: 13px;
+}
+
+.wy .privacy-explainer span {
+  margin-top: 3px;
+  color: #50535d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wy .capsule-save {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 16px;
+}
+
+.wy .scheduled-capsule {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 18px;
+}
+
+.wy .capsule-seal {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: #f1edff;
+  color: #6246f5;
+}
+
+.wy .capsule-seal svg {
+  width: 23px;
+  height: 23px;
+}
+
+.wy .capsule-copy {
+  min-width: 0;
+}
+
+.wy .capsule-copy .micro-label {
+  color: #50535d;
+}
+
+.wy .capsule-copy h2 {
+  margin: 6px 0 4px;
+  color: #191a20;
+  font-size: 17px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.wy .capsule-copy > p {
+  margin: 0;
+  color: #50535d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wy .capsule-content {
+  margin-top: 12px !important;
+  padding-top: 12px;
+  border-top: 1px solid #e2e3e8;
+  color: #23252b !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  white-space: pre-wrap;
+}
+
+.wy .capsule-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.wy .capsule-actions .secondary {
+  min-height: 40px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.wy .capsule-manage-modal {
+  width: min(560px, 100%);
+}
+
+.wy .capsule-manage-modal .field {
+  min-height: 140px;
+  margin-top: 5px;
+}
+
+.wy .capsule-manage-actions {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wy .capsule-manage-actions .primary {
+  min-height: 44px;
+}
+
+@media (max-width: 820px) {
+  .wy .capsules-page .capsule-hero,
+  .wy .capsules-page .capsule-editor,
+  .wy .capsules-page .discovery-section-title,
+  .wy .capsules-page .scheduled-capsule,
+  .wy .capsules-page .empty-state {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .wy .capsule-hero {
+    padding: 18px;
+  }
+
+  .wy .capsule-hero h1 {
+    font-size: 22px;
+  }
+
+  .wy .capsule-editor {
+    padding: 16px;
+  }
+
+  .wy .capsule-options {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .wy .scheduled-capsule {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 11px;
+    padding: 15px;
+  }
+
+  .wy .capsule-seal {
+    width: 44px;
+    height: 44px;
+  }
+
+  .wy .capsule-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+@media (max-width: 820px) {
+  .wy .mood-page .emotion-nav button {
+    min-height: 44px;
+    padding: 6px 2px;
+    gap: 4px;
+    font-size: 9.5px;
+  }
+
+  .wy .mood-page .emotion-nav button svg {
+    width: 15px;
+    height: 15px;
+    flex-basis: 15px;
   }
 }

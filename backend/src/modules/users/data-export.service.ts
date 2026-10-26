@@ -70,6 +70,7 @@ export class DataExportService {
       mediaAssets,
       sessions,
       commentDrafts,
+      capsules,
     ] = await Promise.all([
       characterId
         ? this.prisma.story.findMany({
@@ -247,6 +248,11 @@ export class DataExportService {
         orderBy: { updatedAt: 'desc' },
         select: { storyId: true, content: true, updatedAt: true },
       }),
+      this.prisma.capsule.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { content: true, mood: true, openAt: true, createdAt: true, updatedAt: true },
+      }),
     ]);
 
     return {
@@ -316,6 +322,7 @@ export class DataExportService {
       supportTickets,
       notifications,
       commentDrafts,
+      capsules,
       mediaFiles: mediaAssets.map((asset) => ({
         ...asset,
         // BigInt no se puede serializar directamente en JSON.

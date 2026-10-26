@@ -503,6 +503,10 @@ export default function EmotionalMapPage() {
             <Icon name="book" />
             <span>Diario</span>
           </button>
+          <button type="button" onClick={() => router.push('/mis-capsulas')}>
+            <Icon name="calendar" />
+            <span>Cápsulas</span>
+          </button>
           <button type="button" onClick={() => router.push('/mi-arbol')}>
             <Icon name="trend" />
             <span>Mi árbol</span>

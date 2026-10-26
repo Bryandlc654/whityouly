@@ -316,6 +316,16 @@ export default function ProfilePage() {
             </span>
             <Icon name="chevron" />
           </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/mis-capsulas')}>
+            <span>
+              <Icon name="calendar" />
+            </span>
+            <span>
+              <b>Mis cápsulas</b>
+              <small>Mensajes privados para tu yo futuro</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
           <button className="settings-row" type="button" onClick={() => router.push('/mi-arbol')}>
             <span>
               <Icon name="trend" />

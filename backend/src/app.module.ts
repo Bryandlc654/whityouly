@@ -32,6 +32,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SupportModule } from './modules/support/support.module';
 import { TreeModule } from './modules/tree/tree.module';
+import { CapsulesModule } from './modules/capsules/capsules.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { TreeModule } from './modules/tree/tree.module';
     ReportsModule,
     SupportModule,
     TreeModule,
+    CapsulesModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],
