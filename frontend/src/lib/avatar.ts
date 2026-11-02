@@ -1,3 +1,5 @@
+import { isAvatarCustomUrl } from './avatar-creator';
+
 /**
  * Límites del avatar. Deben coincidir con `AVATAR_MAX_BYTES` del backend
  * (`backend/.env.example`); el servidor vuelve a validarlos siempre.
@@ -9,14 +11,18 @@ export const AVATAR_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] a
 export const AVATAR_ACCEPT = AVATAR_ACCEPTED_TYPES.join(',');
 
 /** Catálogo cerrado de avatares ilustrados incluidos en `/public/avatars`. */
-export const AVATAR_PRESETS = Array.from({ length: 36 }, (_, index) =>
-  `/avatars/${String(index + 1).padStart(2, '0')}.svg`,
+export const AVATAR_PRESETS = Array.from({ length: 12 }, (_, index) =>
+  `/avatars/${String(index + 25).padStart(2, '0')}.svg`,
 );
 
-const AVATAR_PRESET_PATTERN = /^\/avatars\/(?:0[1-9]|[12][0-9]|3[0-6])\.svg$/;
+const AVATAR_PRESET_PATTERN = /^\/avatars\/(?:2[5-9]|3[0-6])\.svg$/;
 
 export function isAvatarPresetUrl(value: unknown): value is string {
   return typeof value === 'string' && AVATAR_PRESET_PATTERN.test(value);
+}
+
+export function isAvatarCatalogUrl(value: unknown): value is string {
+  return isAvatarPresetUrl(value) || isAvatarCustomUrl(value);
 }
 
 /**
@@ -25,7 +31,7 @@ export function isAvatarPresetUrl(value: unknown): value is string {
  */
 export function safeAvatarUrl(value: unknown): string | null {
   if (typeof value !== 'string' || value === '') return null;
-  if (isAvatarPresetUrl(value)) return value;
+  if (isAvatarCatalogUrl(value)) return value;
 
   try {
     const { protocol } = new URL(value);

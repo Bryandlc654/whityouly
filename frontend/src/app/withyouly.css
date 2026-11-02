@@ -895,14 +895,37 @@ html[data-reading-size="LARGER"] .wy .story-stage-text,
 html[data-reading-size="LARGER"] .wy .comment-body,
 html[data-reading-size="LARGER"] .wy .profile-bio{font-size:19px;line-height:1.75}
 
-/* Selector de 36 avatares ilustrados (sin datos personales). */
-.wy .avatar-presets{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-top:6px}
+/* Selector de 12 avatares de personas (sin datos personales). */
+.wy .avatar-presets{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:6px}
 .wy .avatar-preset{border:2px solid transparent;background:#fff;border-radius:14px;padding:3px;cursor:pointer;line-height:0;transition:border-color .15s ease,transform .12s ease}
 .wy .avatar-preset img{width:100%;height:auto;border-radius:10px;display:block}
 .wy .avatar-preset:hover{transform:translateY(-1px);border-color:#c9bcff}
 .wy .avatar-preset.active{border-color:var(--purple);box-shadow:0 0 0 3px rgba(104,71,245,.12)}
 .wy .avatar-preset:disabled{opacity:.55;cursor:not-allowed}
-@media(max-width:520px){.wy .avatar-presets{grid-template-columns:repeat(6,1fr)}}
+@media(max-width:520px){.wy .avatar-presets{grid-template-columns:repeat(4,1fr)}}
+
+/* Creador de avatar: vista previa y grupos de opciones. */
+.wy .avatar-creator{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;margin:12px 0 4px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#fbfaff}
+.wy .avatar-creator-preview{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.wy .avatar-creator-preview img{width:112px;height:112px;border-radius:50%;box-shadow:0 10px 24px rgba(74,50,160,.16)}
+.wy .avatar-creator-preview .hint{font-size:11px;line-height:1.4;margin:0}
+.wy .avatar-creator-controls{display:flex;flex-direction:column;gap:10px;min-width:0}
+.wy .avatar-creator-group{display:flex;flex-direction:column;gap:5px}
+.wy .avatar-creator-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.wy .avatar-creator-label strong{font-size:12px;letter-spacing:0;text-transform:none;color:var(--ink);font-weight:700}
+.wy .avatar-creator-options{display:flex;flex-wrap:wrap;gap:6px}
+.wy .avatar-creator-option{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.wy .avatar-creator-option:hover{border-color:#b9a8ff;background:#f7f4ff}
+.wy .avatar-creator-option.active{border-color:var(--purple);background:var(--purple-3);color:var(--purple)}
+.wy .avatar-creator-option:disabled{opacity:.55;cursor:not-allowed}
+.wy .avatar-swatch{width:30px;height:30px;border:2px solid #fff;border-radius:50%;padding:0;cursor:pointer;box-shadow:0 0 0 1px var(--line);transition:transform .12s ease,box-shadow .12s ease}
+.wy .avatar-swatch:hover{transform:scale(1.08)}
+.wy .avatar-swatch.active{box-shadow:0 0 0 2px var(--purple),0 0 0 4px rgba(104,71,245,.16)}
+.wy .avatar-swatch:disabled{opacity:.55;cursor:not-allowed}
+.wy .avatar-creator-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:2px;padding-top:10px;border-top:1px solid var(--line)}
+.wy .avatar-creator-actions>div{display:flex;gap:8px;flex-wrap:wrap}
+.wy .avatar-creator-actions .ghost,.wy .avatar-creator-actions .primary{display:inline-flex;align-items:center;gap:6px}
+@media(max-width:640px){.wy .avatar-creator{grid-template-columns:1fr}.wy .avatar-creator-preview{flex-direction:row;justify-content:center;text-align:left}}
 
 /* Login de referencia v42: panel + visual + bloque de privacidad. */
 .wy .reference-entry{min-height:100vh;display:grid;grid-template-columns:40% 60%;background:#fff}
@@ -1190,7 +1213,7 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
  .wy .profile-page-v42 .settings-row{padding:14px 16px}
 }
 
-/* Título y relato sin caja de input al publicar. */
+/* Tï¿½tulo y relato sin caja de input al publicar. */
 .wy .story-form .story-field{border:0;border-radius:0;background:transparent;box-shadow:none;padding:8px 0}
 .wy .story-form .story-field:focus{border-color:transparent;box-shadow:none}
 .wy .story-form textarea.story-field{min-height:140px;resize:vertical}

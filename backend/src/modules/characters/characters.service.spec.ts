@@ -173,7 +173,7 @@ describe('CharactersService', () => {
     prisma.character.create.mockResolvedValue({
       id: 'char-1',
       name: 'ElViajero',
-      avatarUrl: '/avatars/12.svg',
+      avatarUrl: '/avatars/28.svg',
       bio: null,
       privacySettings: null,
       createdAt: new Date(),
@@ -182,15 +182,50 @@ describe('CharactersService', () => {
 
     const result = await service.create('user-1', {
       name: 'ElViajero',
-      avatarUrl: '/avatars/12.svg',
+      avatarUrl: '/avatars/28.svg',
     } as any);
 
     expect(prisma.character.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ avatarUrl: '/avatars/12.svg' }),
+        data: expect.objectContaining({ avatarUrl: '/avatars/28.svg' }),
       }),
     );
-    expect(result.avatarUrl).toBe('/avatars/12.svg');
+    expect(result.avatarUrl).toBe('/avatars/28.svg');
+  });
+
+  it('acepta un avatar generado por el creador', async () => {
+    prisma.character.findUnique.mockResolvedValue(null);
+    const customUrl =
+      '/avatars/custom?skin=warm&hair=short&hairColor=brown&outfit=tee&outfitColor=violet&background=lavender&accessory=none';
+
+    prisma.character.create.mockResolvedValue({
+      id: 'char-1',
+      name: 'ElViajero',
+      avatarUrl: customUrl,
+      bio: null,
+      privacySettings: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await service.create('user-1', {
+      name: 'ElViajero',
+      avatarUrl: customUrl,
+    } as any);
+
+    expect(result.avatarUrl).toBe(customUrl);
+  });
+
+  it('rechaza los avatares abstractos retirados', async () => {
+    prisma.character.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.create('user-1', {
+        name: 'ElViajero',
+        avatarUrl: '/avatars/01.svg',
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.character.create).not.toHaveBeenCalled();
   });
 
   it('rechaza rutas de avatar fuera del catálogo', async () => {

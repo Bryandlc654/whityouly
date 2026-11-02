@@ -98,7 +98,7 @@ export default function OnboardingPage() {
       tagline: values.tagline || null,
       bio: values.bio || null,
       interests: values.interests,
-      avatarUrl: values.avatarPresetUrl ?? undefined,
+      avatarUrl: values.selectedAvatarUrl ?? undefined,
       privacySettings: values.privacySettings,
     });
 

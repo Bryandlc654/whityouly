@@ -127,11 +127,11 @@ export class CreateCharacterDto {
   @MaxLength(INTEREST_NAME_MAX_LENGTH, { each: true })
   interests?: string[];
 
-  @ApiPropertyOptional({ example: '/avatars/12.svg' })
+  @ApiPropertyOptional({ example: '/avatars/28.svg' })
   @Transform(trim)
   @IsOptional()
   @Matches(AVATAR_REFERENCE_PATTERN, {
-    message: 'El avatar debe ser un avatar ilustrado o una URL https válida',
+    message: 'El avatar debe pertenecer al catálogo o ser una URL https válida',
   })
   @MaxLength(URL_MAX_LENGTH)
   avatarUrl?: string;
@@ -154,11 +154,11 @@ export class UpdateCharacterDto {
   @Matches(NAME_PATTERN, { message: NAME_PATTERN_MESSAGE })
   name?: string;
 
-  @ApiPropertyOptional({ example: '/avatars/12.svg' })
+  @ApiPropertyOptional({ example: '/avatars/28.svg' })
   @Transform(trim)
   @IsOptional()
   @Matches(AVATAR_REFERENCE_PATTERN, {
-    message: 'El avatar debe ser un avatar ilustrado o una URL https válida',
+    message: 'El avatar debe pertenecer al catálogo o ser una URL https válida',
   })
   @MaxLength(URL_MAX_LENGTH)
   avatarUrl?: string | null;

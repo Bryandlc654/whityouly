@@ -2,13 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from '@/components/wy/Avatar';
+import AvatarCreator from '@/components/profile/AvatarCreator';
 import Icon from '@/components/wy/Icon';
 import {
   AVATAR_ACCEPT,
   AVATAR_PRESETS,
-  isAvatarPresetUrl,
+  isAvatarCatalogUrl,
   validateAvatarFile,
 } from '@/lib/avatar';
+import {
+  avatarConfigToUrl,
+  DEFAULT_AVATAR_CONFIG,
+  parseAvatarConfigFromUrl,
+  randomAvatarConfig,
+  type AvatarConfig,
+} from '@/lib/avatar-creator';
 import { checkNameAvailability, listInterests, type OwnerCharacter } from '@/lib/characters';
 import type { PrivacySettings } from '@/components/feed/types';
 
@@ -36,7 +44,7 @@ export interface ProfileEditorValues {
   privacySettings: PrivacySettings;
   avatarFile: File | null;
   removeAvatar: boolean;
-  avatarPresetUrl: string | null;
+  selectedAvatarUrl: string | null;
 }
 
 interface Props {
@@ -109,10 +117,14 @@ export default function ProfileEditor({
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(initial?.avatarUrl ?? null);
-  const [avatarPresetUrl, setAvatarPresetUrl] = useState<string | null>(
-    isAvatarPresetUrl(initial?.avatarUrl) ? initial!.avatarUrl! : null,
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(
+    isAvatarCatalogUrl(initial?.avatarUrl) ? initial!.avatarUrl! : null,
   );
   const [removeAvatar, setRemoveAvatar] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
+  const [creatorConfig, setCreatorConfig] = useState<AvatarConfig>(
+    () => parseAvatarConfigFromUrl(initial?.avatarUrl) ?? DEFAULT_AVATAR_CONFIG,
+  );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewUrlRef = useRef<string | null>(null);
@@ -221,8 +233,9 @@ export default function ProfileEditor({
     previewUrlRef.current = url;
     setAvatarPreview(url);
     setAvatarFile(file);
-    setAvatarPresetUrl(null);
+    setSelectedAvatarUrl(null);
     setRemoveAvatar(false);
+    setCreatorOpen(false);
     setLocalError('');
   };
 
@@ -234,9 +247,10 @@ export default function ProfileEditor({
     if (fileInputRef.current) fileInputRef.current.value = '';
 
     setAvatarFile(null);
-    setAvatarPresetUrl(url);
+    setSelectedAvatarUrl(url);
     setAvatarPreview(url);
     setRemoveAvatar(false);
+    setCreatorOpen(false);
     setLocalError('');
   };
 
@@ -254,14 +268,39 @@ export default function ProfileEditor({
       // Se descarta la selección nueva y se vuelve al avatar ya guardado.
       setAvatarFile(null);
       setAvatarPreview(initial?.avatarUrl ?? null);
-      setAvatarPresetUrl(isAvatarPresetUrl(initial?.avatarUrl) ? initial!.avatarUrl! : null);
+      setSelectedAvatarUrl(
+        isAvatarCatalogUrl(initial?.avatarUrl) ? initial!.avatarUrl! : null,
+      );
       setRemoveAvatar(false);
       return;
     }
 
     setAvatarPreview(null);
-    setAvatarPresetUrl(null);
+    setSelectedAvatarUrl(null);
     setRemoveAvatar(Boolean(initial?.avatarUrl));
+    setCreatorOpen(false);
+  };
+
+  const openCreator = () => {
+    setCreatorConfig(parseAvatarConfigFromUrl(selectedAvatarUrl) ?? DEFAULT_AVATAR_CONFIG);
+    setCreatorOpen(true);
+    setLocalError('');
+  };
+
+  const applyCreator = () => {
+    const url = avatarConfigToUrl(creatorConfig);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    setAvatarFile(null);
+    setSelectedAvatarUrl(url);
+    setAvatarPreview(url);
+    setRemoveAvatar(false);
+    setCreatorOpen(false);
+    setLocalError('');
   };
 
   const submit = (event: React.FormEvent) => {
@@ -302,7 +341,7 @@ export default function ProfileEditor({
       privacySettings: privacy,
       avatarFile,
       removeAvatar,
-      avatarPresetUrl,
+      selectedAvatarUrl,
     });
   };
 
@@ -341,12 +380,21 @@ export default function ProfileEditor({
             }}
           />
           <button
+            className="primary"
+            type="button"
+            onClick={openCreator}
+            disabled={busy}
+            aria-expanded={creatorOpen}
+          >
+            <Icon name="sparkle" /> Crear avatar
+          </button>
+          <button
             className="secondary"
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={busy}
           >
-            <Icon name="user" /> Cambiar avatar
+            <Icon name="user" /> Subir foto
           </button>
           {avatarPreview ? (
             <button className="ghost" type="button" onClick={clearAvatar} disabled={busy}>
@@ -354,20 +402,31 @@ export default function ProfileEditor({
             </button>
           ) : null}
           <p className="hint" style={{ margin: '6px 0 0' }}>
-            JPEG, PNG o WebP · máximo 2 MB. Si prefieres no usar una foto, elige un
-            avatar ilustrado.
+            Crea tu personaje con piel, pelo, ropa y fondo, o sube una foto JPEG, PNG o
+            WebP de máximo 2 MB.
           </p>
         </div>
       </div>
 
-      <label>Avatares ilustrados</label>
-      <div className="avatar-presets" role="group" aria-label="Avatares ilustrados">
+      {creatorOpen ? (
+        <AvatarCreator
+          config={creatorConfig}
+          busy={busy}
+          onChange={setCreatorConfig}
+          onApply={applyCreator}
+          onCancel={() => setCreatorOpen(false)}
+          onRandomize={() => setCreatorConfig(randomAvatarConfig())}
+        />
+      ) : null}
+
+      <label>Avatares de personas</label>
+      <div className="avatar-presets" role="group" aria-label="Avatares de personas">
         {AVATAR_PRESETS.map((url) => (
           <button
             key={url}
             type="button"
-            className={`avatar-preset${avatarPresetUrl === url ? ' active' : ''}`}
-            aria-pressed={avatarPresetUrl === url}
+            className={`avatar-preset${selectedAvatarUrl === url ? ' active' : ''}`}
+            aria-pressed={selectedAvatarUrl === url}
             aria-label={`Elegir avatar ${url.slice('/avatars/'.length, -4)}`}
             onClick={() => choosePreset(url)}
             disabled={busy}

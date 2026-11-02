@@ -101,7 +101,7 @@ export default function EditProfilePage() {
       interests: values.interests,
       avatarUrl:
         !values.avatarFile && !values.removeAvatar
-          ? values.avatarPresetUrl ?? undefined
+          ? values.selectedAvatarUrl ?? undefined
           : undefined,
       privacySettings: values.privacySettings,
     });
