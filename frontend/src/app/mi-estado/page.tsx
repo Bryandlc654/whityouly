@@ -386,7 +386,7 @@ export default function EmotionalMapPage() {
 
     setLogs((prev) => prev.filter((item) => item.id !== log.id));
     setDayLogs((prev) => prev.filter((item) => item.id !== log.id));
-    notify('Registro eliminado.');
+    notify('Registro movido a tu papelera privada. Puedes restaurarlo en Mi diario.');
     await loadSummary(range);
   };
 
@@ -495,9 +495,9 @@ export default function EmotionalMapPage() {
             <Icon name="pulse" />
             <span>Resumen</span>
           </button>
-          <button type="button" onClick={() => router.push('/pulso')}>
+          <button type="button" onClick={() => router.push('/cuidarme')}>
             <Icon name="heart" />
-            <span>Actividades</span>
+            <span>Cuidarme</span>
           </button>
           <button type="button" onClick={() => router.push('/mi-diario')}>
             <Icon name="book" />
@@ -560,7 +560,7 @@ export default function EmotionalMapPage() {
               </small>
             ) : null}
           </div>
-          <button className="secondary" type="button" onClick={() => router.push('/pulso')}>
+          <button className="secondary" type="button" onClick={() => router.push('/cuidarme')}>
             Abrir actividad
           </button>
         </section>

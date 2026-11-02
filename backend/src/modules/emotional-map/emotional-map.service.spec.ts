@@ -24,7 +24,7 @@ describe('EmotionalMapService', () => {
         findFirst: vi.fn().mockResolvedValue({ id: 'log-1' }),
         findUnique: vi.fn().mockResolvedValue({ id: 'log-1', userId: 'user-1' }),
         update: vi.fn(),
-        delete: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
 
@@ -153,7 +153,7 @@ describe('EmotionalMapService', () => {
     await service.list('user-1', { cursor: '11111111-1111-4111-8111-111111111111', limit: 5 });
 
     expect(prisma.emotionalLog.findFirst).toHaveBeenCalledWith({
-      where: { id: '11111111-1111-4111-8111-111111111111', userId: 'user-1' },
+      where: { id: '11111111-1111-4111-8111-111111111111', userId: 'user-1', deletedAt: null },
       select: { id: true },
     });
     expect(prisma.emotionalLog.findMany).toHaveBeenCalledWith(
@@ -357,11 +357,34 @@ describe('EmotionalMapService', () => {
     });
   });
 
-  it('elimina un registro propio', async () => {
+  it('mueve un registro propio a la papelera', async () => {
     const result = await service.remove('user-1', 'log-1');
 
-    expect(prisma.emotionalLog.delete).toHaveBeenCalledWith({ where: { id: 'log-1' } });
+    expect(prisma.emotionalLog.updateMany).toHaveBeenCalledWith({
+      where: { id: 'log-1', userId: 'user-1', deletedAt: null },
+      data: { deletedAt: expect.any(Date) },
+    });
     expect(result).toEqual({ id: 'log-1' });
+  });
+
+  it('restaura un registro propio desde la papelera', async () => {
+    prisma.emotionalLog.findUnique.mockResolvedValue({
+      id: 'log-1',
+      intensity: 5,
+      contextNote: null,
+      loggedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emotion: emotionRow,
+    });
+
+    const result = await service.restore('user-1', 'log-1');
+
+    expect(prisma.emotionalLog.updateMany).toHaveBeenCalledWith({
+      where: { id: 'log-1', userId: 'user-1', deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+    expect(result.id).toBe('log-1');
   });
 });
 

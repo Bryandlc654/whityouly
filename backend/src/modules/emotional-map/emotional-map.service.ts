@@ -55,6 +55,7 @@ const LOG_SELECT = {
   contextNote: true,
   loggedAt: true,
   createdAt: true,
+  updatedAt: true,
   emotion: { select: { id: true, name: true, colorHex: true } },
 } satisfies Prisma.EmotionalLogSelect;
 
@@ -84,6 +85,7 @@ export interface EmotionalLogView {
   contextNote: string | null;
   loggedAt: Date;
   createdAt: Date;
+  updatedAt: Date;
   emotion: EmotionView;
 }
 
@@ -166,7 +168,7 @@ export class EmotionalMapService {
     const loggedAt = this.parseLoggedAt(dto.loggedAt);
     const contextNote = dto.contextNote ? sanitizeContextNote(dto.contextNote) : '';
 
-    const total = await this.prisma.emotionalLog.count({ where: { userId } });
+    const total = await this.prisma.emotionalLog.count({ where: { userId, deletedAt: null } });
     if (total >= MAX_LOGS_PER_USER) {
       throw new ConflictException(
         `Has alcanzado el máximo de ${MAX_LOGS_PER_USER} registros. Elimina alguno para guardar otro.`,
@@ -203,7 +205,7 @@ export class EmotionalMapService {
   ): Promise<{ registered: boolean; day: string; resetsAt: string }> {
     const { start, end, day } = globalDayRange();
     const count = await this.prisma.emotionalLog.count({
-      where: { userId, loggedAt: { gte: start, lt: end } },
+      where: { userId, deletedAt: null, loggedAt: { gte: start, lt: end } },
     });
     return { registered: count > 0, day, resetsAt: end.toISOString() };
   }
@@ -214,7 +216,7 @@ export class EmotionalMapService {
     const cursor = await this.resolveCursor(userId, query.cursor);
 
     const rows = await this.prisma.emotionalLog.findMany({
-      where: { userId, ...(loggedAt ? { loggedAt } : {}) },
+      where: { userId, deletedAt: null, ...(loggedAt ? { loggedAt } : {}) },
       orderBy: [{ loggedAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -249,7 +251,7 @@ export class EmotionalMapService {
     const previousFrom = new Date(from.getTime() - days * DAY_MS);
 
     const rows = await this.prisma.emotionalLog.findMany({
-      where: { userId, loggedAt: { gte: previousFrom } },
+      where: { userId, deletedAt: null, loggedAt: { gte: previousFrom } },
       orderBy: [{ loggedAt: 'desc' }, { id: 'desc' }],
       take: SUMMARY_MAX_ROWS,
       select: {
@@ -386,9 +388,29 @@ export class EmotionalMapService {
   }
 
   async remove(userId: string, id: string): Promise<{ id: string }> {
-    await this.findOwned(userId, id);
-    await this.prisma.emotionalLog.delete({ where: { id } });
+    const result = await this.prisma.emotionalLog.updateMany({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    if (result.count === 0) throw new NotFoundException('Registro no encontrado.');
     return { id };
+  }
+
+  async restore(userId: string, id: string): Promise<EmotionalLogView> {
+    const result = await this.prisma.emotionalLog.updateMany({
+      where: { id, userId, deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+    if (result.count === 0) {
+      throw new NotFoundException('Ese registro no esta en la papelera.');
+    }
+
+    const row = await this.prisma.emotionalLog.findUnique({
+      where: { id },
+      select: LOG_SELECT,
+    });
+    if (!row) throw new NotFoundException('Registro no encontrado.');
+    return this.toView(row);
   }
 
   /**
@@ -421,7 +443,7 @@ export class EmotionalMapService {
     }
 
     const anchor = await this.prisma.emotionalLog.findFirst({
-      where: { id: cursor, userId },
+      where: { id: cursor, userId, deletedAt: null },
       select: { id: true },
     });
 
@@ -431,12 +453,12 @@ export class EmotionalMapService {
   private async findOwned(userId: string, id: string): Promise<{ id: string }> {
     const row = await this.prisma.emotionalLog.findUnique({
       where: { id },
-      select: { id: true, userId: true },
+      select: { id: true, userId: true, deletedAt: true },
     });
 
     // Un registro de otra persona se trata como inexistente: no se filtra si
     // existe, para no revelar que hay algo ahí.
-    if (!row || row.userId !== userId) {
+    if (!row || row.userId !== userId || row.deletedAt) {
       throw new NotFoundException('Registro no encontrado.');
     }
 
@@ -636,6 +658,7 @@ export class EmotionalMapService {
       contextNote: row.contextNote,
       loggedAt: row.loggedAt,
       createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
       emotion: {
         id: row.emotion.id,
         name: row.emotion.name,

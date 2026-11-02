@@ -60,8 +60,69 @@ model User {
   supportTickets     SupportTicket[]
   deletionRequests   AccountDeletionRequest[]
   capsules           Capsule[]
+  careActivities     CareActivity[]
+  diaryNotes         DiaryNote[]
+  treeGarden         TreeGarden?
+  treeStyles         TreeStyle[]
 
   @@map("users")
+}
+
+/// Nota libre del diario privado. No exige emocion ni intensidad. La papelera
+/// se representa con `deletedAt`; restaurar conserva la identidad y la fecha.
+model DiaryNote {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String?
+  content   String
+  // Referencia interna cuando la nota nace de una actividad de Cuidarme.
+  sourceId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceId])
+  @@index([userId, deletedAt, createdAt])
+  @@map("diary_notes")
+}
+
+enum CareActivityType {
+  BREATHING
+  UNRAVEL
+  SMALL_STEP
+  VENT
+  COMPANY
+  DISTRACT
+}
+
+enum CareActivityStatus {
+  PLANNED
+  COMPLETED
+}
+
+/// Actividad breve de cuidado propio. La reflexion es privada y solo se
+/// devuelve a su duenio. Un paso pequenio puede guardarse como PLANNED y
+/// completarse despues; completar cualquiera de las actividades concede una
+/// gota del camino CARE_EXPRESSION (idempotente por dia).
+model CareActivity {
+  id          String              @id @default(uuid())
+  userId      String
+  activity    CareActivityType
+  status      CareActivityStatus  @default(COMPLETED)
+  reflection  String?
+  outcome     String?
+  metadata    Json?
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
+  @@map("care_activities")
 }
 
 model Capsule {
@@ -579,13 +640,15 @@ model Bookmark {
 }
 
 model EmotionalLog {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
   emotionId   String
-  intensity   Int      // 1 to 10
+  intensity   Int       // 1 to 10
   contextNote String?
   loggedAt    DateTime
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   emotion Emotion @relation(fields: [emotionId], references: [id], onDelete: Cascade)
@@ -593,6 +656,7 @@ model EmotionalLog {
   // El diario se lista y se agrega siempre por usuario y fecha; sin este índice
   // cada consulta recorre la tabla entera (y crece con cada registro).
   @@index([userId, loggedAt])
+  @@index([userId, deletedAt, loggedAt])
   @@map("emotional_logs")
 }
 
@@ -822,6 +886,35 @@ model TreeDrop {
   @@unique([userId, path, day])
   @@index([userId, day])
   @@map("tree_drops")
+}
+
+/// Preferencias visuales del jardin privado: solo el adorno global.
+model TreeGarden {
+  userId     String   @id
+  decoration String   @default("none")
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tree_gardens")
+}
+
+/// Especie y maceta de un arbol concreto. El indice coincide con el ciclo
+/// completado (0 para el primer arbol) y se conserva al pasar al siguiente.
+model TreeStyle {
+  id        String   @id @default(uuid())
+  userId    String
+  treeIndex Int
+  species   String   @default("bonsai")
+  pot       String   @default("violet")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, treeIndex])
+  @@index([userId])
+  @@map("tree_styles")
 }
 
 /// Marca "Me ayudó" de un comentario, una por personaje. Alimenta las "Flores"

@@ -1,12 +1,13 @@
 'use client';
 
 import Icon from './Icon';
-import StoryForm from './StoryForm';
+import StoryForm, { type StoryDraftSeed } from './StoryForm';
 import type { MyStory } from '@/lib/stories';
 
 interface Props {
   onClose: () => void;
   onCreated: (story: MyStory, published: boolean) => void;
+  initialDraft?: StoryDraftSeed;
 }
 
 /**
@@ -14,7 +15,7 @@ interface Props {
  * abren encima del contenido (por ejemplo «Mis relatos»). El feed publica en
  * línea con `StoryForm`, sin modal.
  */
-export default function StoryComposer({ onClose, onCreated }: Props) {
+export default function StoryComposer({ onClose, onCreated, initialDraft }: Props) {
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-label="Compartir relato">
       <div className="modal-head">
@@ -26,7 +27,7 @@ export default function StoryComposer({ onClose, onCreated }: Props) {
           <Icon name="x" />
         </button>
       </div>
-      <StoryForm onCreated={onCreated} onCancel={onClose} />
+      <StoryForm onCreated={onCreated} onCancel={onClose} initialDraft={initialDraft} />
     </div>
   );
 }

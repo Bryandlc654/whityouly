@@ -23,6 +23,8 @@ describe('TreeService', () => {
   beforeEach(async () => {
     prisma = {
       treeDrop: { create: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+      treeGarden: { findUnique: vi.fn().mockResolvedValue(null) },
+      treeStyle: { findMany: vi.fn().mockResolvedValue([]) },
       character: { findUnique: vi.fn().mockResolvedValue(null) },
       emotionalLog: { count: vi.fn().mockResolvedValue(0) },
       story: { count: vi.fn().mockResolvedValue(0) },
@@ -93,6 +95,23 @@ describe('TreeService', () => {
       expect(tree.stage.progress).toBe(0);
     });
 
+    it('calcula ciclos de 300 gotas y conserva el arbol completado en el jardin', async () => {
+      prisma.treeDrop.findMany.mockResolvedValue(
+        Array.from({ length: 305 }, (_, index) => ({
+          path: TreePath.SELF_KNOWLEDGE,
+          day: utcDay(-Math.floor(index / 3)),
+        })),
+      );
+
+      const tree = await service.getTree('u1');
+
+      expect(tree.totalDrops).toBe(305);
+      expect(tree.cycle).toEqual({ completed: 1, drops: 5, number: 2, goal: 300 });
+      expect(tree.stage.label).toBe('Brote');
+      expect(tree.garden.trees).toHaveLength(1);
+      expect(tree.achievements.find((item) => item.id === 'tree1')?.unlocked).toBe(true);
+      expect(tree.unlocks.species).toContain('jacaranda');
+    });
     it('marca los tres caminos de hoy y el camino completo', async () => {
       prisma.treeDrop.findMany.mockResolvedValue([
         { path: TreePath.SELF_KNOWLEDGE, day: utcDay(0) },

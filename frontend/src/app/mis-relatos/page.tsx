@@ -10,6 +10,7 @@ import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryComposer from '@/components/wy/StoryComposer';
+import type { StoryDraftSeed } from '@/components/wy/StoryForm';
 import StoryMetaModal, { type EditableStory } from '@/components/wy/StoryMetaModal';
 import StoryDetailModal from '@/components/wy/StoryDetailModal';
 import { listSavedStories, unsaveStory, type SavedStory } from '@/lib/bookmarks';
@@ -101,6 +102,7 @@ export default function MyStoriesPage() {
   const [appealBusy, setAppealBusy] = useState(false);
 
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerDraft, setComposerDraft] = useState<StoryDraftSeed | undefined>();
   const [metaStory, setMetaStory] = useState<EditableStory | null>(null);
   const [detail, setDetail] = useState<MyStory | null>(null);
 
@@ -175,7 +177,35 @@ export default function MyStoriesPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('compose') === '1') setComposerOpen(true);
+    const rawDraft = sessionStorage.getItem('creativeDraft');
+    if (rawDraft) {
+      try {
+        const parsed = JSON.parse(rawDraft) as Record<string, unknown>;
+        setComposerDraft({
+          title: typeof parsed.title === 'string' ? parsed.title : undefined,
+          content: typeof parsed.content === 'string' ? parsed.content : undefined,
+          categories: Array.isArray(parsed.categories)
+            ? parsed.categories.filter((item): item is string => typeof item === 'string')
+            : undefined,
+          emotions: Array.isArray(parsed.emotions)
+            ? parsed.emotions.filter((item): item is string => typeof item === 'string')
+            : undefined,
+          tags: Array.isArray(parsed.tags)
+            ? parsed.tags.filter((item): item is string => typeof item === 'string')
+            : undefined,
+        });
+        setComposerOpen(true);
+      } catch {
+        /* borrador creativo inválido */
+      }
+      sessionStorage.removeItem('creativeDraft');
+    } else if (params.get('compose') === '1') {
+      setComposerOpen(true);
+    }
+    const requestedView = params.get('view');
+    if (requestedView === 'drafts' || requestedView === 'saved' || requestedView === 'published') {
+      setView(requestedView);
+    }
   }, []);
 
   useEffect(() => {
@@ -290,8 +320,14 @@ export default function MyStoriesPage() {
     }
   };
 
+  const openComposer = () => {
+    setComposerDraft(undefined);
+    setComposerOpen(true);
+  };
+
   const handleCreated = () => {
     setComposerOpen(false);
+    setComposerDraft(undefined);
     notify('Tu relato se guardó.');
     void loadStories(filter);
   };
@@ -423,6 +459,11 @@ export default function MyStoriesPage() {
           }),
       },
       {
+        label: 'Transformar en borrador creativo',
+        icon: 'sparkle',
+        onClick: () => router.push(`/transformar?source=${encodeURIComponent(story.id)}`),
+      },
+      {
         label: story.featuredAt ? 'Quitar de destacados' : 'Destacar en mi perfil',
         icon: 'sparkle',
         onClick: () => void toggleFeatured(story),
@@ -483,7 +524,14 @@ export default function MyStoriesPage() {
       toast={toast}
       overlay={
         composerOpen ? (
-          <StoryComposer onClose={() => setComposerOpen(false)} onCreated={handleCreated} />
+          <StoryComposer
+            initialDraft={composerDraft}
+            onClose={() => {
+              setComposerOpen(false);
+              setComposerDraft(undefined);
+            }}
+            onCreated={handleCreated}
+          />
         ) : metaStory ? (
           <StoryMetaModal story={metaStory} onClose={() => setMetaStory(null)} onSaved={handleMetaSaved} />
         ) : detail ? (
@@ -508,9 +556,14 @@ export default function MyStoriesPage() {
             <h1>Mis relatos</h1>
             <p>Puedes volver, editar o continuar cuando lo necesites.</p>
           </div>
-          <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
-            <Icon name="plus" /> Nuevo relato
-          </button>
+          <div className="heading-actions">
+            <button className="secondary" type="button" onClick={() => router.push('/transformar')}>
+              <Icon name="sparkle" /> Transformar
+            </button>
+            <button className="secondary" type="button" onClick={openComposer}>
+              <Icon name="plus" /> Nuevo relato
+            </button>
+          </div>
         </div>
 
         <button
@@ -573,7 +626,7 @@ export default function MyStoriesPage() {
                 ? 'Lo que escribas se conservará aquí hasta que decidas publicarlo.'
                 : 'Comparte lo que necesitas sacar de tu pecho. Puedes guardarlo en privado y decidir después.'}
             </p>
-            <button className="secondary" type="button" onClick={() => setComposerOpen(true)}>
+            <button className="secondary" type="button" onClick={openComposer}>
               Comparte tu relato
             </button>
           </div>

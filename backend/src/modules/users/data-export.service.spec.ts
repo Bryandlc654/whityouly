@@ -15,6 +15,8 @@ describe('DataExportService', () => {
       bookmark: { findMany: vi.fn().mockResolvedValue([]) },
       emotionalLog: { findMany: vi.fn().mockResolvedValue([]) },
       treeDrop: { findMany: vi.fn().mockResolvedValue([]) },
+      treeGarden: { findUnique: vi.fn().mockResolvedValue(null) },
+      treeStyle: { findMany: vi.fn().mockResolvedValue([]) },
       creation: { findMany: vi.fn().mockResolvedValue([]) },
       report: { findMany: vi.fn().mockResolvedValue([]) },
       appeal: { findMany: vi.fn().mockResolvedValue([]) },
@@ -24,6 +26,8 @@ describe('DataExportService', () => {
       session: { findMany: vi.fn().mockResolvedValue([]) },
       commentDraft: { findMany: vi.fn().mockResolvedValue([]) },
       capsule: { findMany: vi.fn().mockResolvedValue([]) },
+      careActivity: { findMany: vi.fn().mockResolvedValue([]) },
+      diaryNote: { findMany: vi.fn().mockResolvedValue([]) },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -69,6 +73,27 @@ describe('DataExportService', () => {
         refreshToken: 'no-debe-salir',
       },
     ]);
+    prisma.careActivity.findMany.mockResolvedValue([
+      {
+        activity: 'BREATHING',
+        status: 'COMPLETED',
+        reflection: 'Una pausa',
+        outcome: 'better',
+        metadata: { seconds: 60 },
+        completedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    prisma.diaryNote.findMany.mockResolvedValue([
+      {
+        title: 'Una idea',
+        content: 'Contenido privado',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      },
+    ]);
 
     const result = await service.exportAccount('u1');
     const serialized = JSON.stringify(result);
@@ -78,6 +103,8 @@ describe('DataExportService', () => {
     expect(serialized).not.toContain('passwordHash');
     expect(serialized).not.toContain('refreshToken');
     expect(result.profile?.name).toBe('LuzEnPausa');
+    expect(result.careActivities).toHaveLength(1);
+    expect(result.diaryNotes).toHaveLength(1);
   });
 
   it('falla si la cuenta no existe', async () => {

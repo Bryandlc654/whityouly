@@ -17,6 +17,7 @@ export interface EmotionalLog {
   contextNote: string | null;
   loggedAt: string;
   createdAt: string;
+  updatedAt: string;
   emotion: EmotionalLogEmotion;
 }
 
@@ -184,6 +185,7 @@ function parseLog(value: unknown): EmotionalLog | null {
     contextNote: asString(record.contextNote),
     loggedAt: asString(record.loggedAt) ?? '',
     createdAt: asString(record.createdAt) ?? '',
+    updatedAt: asString(record.updatedAt) ?? asString(record.createdAt) ?? '',
     emotion,
   };
 }
@@ -392,11 +394,20 @@ export function deleteEmotionalLog(id: string): Promise<LoadResult<{ id: string 
   return request(
     `/emotional-logs/${encodeURIComponent(id)}`,
     { method: 'DELETE' },
-    'No se pudo eliminar el registro.',
+    'No se pudo mover el registro a la papelera.',
     (body) => {
       const record = (body ?? {}) as Record<string, unknown>;
       const resultId = asString(record.id);
       return resultId ? { id: resultId } : null;
     },
+  );
+}
+
+export function restoreEmotionalLog(id: string): Promise<LoadResult<EmotionalLog>> {
+  return request(
+    `/emotional-logs/${encodeURIComponent(id)}/restore`,
+    { method: 'PATCH' },
+    'No se pudo restaurar el registro.',
+    parseLog,
   );
 }

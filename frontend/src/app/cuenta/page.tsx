@@ -306,13 +306,23 @@ export default function ProfilePage() {
             </span>
             <Icon name="chevron" />
           </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/cuidarme')}>
+            <span>
+              <Icon name="heart" />
+            </span>
+            <span>
+              <b>Cuidarme</b>
+              <small>Actividades breves y privadas para este momento</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
           <button className="settings-row" type="button" onClick={() => router.push('/mi-diario')}>
             <span>
               <Icon name="book" />
             </span>
             <span>
               <b>Mi diario</b>
-              <small>Entradas privadas, emociones y notas</small>
+              <small>Notas, emociones y papelera privada</small>
             </span>
             <Icon name="chevron" />
           </button>

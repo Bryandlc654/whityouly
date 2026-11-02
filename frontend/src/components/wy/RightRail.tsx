@@ -157,7 +157,7 @@ export default function RightRail({
   const progress = Math.round((tree?.stage.progress ?? 0) * 100);
   const treeCopy =
     tree && nextDrops !== null
-      ? `${tree.totalDrops} de ${nextDrops} gotas para ${tree.stage.nextLabel ?? 'seguir creciendo'}`
+      ? `${tree.cycle.drops} de ${nextDrops} gotas para ${tree.stage.nextLabel ?? 'seguir creciendo'} · ${tree.totalDrops} en total`
       : 'Crece con cada registro que haces.';
 
   return (

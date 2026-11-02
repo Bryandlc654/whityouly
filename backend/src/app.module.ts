@@ -33,6 +33,8 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { SupportModule } from './modules/support/support.module';
 import { TreeModule } from './modules/tree/tree.module';
 import { CapsulesModule } from './modules/capsules/capsules.module';
+import { CareActivitiesModule } from './modules/care-activities/care-activities.module';
+import { DiaryModule } from './modules/diary/diary.module';
 
 @Module({
   imports: [
@@ -60,6 +62,8 @@ import { CapsulesModule } from './modules/capsules/capsules.module';
     SupportModule,
     TreeModule,
     CapsulesModule,
+    CareActivitiesModule,
+    DiaryModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

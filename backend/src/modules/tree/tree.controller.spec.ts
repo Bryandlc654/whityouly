@@ -5,10 +5,13 @@ import { TreeService } from './tree.service';
 
 describe('TreeController', () => {
   let controller: TreeController;
-  let service: { getTree: ReturnType<typeof vi.fn> };
+  let service: { getTree: ReturnType<typeof vi.fn>; updateCustomization: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    service = { getTree: vi.fn().mockResolvedValue({ totalDrops: 0 }) };
+    service = {
+      getTree: vi.fn().mockResolvedValue({ totalDrops: 0 }),
+      updateCustomization: vi.fn().mockResolvedValue({ totalDrops: 0 }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TreeController],
@@ -29,5 +32,10 @@ describe('TreeController', () => {
   it('devuelve el árbol del usuario del token, nunca de otro', () => {
     controller.getTree({ user: { userId: 'user-1' } } as never);
     expect(service.getTree).toHaveBeenCalledWith('user-1');
+  });
+
+  it('personaliza el jardín del usuario autenticado', () => {
+    controller.customize({ user: { userId: 'user-1' } } as never, { pot: 'ivory' });
+    expect(service.updateCustomization).toHaveBeenCalledWith('user-1', { pot: 'ivory' });
   });
 });

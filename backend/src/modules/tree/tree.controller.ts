@@ -1,9 +1,10 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TreeService } from './tree.service';
+import { UpdateTreeCustomizationDto } from './dto/tree-customization.dto';
 
 type AuthenticatedRequest = Request & { user: { userId: string } };
 
@@ -24,5 +25,12 @@ export class TreeController {
   @ApiResponse({ status: 200, description: 'Crecimiento privado calculado desde tu actividad.' })
   getTree(@Req() req: AuthenticatedRequest) {
     return this.treeService.getTree(req.user.userId);
+  }
+
+  @Patch('customization')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Personalizar especie, maceta y adorno del jardin' })
+  customize(@Req() req: AuthenticatedRequest, @Body() dto: UpdateTreeCustomizationDto) {
+    return this.treeService.updateCustomization(req.user.userId, dto);
   }
 }

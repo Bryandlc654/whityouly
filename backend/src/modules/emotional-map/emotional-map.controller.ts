@@ -65,6 +65,14 @@ export class EmotionalMapController {
     return this.emotionalMapService.todayStatus(req.user.userId);
   }
 
+  @Patch(':id/restore')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Restaurar un registro emocional desde la papelera' })
+  @ApiResponse({ status: 404, description: 'El registro no existe o no está en la papelera.' })
+  restore(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.emotionalMapService.restore(req.user.userId, id);
+  }
+
   @Patch(':id')
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @ApiOperation({ summary: 'Editar un registro (emoción, intensidad, fecha o notas)' })

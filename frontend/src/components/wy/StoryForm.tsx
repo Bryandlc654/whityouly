@@ -12,9 +12,18 @@ const CONTENT_MAX = 5000;
 const MAX_EMOTIONS = 5;
 const MAX_TAGS = 10;
 
+export interface StoryDraftSeed {
+  title?: string;
+  content?: string;
+  categories?: string[];
+  emotions?: string[];
+  tags?: string[];
+}
+
 interface Props {
   onCreated: (story: MyStory, published: boolean) => void;
   onCancel: () => void;
+  initialDraft?: StoryDraftSeed;
   /** `minimal` se usa en el feed: título y cuerpo sin bordes, herramientas discretas. */
   variant?: 'default' | 'minimal';
   heading?: string;
@@ -25,17 +34,24 @@ interface Props {
  * Formulario de publicación de un relato. `minimal` se incrusta en el bloque del
  * feed (sin modal ni campos con borde); el estilo por defecto se usa en el modal.
  */
-export default function StoryForm({ onCreated, onCancel, variant = 'default', heading, headingHint }: Props) {
+export default function StoryForm({
+  onCreated,
+  onCancel,
+  initialDraft,
+  variant = 'default',
+  heading,
+  headingHint,
+}: Props) {
   const minimal = variant === 'minimal';
 
   const [catalog, setCatalog] = useState<TaxonomyCatalog | null>(null);
   const [catalogError, setCatalogError] = useState('');
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState<string | null>(null);
-  const [emotions, setEmotions] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const [title, setTitle] = useState(initialDraft?.title ?? '');
+  const [content, setContent] = useState(initialDraft?.content ?? '');
+  const [category, setCategory] = useState<string | null>(initialDraft?.categories?.[0] ?? null);
+  const [emotions, setEmotions] = useState<string[]>(initialDraft?.emotions ?? []);
+  const [tags, setTags] = useState<string[]>(initialDraft?.tags ?? []);
   const [visibility, setVisibility] = useState<StoryVisibility>('PUBLIC');
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [mediaName, setMediaName] = useState('');

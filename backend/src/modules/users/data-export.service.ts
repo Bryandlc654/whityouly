@@ -62,6 +62,8 @@ export class DataExportService {
       saved,
       emotionalLogs,
       treeDrops,
+      treeGarden,
+      treeStyles,
       creations,
       reports,
       appeals,
@@ -71,6 +73,8 @@ export class DataExportService {
       sessions,
       commentDrafts,
       capsules,
+      careActivities,
+      diaryNotes,
     ] = await Promise.all([
       characterId
         ? this.prisma.story.findMany({
@@ -142,6 +146,8 @@ export class DataExportService {
           contextNote: true,
           loggedAt: true,
           createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
           emotion: { select: { name: true, colorHex: true } },
         },
       }),
@@ -149,6 +155,15 @@ export class DataExportService {
         where: { userId },
         orderBy: [{ day: 'asc' }, { createdAt: 'asc' }],
         select: { path: true, day: true, createdAt: true },
+      }),
+      this.prisma.treeGarden.findUnique({
+        where: { userId },
+        select: { decoration: true, updatedAt: true },
+      }),
+      this.prisma.treeStyle.findMany({
+        where: { userId },
+        orderBy: { treeIndex: 'asc' },
+        select: { treeIndex: true, species: true, pot: true, createdAt: true, updatedAt: true },
       }),
       this.prisma.creation.findMany({
         where: { userId },
@@ -253,6 +268,31 @@ export class DataExportService {
         orderBy: { createdAt: 'asc' },
         select: { content: true, mood: true, openAt: true, createdAt: true, updatedAt: true },
       }),
+      this.prisma.careActivity.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          activity: true,
+          status: true,
+          reflection: true,
+          outcome: true,
+          metadata: true,
+          completedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.diaryNote.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          title: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+        },
+      }),
     ]);
 
     return {
@@ -312,6 +352,8 @@ export class DataExportService {
       saved,
       emotionalLogs,
       treeDrops,
+      treeGarden,
+      treeStyles,
       creations: creations.map((creation) => ({
         ...creation,
         mediaUrl: creation.mediaAsset?.fileUrl ?? null,
@@ -323,6 +365,8 @@ export class DataExportService {
       notifications,
       commentDrafts,
       capsules,
+      careActivities,
+      diaryNotes,
       mediaFiles: mediaAssets.map((asset) => ({
         ...asset,
         // BigInt no se puede serializar directamente en JSON.
