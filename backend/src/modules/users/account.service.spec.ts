@@ -103,6 +103,7 @@ describe('AccountService', () => {
         readingSize: 'NORMAL',
         theme: 'light',
         language: 'es',
+        countryCode: null,
       });
       expect(result.usage).toEqual({ characters: 1, media: 4 });
       expect(result.activeSessions).toBe(2);
@@ -138,6 +139,7 @@ describe('AccountService', () => {
           readingSize: true,
           theme: true,
           language: true,
+          countryCode: true,
         },
       });
     });

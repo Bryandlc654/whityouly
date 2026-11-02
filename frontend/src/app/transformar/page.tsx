@@ -246,6 +246,8 @@ export default function TransformPage() {
           content: text,
           categories: source.categories,
           emotions: source.emotions.map((emotion) => emotion.name),
+          language: source.language,
+          countryCode: source.countryCode,
         }),
       );
     } catch {

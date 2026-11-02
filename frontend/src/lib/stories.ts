@@ -1,4 +1,4 @@
-﻿import { API_URL } from './api';
+import { API_URL } from './api';
 import { authFetch } from './auth';
 import { safeAvatarUrl } from './avatar';
 import type { ReportReason } from './comments';
@@ -13,6 +13,13 @@ export type StoryStatus =
   | 'MODERATED'
   | 'WITHDRAWN'
   | 'DELETED';
+
+export interface StoryTranslation {
+  title: string;
+  content: string;
+}
+
+export type StoryTranslations = Record<string, StoryTranslation>;
 
 export interface StoryStage {
   id: string;
@@ -31,6 +38,9 @@ export interface StoryEmotion {
 export interface MyStory {
   id: string;
   title: string;
+  language: string;
+  countryCode: string | null;
+  translations: StoryTranslations | null;
   visibility: StoryVisibility;
   status: StoryStatus;
   author: { name: string; avatarUrl: string | null } | null;
@@ -52,6 +62,9 @@ export interface MyStory {
 export interface MyStoryListItem {
   id: string;
   title: string;
+  language: string;
+  countryCode: string | null;
+  translations: StoryTranslations | null;
   visibility: StoryVisibility;
   status: StoryStatus;
   featuredAt: string | null;
@@ -71,6 +84,8 @@ export interface MyStoryListItem {
 export interface CreateStoryInput {
   title: string;
   content: string;
+  language?: string;
+  countryCode?: string | null;
   visibility?: StoryVisibility;
   publish?: boolean;
   categories?: string[];
@@ -82,6 +97,8 @@ export interface CreateStoryInput {
 
 export interface UpdateStoryInput {
   title?: string;
+  language?: string;
+  countryCode?: string | null;
   visibility?: StoryVisibility;
   categories?: string[];
   emotions?: string[];
@@ -152,6 +169,9 @@ function parseStory(value: unknown): MyStory | null {
   return {
     id,
     title,
+    language: typeof record.language === 'string' ? record.language : 'es',
+    countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
+    translations: parseTranslations(record.translations),
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
     author:
@@ -186,6 +206,9 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
   return {
     id,
     title,
+    language: typeof record.language === 'string' ? record.language : 'es',
+    countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
+    translations: parseTranslations(record.translations),
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
     featuredAt: typeof record.featuredAt === 'string' ? record.featuredAt : null,
@@ -486,6 +509,9 @@ export function deleteStory(id: string): Promise<LoadResult<{ id: string }>> {
 export interface FollowingStory {
   id: string;
   title: string;
+  language: string;
+  countryCode: string | null;
+  translations: StoryTranslations | null;
   author: { name: string; avatarUrl: string | null };
   categories: string[];
   emotions: StoryEmotion[];
@@ -504,6 +530,18 @@ export interface FollowingPage {
   nextCursor: string | null;
 }
 
+function parseTranslations(value: unknown): StoryTranslations | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const result: StoryTranslations = {};
+  for (const [language, translation] of Object.entries(value as Record<string, unknown>)) {
+    if (!translation || typeof translation !== 'object' || Array.isArray(translation)) continue;
+    const record = translation as Record<string, unknown>;
+    if (typeof record.title !== 'string' || typeof record.content !== 'string') continue;
+    result[language] = { title: record.title, content: record.content };
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
 function parseFollowingStory(value: unknown): FollowingStory | null {
   const record = (value ?? {}) as Record<string, unknown>;
   const id = typeof record.id === 'string' ? record.id : null;
@@ -514,6 +552,9 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
   return {
     id,
     title,
+    language: typeof record.language === 'string' ? record.language : 'es',
+    countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
+    translations: parseTranslations(record.translations),
     author: { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),

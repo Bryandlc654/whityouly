@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
+import { fetchAccount } from '@/lib/account';
+import { countryLabel, languageLabel } from '@/lib/locales';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
@@ -10,6 +12,7 @@ import Icon from '@/components/wy/Icon';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import StoryViewer from '@/components/wy/StoryViewer';
+import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { viewStory, type MyStory } from '@/lib/stories';
 
@@ -37,9 +40,12 @@ export default function StoryPage() {
   const [loading, setLoading] = useState(true);
   const [story, setStory] = useState<MyStory | null>(null);
   const [storyLoading, setStoryLoading] = useState(true);
+  const [preferredLanguage, setPreferredLanguage] = useState('es');
+  const [translated, setTranslated] = useState(false);
   const [error, setError] = useState('');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
+  const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -94,6 +100,11 @@ export default function StoryPage() {
           return;
         }
         if (res.ok) setCharacter(await res.json());
+
+        const accountResult = await fetchAccount();
+        if (accountResult.status === 'ok') {
+          setPreferredLanguage(accountResult.data.preferences.language || 'es');
+        }
       } catch (err) {
         console.error('Error verificando sesión', err);
       } finally {
@@ -174,6 +185,17 @@ export default function StoryPage() {
   }
 
   const tags = story ? [...story.categories, ...story.tags].slice(0, 5) : [];
+  const translation = story?.translations?.[preferredLanguage] ?? null;
+  const displayStory =
+    story && translated && translation
+      ? {
+          ...story,
+          title: translation.title,
+          updates: story.updates.map((stage, index) =>
+            index === 0 ? { ...stage, content: translation.content } : stage,
+          ),
+        }
+      : story;
 
   return (
     <WyFrame
@@ -184,6 +206,11 @@ export default function StoryPage() {
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
+      overlay={
+        shareStory ? (
+          <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
+        ) : null
+      }
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={
         <RightRail
@@ -227,22 +254,28 @@ export default function StoryPage() {
                 </div>
                 <div className="post-time">
                   {formatDate(story.createdAt)} · {story.updates.length}{' '}
-                  {story.updates.length === 1 ? 'etapa' : 'etapas'}
+                  {story.updates.length === 1 ? 'etapa' : 'etapas'} · {languageLabel(story.language)}
+                  {story.countryCode ? ` · ${countryLabel(story.countryCode)}` : ''}
                 </div>
               </div>
             </div>
 
-            {tags.length > 0 ? (
+            {tags.length > 0 || translation ? (
               <div className="post-tags">
                 {tags.map((tag) => (
                   <span key={tag} className="tag">
                     {tag}
                   </span>
                 ))}
+                {translation ? (
+                  <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
+                    {translated ? 'Ver original' : `Ver traducción (${languageLabel(preferredLanguage)})`}
+                  </button>
+                ) : null}
               </div>
             ) : null}
 
-            <h1 className="story-page-title">{story.title}</h1>
+            <h1 className="story-page-title">{displayStory?.title ?? story.title}</h1>
 
             <div className="story-page-meta">
               <span>
@@ -253,8 +286,27 @@ export default function StoryPage() {
               </span>
             </div>
 
+            <div className="story-share-row">
+              <button
+                className="secondary"
+                type="button"
+                onClick={() =>
+                  setShareStory({
+                    id: story.id,
+                    title: story.title,
+                    text: story.updates[0]?.content ?? '',
+                    author: story.author?.name ?? 'Withyouly',
+                    initials: initialsOf(story.author?.name),
+                    category: story.categories[0],
+                  })
+                }
+              >
+                <Icon name="share" /> Compartir
+              </button>
+            </div>
+
             <StoryViewer
-              story={story}
+              story={displayStory ?? story}
               variant="page"
               onNotify={notify}
               onClose={() => router.push('/notificaciones')}

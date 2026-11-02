@@ -90,6 +90,9 @@ type StageRow = {
 const STORY_DETAIL_SELECT = {
   id: true,
   title: true,
+  language: true,
+  countryCode: true,
+  translations: true,
   visibility: true,
   status: true,
   featuredAt: true,
@@ -108,6 +111,9 @@ const STORY_DETAIL_SELECT = {
 const STORY_LIST_SELECT = {
   id: true,
   title: true,
+  language: true,
+  countryCode: true,
+  translations: true,
   visibility: true,
   status: true,
   featuredAt: true,
@@ -168,6 +174,8 @@ export class StoriesService {
         data: {
           characterId,
           title,
+          language: dto.language ?? 'es',
+          countryCode: dto.countryCode ?? null,
           visibility: (dto.visibility ?? 'PUBLIC') as VisibilityValue,
           status,
           updates: { create: { content, mediaAssetId, audioAssetId, stageOrder: 1 } },
@@ -217,6 +225,8 @@ export class StoriesService {
     if (
       title === undefined &&
       dto.visibility === undefined &&
+      dto.language === undefined &&
+      dto.countryCode === undefined &&
       categoryIds === undefined &&
       emotionIds === undefined &&
       tagIds === undefined
@@ -260,6 +270,8 @@ export class StoriesService {
         data: {
           ...(title !== undefined ? { title } : {}),
           ...(dto.visibility !== undefined ? { visibility: dto.visibility } : {}),
+          ...(dto.language !== undefined ? { language: dto.language } : {}),
+          ...(dto.countryCode !== undefined ? { countryCode: dto.countryCode } : {}),
           updatedAt: new Date(),
         },
         select: STORY_DETAIL_SELECT,
@@ -1570,6 +1582,9 @@ export class StoriesService {
   private toOwnerView(story: {
     id: string;
     title: string;
+    language?: string;
+    countryCode?: string | null;
+    translations?: Prisma.JsonValue | null;
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
@@ -1587,6 +1602,9 @@ export class StoriesService {
     return {
       id: story.id,
       title: story.title,
+      language: story.language ?? 'es',
+      countryCode: story.countryCode ?? null,
+      translations: story.translations ?? null,
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
@@ -1613,6 +1631,9 @@ export class StoriesService {
   private toOwnerListView(story: {
     id: string;
     title: string;
+    language?: string;
+    countryCode?: string | null;
+    translations?: Prisma.JsonValue | null;
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
@@ -1630,6 +1651,9 @@ export class StoriesService {
     return {
       id: story.id,
       title: story.title,
+      language: story.language ?? 'es',
+      countryCode: story.countryCode ?? null,
+      translations: story.translations ?? null,
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
@@ -1653,6 +1677,9 @@ export class StoriesService {
   private toPublicView(story: {
     id: string;
     title: string;
+    language?: string;
+    countryCode?: string | null;
+    translations?: Prisma.JsonValue | null;
     visibility: string;
     status: StoryStatus;
     createdAt: Date;
@@ -1673,6 +1700,9 @@ export class StoriesService {
   private toPublicListView(story: {
     id: string;
     title: string;
+    language?: string;
+    countryCode?: string | null;
+    translations?: Prisma.JsonValue | null;
     visibility: string;
     commentsPaused?: boolean;
     createdAt: Date;
@@ -1688,6 +1718,9 @@ export class StoriesService {
     return {
       id: story.id,
       title: story.title,
+      language: story.language ?? 'es',
+      countryCode: story.countryCode ?? null,
+      translations: story.translations ?? null,
       author: { name: story.character.name, avatarUrl: story.character.avatarUrl },
       commentsPaused: story.commentsPaused === true,
       categories: story.categories.map(({ category }) => category.name),

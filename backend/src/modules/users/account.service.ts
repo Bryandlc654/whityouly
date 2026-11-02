@@ -84,6 +84,7 @@ export class AccountService {
             readingSize: preferences.readingSize,
             theme: preferences.theme,
             language: preferences.language,
+            countryCode: preferences.countryCode,
           }
         : {
             emailNotifications: true,
@@ -92,6 +93,7 @@ export class AccountService {
             readingSize: 'NORMAL',
             theme: 'light',
             language: 'es',
+            countryCode: null,
           },
       usage: { characters, media: mediaCount },
       activeSessions: activeSessions.length,
@@ -117,6 +119,7 @@ export class AccountService {
         readingSize: true,
         theme: true,
         language: true,
+        countryCode: true,
       },
     });
 
@@ -512,6 +515,7 @@ export class AccountService {
       ...(dto.readingSize === undefined ? {} : { readingSize: dto.readingSize }),
       ...(dto.theme === undefined ? {} : { theme: dto.theme }),
       ...(dto.language === undefined ? {} : { language: dto.language }),
+      ...(dto.countryCode === undefined ? {} : { countryCode: dto.countryCode }),
     };
   }
 

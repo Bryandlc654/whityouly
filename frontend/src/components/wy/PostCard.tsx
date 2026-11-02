@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import Icon from './Icon';
 import type { FeedStory } from './feedData';
+import { countryLabel, languageLabel } from '@/lib/locales';
 
 interface PostCardProps {
   story: FeedStory;
@@ -52,6 +53,7 @@ export default function PostCard({
   supportCount,
 }: PostCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [translated, setTranslated] = useState(false);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [textOverflows, setTextOverflows] = useState(false);
 
@@ -68,7 +70,7 @@ export default function PostCard({
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [expanded, story.text]);
+  }, [expanded, story.text, translated]);
 
   return (
     <article className="post card">
@@ -107,7 +109,10 @@ export default function PostCard({
               </button>
             )}
           </div>
-          <div className="post-time">{story.time} · Seudónimo único</div>
+          <div className="post-time">
+            {story.time} · Seudónimo único · {languageLabel(story.language)}
+            {story.countryCode ? ` · ${countryLabel(story.countryCode)}` : ''}
+          </div>
         </div>
         <button className="more-btn" type="button" onClick={onOpenMenu} aria-label="Más opciones">
           <Icon name="more" />
@@ -117,13 +122,20 @@ export default function PostCard({
       <div className="post-tags">
         <span className="tag">{story.category}</span>
         <span className="tag update">{story.updateKind}</span>
+        {story.translation ? (
+          <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
+            {translated ? 'Ver original' : 'Ver traducción'}
+          </button>
+        ) : null}
         {followingStory ? <span className="tag hope">Siguiendo relato</span> : null}
       </div>
 
-      <h2>{story.title}</h2>
+      <h2>{translated && story.translation ? story.translation.title : story.title}</h2>
       {story.text ? (
         <>
-          <p ref={textRef} className={`post-text ${expanded ? '' : 'clamp'}`}>{story.text}</p>
+          <p ref={textRef} className={`post-text ${expanded ? '' : 'clamp'}`}>
+            {translated && story.translation ? story.translation.content : story.text}
+          </p>
           {!expanded && textOverflows && (
             <button className="post-more" type="button" onClick={() => setExpanded(true)}>
               Leer relato completo

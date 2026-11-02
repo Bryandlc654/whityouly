@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { savePreferences, type Account, type AccountPreferences } from '@/lib/account';
 import Icon from '@/components/wy/Icon';
+import { COUNTRIES, LANGUAGES } from '@/lib/locales';
 
 interface Props {
   account: Account;
@@ -31,7 +32,9 @@ export default function PreferencesSection({ account, onSaved }: Props) {
     preferences.pushNotifications !== account.preferences.pushNotifications ||
     preferences.emailNotifications !== account.preferences.emailNotifications ||
     preferences.notificationsEnabled !== account.preferences.notificationsEnabled ||
-    preferences.readingSize !== account.preferences.readingSize;
+    preferences.readingSize !== account.preferences.readingSize ||
+    preferences.language !== account.preferences.language ||
+    preferences.countryCode !== account.preferences.countryCode;
 
   async function save() {
     setSaving(true);
@@ -43,6 +46,8 @@ export default function PreferencesSection({ account, onSaved }: Props) {
       emailNotifications: preferences.emailNotifications,
       notificationsEnabled: preferences.notificationsEnabled,
       readingSize: preferences.readingSize,
+      language: preferences.language,
+      countryCode: preferences.countryCode,
     });
 
     setSaving(false);
@@ -85,6 +90,41 @@ export default function PreferencesSection({ account, onSaved }: Props) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <label className="field-label" htmlFor="preferenceLanguage">Idioma preferido</label>
+        <p className="hint" style={{ margin: '0 0 8px' }}>
+          Se usa para las traducciones disponibles y como idioma inicial de tus nuevos relatos.
+        </p>
+        <select
+          id="preferenceLanguage"
+          value={preferences.language}
+          onChange={(event) => setPreferences((prev) => ({ ...prev, language: event.target.value }))}
+          style={{ width: '100%', minHeight: 44, padding: '9px 11px', border: '1px solid #b9bdc6', borderRadius: 11 }}
+        >
+          {LANGUAGES.map((language) => (
+            <option key={language.code} value={language.code}>{language.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="field-label" htmlFor="preferenceCountry">País (opcional)</label>
+        <p className="hint" style={{ margin: '0 0 8px' }}>
+          Se añade como dato opcional a tus próximos relatos. No aparece junto a tu seudónimo.
+        </p>
+        <select
+          id="preferenceCountry"
+          value={preferences.countryCode ?? ''}
+          onChange={(event) => setPreferences((prev) => ({ ...prev, countryCode: event.target.value || null }))}
+          style={{ width: '100%', minHeight: 44, padding: '9px 11px', border: '1px solid #b9bdc6', borderRadius: 11 }}
+        >
+          <option value="">Sin país</option>
+          {COUNTRIES.map((country) => (
+            <option key={country.code} value={country.code}>{country.label}</option>
+          ))}
+        </select>
       </div>
 
       <div>

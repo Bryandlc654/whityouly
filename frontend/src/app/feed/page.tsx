@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
+import { fetchAccount } from '@/lib/account';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
 import PostCard from '@/components/wy/PostCard';
+import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import RightRail from '@/components/wy/RightRail';
 import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -55,7 +57,7 @@ function relativeTime(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
 }
 
-function toEntry(story: FollowingStory, authorName: string): FeedEntry {
+function toEntry(story: FollowingStory, authorName: string, preferredLanguage: string): FeedEntry {
   const isOwn = story.author.name === authorName;
   return {
     id: story.id,
@@ -68,6 +70,12 @@ function toEntry(story: FollowingStory, authorName: string): FeedEntry {
     updateText: '',
     title: story.title,
     text: story.opening?.content ?? '',
+    language: story.language,
+    countryCode: story.countryCode,
+    translation:
+      preferredLanguage && preferredLanguage !== story.language
+        ? story.translations?.[preferredLanguage] ?? null
+        : null,
     support: story.supportCount,
     comments: story.commentCount,
     mediaUrl: story.opening?.mediaUrl ?? null,
@@ -83,6 +91,7 @@ export default function FeedPage() {
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
 
   const [feedItems, setFeedItems] = useState<FollowingStory[] | null>(null);
+  const [preferredLanguage, setPreferredLanguage] = useState('es');
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState('');
 
@@ -94,6 +103,7 @@ export default function FeedPage() {
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
+  const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
   const [moodValue, setMoodValue] = useState(7);
@@ -169,13 +179,18 @@ export default function FeedPage() {
     if (!options?.silent) setFeedLoading(true);
     setFeedError('');
 
-    const [feed, follows, followedStories, supportedStories, unread] = await Promise.all([
+    const [feed, follows, followedStories, supportedStories, unread, account] = await Promise.all([
       getFeed(),
       listFollowing(),
       whatIFollow(),
       listSupportedStoryIds(),
       unreadNotificationsCount(),
+      fetchAccount(),
     ]);
+
+    if (account.status === 'ok') {
+      setPreferredLanguage(account.data.preferences.language || 'es');
+    }
 
     if (follows.status === 'ok') {
       setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
@@ -391,13 +406,25 @@ export default function FeedPage() {
     notify(active ? 'Relato eliminado de guardados.' : 'Relato guardado en privado.');
   };
 
+  const shareFromId = (storyId: string) => {
+    const story = (feedItems ?? []).find((item) => item.id === storyId);
+    if (!story) return;
+    setShareStory({
+      id: story.id,
+      title: story.title,
+      text: story.opening?.content ?? '',
+      author: story.author.name,
+      initials: initialsOf(story.author.name),
+      category: story.categories[0],
+    });
+  };
   const openPostMenu = (storyId: string) => {
     setSheet({
       title: 'Opciones del relato',
       rows: [
         { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => void toggleFollowStory(storyId) },
         { label: 'Guardar relato', icon: 'bookmark', onClick: () => void toggleSave(storyId) },
-        { label: 'Compartir enlace', icon: 'share', onClick: () => notify('Enlace copiado') },
+        { label: 'Compartir relato', icon: 'share', onClick: () => shareFromId(storyId) },
         {
           label: 'Reportar contenido',
           icon: 'flag',
@@ -463,7 +490,7 @@ export default function FeedPage() {
   };
 
   const renderCard = (story: FollowingStory, index: number, authorName: string) => {
-    const entry = toEntry(story, authorName);
+    const entry = toEntry(story, authorName, preferredLanguage);
     return (
       <div
         key={story.id}
@@ -489,7 +516,16 @@ export default function FeedPage() {
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
           onComment={() => setReader({ id: story.id, title: story.title })}
-          onShare={() => notify('Enlace copiado')}
+          onShare={() =>
+            setShareStory({
+              id: entry.id,
+              title: entry.title,
+              text: entry.text,
+              author: entry.author,
+              initials: entry.initials,
+              category: entry.category,
+            })
+          }
         />
       </div>
     );
@@ -521,7 +557,9 @@ export default function FeedPage() {
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={
-        reader ? (
+        shareStory ? (
+          <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
+        ) : reader ? (
           <StoryViewer
             storyId={reader.id}
             title={reader.title}

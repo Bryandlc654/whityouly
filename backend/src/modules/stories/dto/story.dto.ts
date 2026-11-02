@@ -22,6 +22,7 @@ import {
   STORY_TITLE_MAX_LENGTH,
 } from '../story-sanitize';
 import { REPORT_REASONS } from '../../comments/dto/comment.dto';
+import { COUNTRY_CODES, LANGUAGES } from '../../../common/i18n/locales';
 
 export const VISIBILITIES = ['PUBLIC', 'FOLLOWERS', 'PRIVATE'] as const;
 export type VisibilityValue = (typeof VISIBILITIES)[number];
@@ -77,9 +78,21 @@ export class CreateStoryDto {
   })
   content?: string;
 
+  @ApiPropertyOptional({ enum: LANGUAGES, default: 'es' })
+  @Transform(trim)
+  @IsOptional()
+  @IsIn([...LANGUAGES], { message: 'El idioma del relato no es válido' })
+  language?: (typeof LANGUAGES)[number];
+
+  @ApiPropertyOptional({ enum: COUNTRY_CODES, example: 'PE' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @IsOptional()
+  @IsIn([...COUNTRY_CODES], { message: 'El país del relato no es válido' })
+  countryCode?: (typeof COUNTRY_CODES)[number];
+
   @ApiPropertyOptional({ enum: VISIBILITIES, default: 'PUBLIC' })
   @IsOptional()
-  @IsIn(VISIBILITIES, { message: 'La visibilidad no es válida' })
+  @IsIn(VISIBILITIES, { message: 'La visibilidad no es vǭlida' })
   visibility?: VisibilityValue;
 
   @ApiPropertyOptional({
@@ -146,8 +159,20 @@ export class UpdateStoryDto {
 
   @ApiPropertyOptional({ enum: VISIBILITIES })
   @IsOptional()
-  @IsIn(VISIBILITIES, { message: 'La visibilidad no es válida' })
+  @IsIn(VISIBILITIES, { message: 'La visibilidad no es vǭlida' })
   visibility?: VisibilityValue;
+
+  @ApiPropertyOptional({ enum: LANGUAGES })
+  @Transform(trim)
+  @IsOptional()
+  @IsIn([...LANGUAGES], { message: 'El idioma del relato no es válido' })
+  language?: (typeof LANGUAGES)[number];
+
+  @ApiPropertyOptional({ enum: COUNTRY_CODES })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @IsOptional()
+  @IsIn([...COUNTRY_CODES], { message: 'El país del relato no es válido' })
+  countryCode?: (typeof COUNTRY_CODES)[number];
 
   @ApiPropertyOptional({ type: [String] })
   @Transform(normalizeNames)

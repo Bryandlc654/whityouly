@@ -83,6 +83,9 @@ export class DataExportService {
             select: {
               id: true,
               title: true,
+              language: true,
+              countryCode: true,
+              translations: true,
               visibility: true,
               status: true,
               featuredAt: true,
@@ -326,6 +329,9 @@ export class DataExportService {
       stories: stories.map((story) => ({
         id: story.id,
         title: story.title,
+        language: story.language,
+        countryCode: story.countryCode,
+        translations: story.translations,
         visibility: story.visibility,
         status: story.status,
         featuredAt: story.featuredAt,

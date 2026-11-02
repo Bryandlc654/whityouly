@@ -86,6 +86,9 @@ function parseStoryItem(value: unknown, extra: Partial<FollowingStory> = {}): Fo
   return {
     id,
     title,
+    language: typeof record.language === 'string' ? record.language : 'es',
+    countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
+    translations: null,
     author: { name: authorName, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),

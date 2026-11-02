@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
@@ -17,8 +17,9 @@ import {
   PASSWORD_PATTERN_MESSAGE,
 } from '../../auth/dto/auth.dto';
 
+import { COUNTRY_CODES, LANGUAGES } from '../../../common/i18n/locales';
+
 const THEMES = ['light', 'dark', 'system'] as const;
-const LANGUAGES = ['es'] as const;
 const READING_SIZES = ['NORMAL', 'LARGE', 'LARGER'] as const;
 
 export class UpdatePreferencesDto {
@@ -52,8 +53,14 @@ export class UpdatePreferencesDto {
 
   @ApiPropertyOptional({ enum: LANGUAGES, example: 'es' })
   @IsOptional()
-  @IsIn(LANGUAGES, { message: `El idioma debe ser uno de: ${LANGUAGES.join(', ')}` })
+  @IsIn([...LANGUAGES], { message: `El idioma debe ser uno de: ${LANGUAGES.join(', ')}` })
   language?: (typeof LANGUAGES)[number];
+
+  @ApiPropertyOptional({ enum: COUNTRY_CODES, example: 'PE' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
+  @IsOptional()
+  @IsIn([...COUNTRY_CODES], { message: 'El país no es válido' })
+  countryCode?: (typeof COUNTRY_CODES)[number];
 }
 
 export class ChangePasswordDto {

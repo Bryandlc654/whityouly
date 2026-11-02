@@ -5,7 +5,9 @@ import Icon from './Icon';
 import StoryTaxonomyFields from './StoryTaxonomyFields';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { uploadAudio, uploadFile } from '@/lib/files';
+import { fetchAccount } from '@/lib/account';
 import { createStory, type MyStory, type StoryVisibility } from '@/lib/stories';
+import { COUNTRIES, LANGUAGES } from '@/lib/locales';
 
 const TITLE_MAX = 120;
 const CONTENT_MAX = 5000;
@@ -18,6 +20,8 @@ export interface StoryDraftSeed {
   categories?: string[];
   emotions?: string[];
   tags?: string[];
+  language?: string;
+  countryCode?: string | null;
 }
 
 interface Props {
@@ -52,6 +56,8 @@ export default function StoryForm({
   const [category, setCategory] = useState<string | null>(initialDraft?.categories?.[0] ?? null);
   const [emotions, setEmotions] = useState<string[]>(initialDraft?.emotions ?? []);
   const [tags, setTags] = useState<string[]>(initialDraft?.tags ?? []);
+  const [language, setLanguage] = useState(initialDraft?.language ?? 'es');
+  const [countryCode, setCountryCode] = useState(initialDraft?.countryCode ?? '');
   const [visibility, setVisibility] = useState<StoryVisibility>('PUBLIC');
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [mediaName, setMediaName] = useState('');
@@ -70,6 +76,18 @@ export default function StoryForm({
 
   const fileInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    void fetchAccount().then((result) => {
+      if (!active || result.status !== 'ok') return;
+      if (initialDraft?.language === undefined) setLanguage(result.data.preferences.language || 'es');
+      if (initialDraft?.countryCode === undefined) setCountryCode(result.data.preferences.countryCode ?? '');
+    });
+    return () => {
+      active = false;
+    };
+  }, [initialDraft?.language, initialDraft?.countryCode]);
 
   useEffect(() => {
     let active = true;
@@ -134,6 +152,8 @@ export default function StoryForm({
     const result = await createStory({
       title: title.trim(),
       content: content.trim(),
+      language,
+      countryCode: countryCode || null,
       visibility,
       publish,
       categories: category ? [category] : [],
@@ -171,6 +191,25 @@ export default function StoryForm({
         maxEmotions={MAX_EMOTIONS}
         maxTags={MAX_TAGS}
       />
+      <div className="story-locale-fields">
+        <label className="field-label" htmlFor="storyLanguage">
+          Idioma del relato
+          <select id="storyLanguage" value={language} onChange={(event) => setLanguage(event.target.value)}>
+            {LANGUAGES.map((item) => (
+              <option key={item.code} value={item.code}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="field-label" htmlFor="storyCountry">
+          País <span>(opcional)</span>
+          <select id="storyCountry" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+            <option value="">Sin país</option>
+            {COUNTRIES.map((item) => (
+              <option key={item.code} value={item.code}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
     </>
   );
 

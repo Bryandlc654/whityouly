@@ -75,6 +75,20 @@ const DEMO = [
         title: 'Saborear el domingo sin culpa',
         content:
           'Aprendí que descansar no es perder tiempo. Hoy no hice nada importante y me siento más yo que en toda la semana.',
+        language: 'es',
+        countryCode: 'PE',
+        translations: {
+          en: {
+            title: 'Savoring Sunday without guilt',
+            content:
+              'I learned that resting is not wasting time. Today I did nothing important and I feel more like myself than all week.',
+          },
+          pt: {
+            title: 'Saborear o domingo sem culpa',
+            content:
+              'Aprendi que descansar não é perder tempo. Hoje não fiz nada importante e me sinto mais eu do que em toda a semana.',
+          },
+        },
         visibility: 'PUBLIC',
         status: 'PUBLISHED',
         categories: ['Salud'],
@@ -102,6 +116,20 @@ const DEMO = [
         title: 'La luna también tiene sus noches',
         content:
           'Hay noches en las que la luna no alumbra y aun así sigue ahí. Me di cuenta de que yo también puedo simplemente estar.',
+        language: 'es',
+        countryCode: 'PE',
+        translations: {
+          en: {
+            title: 'The moon also has its nights',
+            content:
+              'There are nights when the moon does not shine and still it remains. I realized that I can simply be, too.',
+          },
+          pt: {
+            title: 'A lua também tem suas noites',
+            content:
+              'Há noites em que a lua não ilumina e ainda assim continua ali. Percebi que eu também posso simplesmente estar.',
+          },
+        },
         visibility: 'PUBLIC',
         status: 'PUBLISHED',
         categories: ['Soledad'],
@@ -229,6 +257,9 @@ async function main() {
         data: {
           characterId: character.id,
           title: story.title,
+          language: story.language ?? 'es',
+          countryCode: story.countryCode ?? null,
+          translations: story.translations ?? null,
           visibility: story.visibility,
           status: story.status,
           updates: { create: { content: story.content, stageOrder: 1 } },

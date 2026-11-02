@@ -10,6 +10,7 @@ import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryComposer from '@/components/wy/StoryComposer';
+import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import type { StoryDraftSeed } from '@/components/wy/StoryForm';
 import StoryMetaModal, { type EditableStory } from '@/components/wy/StoryMetaModal';
 import StoryDetailModal from '@/components/wy/StoryDetailModal';
@@ -103,6 +104,7 @@ export default function MyStoriesPage() {
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerDraft, setComposerDraft] = useState<StoryDraftSeed | undefined>();
+  const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [metaStory, setMetaStory] = useState<EditableStory | null>(null);
   const [detail, setDetail] = useState<MyStory | null>(null);
 
@@ -456,8 +458,27 @@ export default function MyStoriesPage() {
             categories: story.categories,
             emotions: story.emotions,
             tags: story.tags,
+            language: story.language,
+            countryCode: story.countryCode,
           }),
       },
+      ...(story.status === 'PUBLISHED'
+        ? [
+            {
+              label: 'Compartir relato',
+              icon: 'share' as const,
+              onClick: () =>
+                setShareStory({
+                  id: story.id,
+                  title: story.title,
+                  text: story.opening?.content ?? '',
+                  author: character?.name ?? 'Withyouly',
+                  initials: initialsOf(character?.name),
+                  category: story.categories[0],
+                }),
+            },
+          ]
+        : []),
       {
         label: 'Transformar en borrador creativo',
         icon: 'sparkle',
@@ -523,7 +544,9 @@ export default function MyStoriesPage() {
       onOpenAccount={openAccount}
       toast={toast}
       overlay={
-        composerOpen ? (
+        shareStory ? (
+          <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
+        ) : composerOpen ? (
           <StoryComposer
             initialDraft={composerDraft}
             onClose={() => {

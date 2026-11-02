@@ -188,6 +188,7 @@ model UserPreference {
   readingSize        ReadingSize @default(NORMAL)
   theme              String      @default("light")
   language           String      @default("es")
+  countryCode        String?
   updatedAt          DateTime    @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -326,6 +327,10 @@ model Story {
   id          String      @id @default(uuid())
   characterId String
   title       String
+  language    String      @default("es")
+  countryCode String?
+  // Traducciones de ejemplo: { "en": { "title": "...", "content": "..." } }
+  translations Json?
   visibility  Visibility  @default(PUBLIC)
   status      StoryStatus @default(DRAFT)
   // Cuando la persona destaca un relato en su perfil público.
@@ -359,6 +364,7 @@ model Story {
   @@index([characterId, createdAt])
   // Feed público: filtra por estado y visibilidad antes de ordenar por fecha.
   @@index([status, visibility, createdAt])
+  @@index([language, status, visibility])
   // "Historias destacadas" del perfil público: se leen por personaje y fecha.
   @@index([characterId, featuredAt])
   // Bandeja de relatos retirados: por personaje, estado y fecha de retiro.

@@ -10,6 +10,7 @@ export interface AccountPreferences {
   readingSize: ReadingSize;
   theme: string;
   language: string;
+  countryCode: string | null;
 }
 
 export interface AccountDeletion {
@@ -60,6 +61,7 @@ const DEFAULT_PREFERENCES: AccountPreferences = {
   readingSize: 'NORMAL',
   theme: 'light',
   language: 'es',
+  countryCode: null,
 };
 
 /**

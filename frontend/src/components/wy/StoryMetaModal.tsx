@@ -5,6 +5,7 @@ import Icon from './Icon';
 import StoryTaxonomyFields from './StoryTaxonomyFields';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { updateStory, type MyStory, type StoryVisibility } from '@/lib/stories';
+import { COUNTRIES, LANGUAGES } from '@/lib/locales';
 
 const TITLE_MAX = 120;
 const MAX_EMOTIONS = 5;
@@ -17,6 +18,8 @@ export interface EditableStory {
   categories: string[];
   emotions: { name: string; colorHex: string | null }[];
   tags: string[];
+  language: string;
+  countryCode: string | null;
 }
 
 interface Props {
@@ -32,6 +35,8 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
   const [category, setCategory] = useState<string | null>(story.categories[0] ?? null);
   const [emotions, setEmotions] = useState<string[]>(story.emotions.map((emotion) => emotion.name));
   const [tags, setTags] = useState<string[]>(story.tags);
+  const [language, setLanguage] = useState(story.language);
+  const [countryCode, setCountryCode] = useState(story.countryCode ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,6 +59,8 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
 
     const result = await updateStory(story.id, {
       title: title.trim(),
+      language,
+      countryCode: countryCode || null,
       visibility,
       categories: category ? [category] : [],
       emotions,
@@ -98,6 +105,26 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
           onChange={(event) => setTitle(event.target.value)}
         />
       </label>
+
+      <div className="story-locale-fields">
+        <label className="field-label" htmlFor="metaStoryLanguage">
+          Idioma del relato
+          <select id="metaStoryLanguage" value={language} onChange={(event) => setLanguage(event.target.value)}>
+            {LANGUAGES.map((item) => (
+              <option key={item.code} value={item.code}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="field-label" htmlFor="metaStoryCountry">
+          País <span>(opcional)</span>
+          <select id="metaStoryCountry" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+            <option value="">Sin país</option>
+            {COUNTRIES.map((item) => (
+              <option key={item.code} value={item.code}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <StoryTaxonomyFields
         catalog={catalog}
