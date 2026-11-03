@@ -1303,8 +1303,8 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 
 .wy.feed-reference .composer{background:#FFF;padding:16px 0;border:0;border-radius:0;box-shadow:none}
 .wy.feed-reference .composer-top{align-items:center;gap:12px}
-.wy.feed-reference .composer-top .avatar{width:46px;height:46px;flex:0 0 46px;font-size:15px}
-.wy.feed-reference .composer-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;border:1.5px solid #B8ACFA;border-radius:28px;background:#F6F3FF;color:#25232E;padding:13px 18px;text-align:left;font-size:17px;font-weight:600;box-shadow:none}
+.wy.feed-reference .composer-top .avatar{width:46px;height:46px;flex:0 0 46px;font-size:14px}
+.wy.feed-reference .composer-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;border:1.5px solid #B8ACFA;border-radius:28px;background:#F6F3FF;color:#50535D;padding:13px 18px;text-align:left;font-size:17px;font-weight:600;box-shadow:none}
 .wy.feed-reference .composer-trigger svg{color:#6246F5;width:22px;height:22px;flex:0 0 22px}
 .wy.feed-reference .composer-trigger:hover{border-color:#6246F5;background:#F1EDFF}
 .wy.feed-reference .composer-meta{color:#50535D;font-size:14px}
