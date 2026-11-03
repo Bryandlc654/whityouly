@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from '@/components/wy/Icon';
 import ProfileShell from '@/components/wy/ProfileShell';
+import EmergencyResources from '@/components/wy/EmergencyResources';
 import { createGeneralReport } from '@/lib/reports';
 import { REPORT_REASONS, REPORT_REASON_LABELS } from '@/lib/moderation';
 
@@ -14,18 +15,6 @@ interface HelpInfo {
 }
 
 const HELP_INFO: Record<string, HelpInfo> = {
-  emergency: {
-    title: 'Buscar ayuda urgente',
-    intro:
-      'Si tú o alguien está en peligro inmediato, no esperes una respuesta de la comunidad. Contacta ahora a los servicios de emergencia de tu país o a una línea de crisis local.',
-    points: [
-      'Llama al número de emergencias de tu región.',
-      'En Perú puedes contactar la Línea 113 Salud, opción 1, para orientación en salud mental.',
-      'Si puedes, avisa a una persona de confianza que esté cerca.',
-      'No compartas datos personales en espacios públicos mientras buscas ayuda.',
-      'Withyouly acompaña, pero no reemplaza atención psicológica, médica ni servicios de emergencia.',
-    ],
-  },
   report: {
     title: 'Cómo reportar contenido',
     intro:
@@ -90,16 +79,7 @@ export default function HelpPage() {
           </p>
         </section>
 
-        <section className="card urgent">
-          <h2>¿Tú o alguien está en peligro inmediato?</h2>
-          <p>
-            Contacta ahora a los servicios de emergencia de tu país o a una línea de crisis local. No dependas
-            de una respuesta de la comunidad.
-          </p>
-          <button className="secondary" type="button" onClick={() => router.push('/ayuda/recursos')}>
-            Encontrar recursos de mi región
-          </button>
-        </section>
+        <EmergencyResources buttonClassName="secondary" />
 
         <div className="help-grid">
           <article className="card help-card">
