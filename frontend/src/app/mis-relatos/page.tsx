@@ -460,6 +460,7 @@ export default function MyStoriesPage() {
             tags: story.tags,
             language: story.language,
             countryCode: story.countryCode,
+            visualCardTheme: story.visualCardTheme,
           }),
       },
       ...(story.status === 'PUBLISHED'
@@ -676,6 +677,7 @@ export default function MyStoriesPage() {
                 <div className="my-story-line">
                   <div>
                     {story.categories[0] ? <span className="tag">{story.categories[0]}</span> : null}
+                    {story.visualCardTheme ? <span className="tag update">Tarjeta visual</span> : null}
                     <h3>
                       <button
                         className="story-title-button"

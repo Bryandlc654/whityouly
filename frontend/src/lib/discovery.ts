@@ -3,6 +3,7 @@ import { authFetch } from './auth';
 import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
 import type { FollowingStory, StoryEmotion, StoryStage } from './stories';
+import { parseVisualCardTheme } from './visualCards';
 
 export interface FeaturedStory extends FollowingStory {
   note: string | null;
@@ -65,6 +66,7 @@ function parseStage(value: unknown): StoryStage | null {
     content: typeof record.content === 'string' ? record.content : '',
     mediaUrl: safeUrl(record.mediaUrl),
     audioUrl: safeUrl(record.audioUrl),
+    transcript: typeof record.transcript === 'string' ? record.transcript : null,
     stageOrder: typeof record.stageOrder === 'number' ? record.stageOrder : 0,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
   };
@@ -89,6 +91,7 @@ function parseStoryItem(value: unknown, extra: Partial<FollowingStory> = {}): Fo
     language: typeof record.language === 'string' ? record.language : 'es',
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: null,
+    visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     author: { name: authorName, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),

@@ -3,6 +3,7 @@ import { authFetch } from './auth';
 import { safeAvatarUrl } from './avatar';
 import type { ReportReason } from './comments';
 import type { LoadResult } from './account';
+import { parseVisualCardTheme, type VisualCardTheme } from './visualCards';
 
 export type StoryVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE';
 export type StoryStatus =
@@ -26,6 +27,7 @@ export interface StoryStage {
   content: string;
   mediaUrl: string | null;
   audioUrl: string | null;
+  transcript: string | null;
   stageOrder: number;
   createdAt: string;
 }
@@ -41,6 +43,7 @@ export interface MyStory {
   language: string;
   countryCode: string | null;
   translations: StoryTranslations | null;
+  visualCardTheme: VisualCardTheme | null;
   visibility: StoryVisibility;
   status: StoryStatus;
   author: { name: string; avatarUrl: string | null } | null;
@@ -65,6 +68,7 @@ export interface MyStoryListItem {
   language: string;
   countryCode: string | null;
   translations: StoryTranslations | null;
+  visualCardTheme: VisualCardTheme | null;
   visibility: StoryVisibility;
   status: StoryStatus;
   featuredAt: string | null;
@@ -87,12 +91,14 @@ export interface CreateStoryInput {
   language?: string;
   countryCode?: string | null;
   visibility?: StoryVisibility;
+  visualCardTheme?: VisualCardTheme | null;
   publish?: boolean;
   categories?: string[];
   emotions?: string[];
   tags?: string[];
   mediaAssetId?: string;
   audioAssetId?: string;
+  audioTranscript?: string;
 }
 
 export interface UpdateStoryInput {
@@ -100,6 +106,7 @@ export interface UpdateStoryInput {
   language?: string;
   countryCode?: string | null;
   visibility?: StoryVisibility;
+  visualCardTheme?: VisualCardTheme | null;
   categories?: string[];
   emotions?: string[];
   tags?: string[];
@@ -131,6 +138,7 @@ function parseStage(value: unknown): StoryStage | null {
     content: typeof record.content === 'string' ? record.content : '',
     mediaUrl: safeUrl(record.mediaUrl),
     audioUrl: safeUrl(record.audioUrl),
+    transcript: typeof record.transcript === 'string' ? record.transcript : null,
     stageOrder: typeof record.stageOrder === 'number' ? record.stageOrder : 0,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
   };
@@ -172,6 +180,7 @@ function parseStory(value: unknown): MyStory | null {
     language: typeof record.language === 'string' ? record.language : 'es',
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: parseTranslations(record.translations),
+    visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
     author:
@@ -209,6 +218,7 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
     language: typeof record.language === 'string' ? record.language : 'es',
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: parseTranslations(record.translations),
+    visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
     featuredAt: typeof record.featuredAt === 'string' ? record.featuredAt : null,
@@ -363,7 +373,7 @@ export function updateStory(id: string, patch: UpdateStoryInput): Promise<LoadRe
 
 export function addStoryStage(
   id: string,
-  input: { content: string; mediaAssetId?: string; audioAssetId?: string },
+  input: { content: string; mediaAssetId?: string; audioAssetId?: string; transcript?: string },
 ): Promise<LoadResult<StoryStage>> {
   return authedRequest(
     `/stories/me/${encodeURIComponent(id)}/updates`,
@@ -376,7 +386,12 @@ export function addStoryStage(
 export function editStoryStage(
   id: string,
   updateId: string,
-  input: { content?: string; mediaAssetId?: string | null; audioAssetId?: string | null },
+  input: {
+    content?: string;
+    mediaAssetId?: string | null;
+    audioAssetId?: string | null;
+    transcript?: string | null;
+  },
 ): Promise<LoadResult<StoryStage>> {
   return authedRequest(
     `/stories/me/${encodeURIComponent(id)}/updates/${encodeURIComponent(updateId)}`,
@@ -512,6 +527,7 @@ export interface FollowingStory {
   language: string;
   countryCode: string | null;
   translations: StoryTranslations | null;
+  visualCardTheme: VisualCardTheme | null;
   author: { name: string; avatarUrl: string | null };
   categories: string[];
   emotions: StoryEmotion[];
@@ -555,6 +571,7 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
     language: typeof record.language === 'string' ? record.language : 'es',
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: parseTranslations(record.translations),
+    visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     author: { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),

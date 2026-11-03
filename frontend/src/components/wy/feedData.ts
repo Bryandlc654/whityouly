@@ -12,6 +12,8 @@ export interface FeedStory {
   text: string;
   language: string;
   countryCode: string | null;
+  visualCardTheme?: import('@/lib/visualCards').VisualCardTheme | null;
+  transcript?: string | null;
   translation?: { title: string; content: string } | null;
   support: number;
   comments: number;

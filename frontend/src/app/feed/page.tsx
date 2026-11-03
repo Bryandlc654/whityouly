@@ -72,6 +72,8 @@ function toEntry(story: FollowingStory, authorName: string, preferredLanguage: s
     text: story.opening?.content ?? '',
     language: story.language,
     countryCode: story.countryCode,
+    visualCardTheme: story.visualCardTheme,
+    transcript: story.opening?.transcript ?? null,
     translation:
       preferredLanguage && preferredLanguage !== story.language
         ? story.translations?.[preferredLanguage] ?? null

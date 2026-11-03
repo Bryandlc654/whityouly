@@ -275,7 +275,9 @@ export default function StoryPage() {
               </div>
             ) : null}
 
-            <h1 className="story-page-title">{displayStory?.title ?? story.title}</h1>
+            <h1 className={displayStory?.visualCardTheme ? 'visually-hidden' : 'story-page-title'}>
+              {displayStory?.title ?? story.title}
+            </h1>
 
             <div className="story-page-meta">
               <span>

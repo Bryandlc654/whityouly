@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import Icon from './Icon';
+import VisualStoryCard from './VisualStoryCard';
 import type { FeedStory } from './feedData';
 import { countryLabel, languageLabel } from '@/lib/locales';
 
@@ -72,6 +73,9 @@ export default function PostCard({
     return () => observer.disconnect();
   }, [expanded, story.text, translated]);
 
+  const visibleTitle = translated && story.translation ? story.translation.title : story.title;
+  const visibleText = translated && story.translation ? story.translation.content : story.text;
+
   return (
     <article className="post card">
       <div className="post-head">
@@ -130,26 +134,51 @@ export default function PostCard({
         {followingStory ? <span className="tag hope">Siguiendo relato</span> : null}
       </div>
 
-      <h2>{translated && story.translation ? story.translation.title : story.title}</h2>
-      {story.text ? (
+      {story.visualCardTheme ? (
         <>
-          <p ref={textRef} className={`post-text ${expanded ? '' : 'clamp'}`}>
-            {translated && story.translation ? story.translation.content : story.text}
-          </p>
-          {!expanded && textOverflows && (
-            <button className="post-more" type="button" onClick={() => setExpanded(true)}>
-              Leer relato completo
-            </button>
-          )}
+          <VisualStoryCard
+            theme={story.visualCardTheme}
+            title={visibleTitle}
+            text={visibleText}
+            mediaUrl={mediaUrl}
+            category={story.category}
+            author={story.author}
+            compact
+          />
+          <button className="post-more" type="button" onClick={onComment}>
+            Abrir relato completo
+          </button>
         </>
-      ) : null}
-      {mediaUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={mediaUrl} alt={story.title} className="post-media" />
-      ) : null}
+      ) : (
+        <>
+          <h2>{visibleTitle}</h2>
+          {story.text ? (
+            <>
+              <p ref={textRef} className={`post-text ${expanded ? '' : 'clamp'}`}>
+                {visibleText}
+              </p>
+              {!expanded && textOverflows && (
+                <button className="post-more" type="button" onClick={() => setExpanded(true)}>
+                  Leer relato completo
+                </button>
+              )}
+            </>
+          ) : null}
+          {mediaUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={mediaUrl} alt={story.title} className="post-media" />
+          ) : null}
+        </>
+      )}
       {audioUrl ? (
         // eslint-disable-next-line jsx-a11y/media-has-caption
         <audio controls src={audioUrl} className="post-audio" />
+      ) : null}
+      {story.transcript ? (
+        <details className="story-transcript">
+          <summary>Ver transcripción del audio</summary>
+          <p>{story.transcript}</p>
+        </details>
       ) : null}
 
       {story.music ? (

@@ -331,6 +331,8 @@ model Story {
   countryCode String?
   // Traducciones de ejemplo: { "en": { "title": "...", "content": "..." } }
   translations Json?
+  // Tema de la tarjeta visual. `null` = relato con formato de lectura normal.
+  visualCardTheme String?
   visibility  Visibility  @default(PUBLIC)
   status      StoryStatus @default(DRAFT)
   // Cuando la persona destaca un relato en su perfil público.
@@ -384,6 +386,8 @@ model StoryUpdate {
   // Audio que acompaña la etapa (voz, ambiente...). Es independiente de la
   // imagen: una etapa puede llevar texto, imagen y audio a la vez.
   audioAssetId String?
+  // Transcripción opcional del audio de esta etapa. Se guarda solo si hay audio.
+  transcript   String?
   stageOrder   Int      @default(1)
   createdAt    DateTime @default(now())
 

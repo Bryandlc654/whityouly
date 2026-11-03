@@ -7,6 +7,7 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
+import VisualStoryCard from '@/components/wy/VisualStoryCard';
 import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -356,7 +357,19 @@ export default function ExplorePage() {
             </>
           ) : null}
         </p>
-        {story.opening?.content ? <p className="post-text clamp">{story.opening.content}</p> : null}
+        {story.visualCardTheme ? (
+          <VisualStoryCard
+            theme={story.visualCardTheme}
+            title={story.title}
+            text={story.opening?.content ?? ''}
+            mediaUrl={story.opening?.mediaUrl}
+            category={story.categories[0]}
+            author={story.author.name}
+            compact
+          />
+        ) : story.opening?.content ? (
+          <p className="post-text clamp">{story.opening.content}</p>
+        ) : null}
       </div>
       <div className="story-row-actions">
         <button className="secondary" type="button" onClick={() => openStory(story.id)}>

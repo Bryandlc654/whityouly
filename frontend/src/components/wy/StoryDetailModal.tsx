@@ -322,6 +322,12 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
                   // eslint-disable-next-line jsx-a11y/media-has-caption
                   <audio controls src={stage.audioUrl} style={{ width: '100%', marginTop: 10 }} />
                 ) : null}
+                {stage.transcript ? (
+                  <details className="story-transcript">
+                    <summary>Ver transcripción del audio</summary>
+                    <p>{stage.transcript}</p>
+                  </details>
+                ) : null}
               </>
             )}
           </div>

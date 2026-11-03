@@ -27,6 +27,16 @@ import { COUNTRY_CODES, LANGUAGES } from '../../../common/i18n/locales';
 export const VISIBILITIES = ['PUBLIC', 'FOLLOWERS', 'PRIVATE'] as const;
 export type VisibilityValue = (typeof VISIBILITIES)[number];
 
+export const VISUAL_CARD_THEMES = [
+  'lavender',
+  'sunset',
+  'forest',
+  'ocean',
+  'rose',
+  'paper',
+] as const;
+export type VisualCardThemeValue = (typeof VISUAL_CARD_THEMES)[number];
+
 const MAX_CATEGORIES = 3;
 const MAX_EMOTIONS = 5;
 const MAX_TAGS = 10;
@@ -92,8 +102,16 @@ export class CreateStoryDto {
 
   @ApiPropertyOptional({ enum: VISIBILITIES, default: 'PUBLIC' })
   @IsOptional()
-  @IsIn(VISIBILITIES, { message: 'La visibilidad no es vǭlida' })
+  @IsIn(VISIBILITIES, { message: 'La visibilidad no es válida' })
   visibility?: VisibilityValue;
+
+  @ApiPropertyOptional({
+    enum: VISUAL_CARD_THEMES,
+    description: 'Tema de la tarjeta visual. Si falta, el relato usa el formato de lectura normal.',
+  })
+  @IsOptional()
+  @IsIn(VISUAL_CARD_THEMES, { message: 'El tema de la tarjeta visual no es válido' })
+  visualCardTheme?: VisualCardThemeValue;
 
   @ApiPropertyOptional({
     default: false,
@@ -146,6 +164,17 @@ export class CreateStoryDto {
   @IsOptional()
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Transcripción opcional del audio de la primera etapa.',
+  })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(STORY_CONTENT_MAX_LENGTH, {
+    message: 'La transcripción no puede superar los 5000 caracteres',
+  })
+  audioTranscript?: string;
 }
 
 export class UpdateStoryDto {
@@ -173,6 +202,15 @@ export class UpdateStoryDto {
   @IsOptional()
   @IsIn([...COUNTRY_CODES], { message: 'El país del relato no es válido' })
   countryCode?: (typeof COUNTRY_CODES)[number];
+
+  @ApiPropertyOptional({
+    enum: VISUAL_CARD_THEMES,
+    nullable: true,
+    description: 'Tema de la tarjeta visual; `null` vuelve al formato de lectura normal.',
+  })
+  @IsOptional()
+  @IsIn(VISUAL_CARD_THEMES, { message: 'El tema de la tarjeta visual no es válido' })
+  visualCardTheme?: VisualCardThemeValue | null;
 
   @ApiPropertyOptional({ type: [String] })
   @Transform(normalizeNames)
@@ -227,6 +265,15 @@ export class CreateStoryUpdateDto {
   @IsOptional()
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string;
+
+  @ApiPropertyOptional({ description: 'Transcripción opcional del audio de esta etapa.' })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(STORY_CONTENT_MAX_LENGTH, {
+    message: 'La transcripción no puede superar los 5000 caracteres',
+  })
+  transcript?: string;
 }
 
 export class UpdateStoryUpdateDto {
@@ -255,6 +302,18 @@ export class UpdateStoryUpdateDto {
   @IsOptional()
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Transcripción del audio; `null` para quitarla.',
+  })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(STORY_CONTENT_MAX_LENGTH, {
+    message: 'La transcripción no puede superar los 5000 caracteres',
+  })
+  transcript?: string | null;
 }
 
 export class ListMyStoriesQueryDto {

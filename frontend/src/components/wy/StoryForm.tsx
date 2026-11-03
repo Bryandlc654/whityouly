@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
+import AudioRecorder from './AudioRecorder';
+import VisualStoryCard from './VisualStoryCard';
 import StoryTaxonomyFields from './StoryTaxonomyFields';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { uploadAudio, uploadFile } from '@/lib/files';
 import { fetchAccount } from '@/lib/account';
 import { createStory, type MyStory, type StoryVisibility } from '@/lib/stories';
 import { COUNTRIES, LANGUAGES } from '@/lib/locales';
+import { VISUAL_CARD_THEMES, type VisualCardTheme } from '@/lib/visualCards';
 
 const TITLE_MAX = 120;
 const CONTENT_MAX = 5000;
@@ -22,6 +25,7 @@ export interface StoryDraftSeed {
   tags?: string[];
   language?: string;
   countryCode?: string | null;
+  visualCardTheme?: VisualCardTheme | null;
 }
 
 interface Props {
@@ -64,6 +68,10 @@ export default function StoryForm({
   const [audioId, setAudioId] = useState<string | null>(null);
   const [audioName, setAudioName] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState('');
+  const [cardTheme, setCardTheme] = useState<VisualCardTheme | null>(
+    initialDraft?.visualCardTheme ?? null,
+  );
   // Las categorías, emociones y etiquetas se muestran al abrir el compositor,
   // no detrás de un botón. El botón permite plegarlas si se prefiere.
   const [showOptions, setShowOptions] = useState(true);
@@ -133,6 +141,7 @@ export default function StoryForm({
       setAudioId(result.data.id);
       setAudioName(result.data.originalName ?? 'Audio adjunto');
       setAudioUrl(result.data.fileUrl);
+      setTranscript('');
       return;
     }
     setError(result.message);
@@ -156,11 +165,13 @@ export default function StoryForm({
       countryCode: countryCode || null,
       visibility,
       publish,
+      visualCardTheme: cardTheme,
       categories: category ? [category] : [],
       emotions,
       tags,
       mediaAssetId: mediaId ?? undefined,
       audioAssetId: audioId ?? undefined,
+      audioTranscript: transcript.trim() || undefined,
     });
 
     setSaving(null);
@@ -178,6 +189,65 @@ export default function StoryForm({
   const options = (
     <>
       {catalogError ? <p className="hint" style={{ marginTop: 10 }}>{catalogError}</p> : null}
+
+      <div className="story-card-picker">
+        <div className="story-card-picker-head">
+          <div>
+            <b>Formato de publicación</b>
+            <span className="hint">Puedes publicarlo como relato de lectura o como tarjeta visual.</span>
+          </div>
+          <div className="segmented">
+            <button
+              type="button"
+              className={!cardTheme ? 'active' : undefined}
+              aria-pressed={!cardTheme}
+              onClick={() => setCardTheme(null)}
+            >
+              Relato
+            </button>
+            <button
+              type="button"
+              className={cardTheme ? 'active' : undefined}
+              aria-pressed={Boolean(cardTheme)}
+              onClick={() => setCardTheme((value) => value ?? 'lavender')}
+            >
+              Tarjeta visual
+            </button>
+          </div>
+        </div>
+
+        {cardTheme ? (
+          <>
+            <div className="story-card-themes" role="group" aria-label="Tema de la tarjeta visual">
+              {VISUAL_CARD_THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`story-card-theme theme-${theme.id}${
+                    cardTheme === theme.id ? ' active' : ''
+                  }`}
+                  aria-pressed={cardTheme === theme.id}
+                  title={theme.description}
+                  onClick={() => setCardTheme(theme.id)}
+                >
+                  <span aria-hidden />
+                  {theme.label}
+                </button>
+              ))}
+            </div>
+            <VisualStoryCard
+              theme={cardTheme}
+              title={title.trim() || 'Tu título aparece aquí'}
+              text={content.trim() || 'El texto de tu relato se mostrará sobre este fondo.'}
+              category={category}
+              author="Tú"
+              compact
+              preview
+            />
+          </>
+        ) : null}
+      </div>
+
       <StoryTaxonomyFields
         catalog={catalog}
         visibility={visibility}
@@ -301,10 +371,25 @@ export default function StoryForm({
         </>
       )}
 
-      {audioUrl ? (
-        // eslint-disable-next-line jsx-a11y/media-has-caption
-        <audio controls src={audioUrl} style={{ width: '100%', marginTop: 8 }} />
-      ) : null}
+      <AudioRecorder
+        audioUrl={audioUrl}
+        transcript={transcript}
+        language={language}
+        disabled={uploading || saving !== null || done}
+        onRecorded={(recorded) => {
+          setAudioId(recorded.id);
+          setAudioName(recorded.name);
+          setAudioUrl(recorded.url);
+          setTranscript(recorded.transcript);
+        }}
+        onClear={() => {
+          setAudioId(null);
+          setAudioName('');
+          setAudioUrl(null);
+          setTranscript('');
+        }}
+        onTranscriptChange={setTranscript}
+      />
 
       <input
         ref={fileInput}

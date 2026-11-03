@@ -158,6 +158,47 @@ describe('StoriesService', () => {
     expect(prisma.analyticsEvent.create).toHaveBeenCalled();
   });
 
+  it('guarda una tarjeta visual y la transcripción del audio', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.mediaAsset.findFirst.mockResolvedValue({ id: 'aud-1', entityType: 'NONE' });
+    prisma.story.create.mockResolvedValue(detailRow({ visualCardTheme: 'lavender' }));
+
+    const result = await service.create('user-1', {
+      title: 'Una tarjeta',
+      content: 'Texto de la tarjeta',
+      audioAssetId: '11111111-1111-4111-8111-111111111111',
+      audioTranscript: 'Esto es lo que dice el audio.',
+      visualCardTheme: 'lavender',
+    } as any);
+
+    expect(prisma.story.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          visualCardTheme: 'lavender',
+          updates: {
+            create: expect.objectContaining({
+              transcript: 'Esto es lo que dice el audio.',
+            }),
+          },
+        }),
+      }),
+    );
+    expect(result.visualCardTheme).toBe('lavender');
+  });
+
+  it('rechaza una transcripción sin audio', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+
+    await expect(
+      service.create('user-1', {
+        title: 'Sin audio',
+        content: 'Cuerpo',
+        audioTranscript: 'No hay audio que transcribir.',
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.story.create).not.toHaveBeenCalled();
+  });
+
   it('publica directamente si publish es true', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
     prisma.story.create.mockResolvedValue(detailRow({ status: 'PUBLISHED' }));

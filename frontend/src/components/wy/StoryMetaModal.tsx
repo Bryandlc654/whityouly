@@ -6,6 +6,7 @@ import StoryTaxonomyFields from './StoryTaxonomyFields';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { updateStory, type MyStory, type StoryVisibility } from '@/lib/stories';
 import { COUNTRIES, LANGUAGES } from '@/lib/locales';
+import { VISUAL_CARD_THEMES, type VisualCardTheme } from '@/lib/visualCards';
 
 const TITLE_MAX = 120;
 const MAX_EMOTIONS = 5;
@@ -20,6 +21,7 @@ export interface EditableStory {
   tags: string[];
   language: string;
   countryCode: string | null;
+  visualCardTheme: VisualCardTheme | null;
 }
 
 interface Props {
@@ -37,6 +39,9 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
   const [tags, setTags] = useState<string[]>(story.tags);
   const [language, setLanguage] = useState(story.language);
   const [countryCode, setCountryCode] = useState(story.countryCode ?? '');
+  const [cardTheme, setCardTheme] = useState<VisualCardTheme | null>(
+    story.visualCardTheme,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -62,6 +67,7 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
       language,
       countryCode: countryCode || null,
       visibility,
+      visualCardTheme: cardTheme,
       categories: category ? [category] : [],
       emotions,
       tags,
@@ -105,6 +111,52 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
           onChange={(event) => setTitle(event.target.value)}
         />
       </label>
+
+      <div className="story-card-picker">
+        <div className="story-card-picker-head">
+          <div>
+            <b>Formato de publicación</b>
+            <span className="hint">Cambia entre relato de lectura y tarjeta visual.</span>
+          </div>
+          <div className="segmented">
+            <button
+              type="button"
+              className={!cardTheme ? 'active' : undefined}
+              aria-pressed={!cardTheme}
+              onClick={() => setCardTheme(null)}
+            >
+              Relato
+            </button>
+            <button
+              type="button"
+              className={cardTheme ? 'active' : undefined}
+              aria-pressed={Boolean(cardTheme)}
+              onClick={() => setCardTheme((value) => value ?? 'lavender')}
+            >
+              Tarjeta visual
+            </button>
+          </div>
+        </div>
+        {cardTheme ? (
+          <div className="story-card-themes" role="group" aria-label="Tema de la tarjeta visual">
+            {VISUAL_CARD_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                type="button"
+                className={`story-card-theme theme-${theme.id}${
+                  cardTheme === theme.id ? ' active' : ''
+                }`}
+                aria-pressed={cardTheme === theme.id}
+                title={theme.description}
+                onClick={() => setCardTheme(theme.id)}
+              >
+                <span aria-hidden />
+                {theme.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       <div className="story-locale-fields">
         <label className="field-label" htmlFor="metaStoryLanguage">

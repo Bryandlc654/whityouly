@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Icon from './Icon';
 import Avatar from './Avatar';
 import CommentSection from './CommentSection';
+import VisualStoryCard from './VisualStoryCard';
 import { viewStory, type MyStory } from '@/lib/stories';
 
 interface Props {
@@ -116,14 +117,33 @@ export default function StoryViewer({
                         <span className="story-stage-tag">Etapa {stage.stageOrder}</span>
                         <span className="hint">{formatDate(stage.createdAt)}</span>
                       </div>
-                      {stage.content ? <p className="story-stage-text">{stage.content}</p> : null}
-                      {stage.mediaUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={stage.mediaUrl} alt="" className="post-media" />
-                      ) : null}
+                      {index === 0 && story.visualCardTheme ? (
+                        <VisualStoryCard
+                          theme={story.visualCardTheme}
+                          title={story.title}
+                          text={stage.content}
+                          mediaUrl={stage.mediaUrl}
+                          category={story.categories[0]}
+                          author={story.author?.name}
+                        />
+                      ) : (
+                        <>
+                          {stage.content ? <p className="story-stage-text">{stage.content}</p> : null}
+                          {stage.mediaUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={stage.mediaUrl} alt="" className="post-media" />
+                          ) : null}
+                        </>
+                      )}
                       {stage.audioUrl ? (
                         // eslint-disable-next-line jsx-a11y/media-has-caption
                         <audio controls src={stage.audioUrl} className="post-audio" />
+                      ) : null}
+                      {stage.transcript ? (
+                        <details className="story-transcript">
+                          <summary>Ver transcripción del audio</summary>
+                          <p>{stage.transcript}</p>
+                        </details>
                       ) : null}
                     </article>
                   );

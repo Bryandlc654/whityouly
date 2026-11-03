@@ -70,6 +70,7 @@ const STAGE_SELECT = {
   content: true,
   mediaAssetId: true,
   audioAssetId: true,
+  transcript: true,
   stageOrder: true,
   createdAt: true,
   mediaAsset: { select: { fileUrl: true } },
@@ -81,6 +82,7 @@ type StageRow = {
   content: string;
   mediaAssetId: string | null;
   audioAssetId: string | null;
+  transcript?: string | null;
   stageOrder: number;
   createdAt: Date;
   mediaAsset?: { fileUrl: string } | null;
@@ -93,6 +95,7 @@ const STORY_DETAIL_SELECT = {
   language: true,
   countryCode: true,
   translations: true,
+  visualCardTheme: true,
   visibility: true,
   status: true,
   featuredAt: true,
@@ -114,6 +117,7 @@ const STORY_LIST_SELECT = {
   language: true,
   countryCode: true,
   translations: true,
+  visualCardTheme: true,
   visibility: true,
   status: true,
   featuredAt: true,
@@ -166,6 +170,11 @@ export class StoriesService {
     const tagIds = (await this.resolveCatalog('tag', dto.tags)) ?? [];
     const mediaAssetId = await this.assertMediaUsable(userId, dto.mediaAssetId);
     const audioAssetId = await this.assertMediaUsable(userId, dto.audioAssetId);
+    const transcript = sanitizeStoryContent(dto.audioTranscript ?? '');
+
+    if (transcript && !audioAssetId) {
+      throw new BadRequestException('La transcripción necesita un audio en la primera etapa.');
+    }
 
     const status = dto.publish ? StoryStatus.PUBLISHED : StoryStatus.DRAFT;
 
@@ -176,9 +185,18 @@ export class StoriesService {
           title,
           language: dto.language ?? 'es',
           countryCode: dto.countryCode ?? null,
+          ...(dto.visualCardTheme ? { visualCardTheme: dto.visualCardTheme } : {}),
           visibility: (dto.visibility ?? 'PUBLIC') as VisibilityValue,
           status,
-          updates: { create: { content, mediaAssetId, audioAssetId, stageOrder: 1 } },
+          updates: {
+            create: {
+              content,
+              mediaAssetId,
+              audioAssetId,
+              ...(transcript ? { transcript } : {}),
+              stageOrder: 1,
+            },
+          },
           categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
           emotions: { create: emotionIds.map((emotionId) => ({ emotionId })) },
           tags: { create: tagIds.map((tagId) => ({ tagId })) },
@@ -227,6 +245,7 @@ export class StoriesService {
       dto.visibility === undefined &&
       dto.language === undefined &&
       dto.countryCode === undefined &&
+      dto.visualCardTheme === undefined &&
       categoryIds === undefined &&
       emotionIds === undefined &&
       tagIds === undefined
@@ -272,6 +291,9 @@ export class StoriesService {
           ...(dto.visibility !== undefined ? { visibility: dto.visibility } : {}),
           ...(dto.language !== undefined ? { language: dto.language } : {}),
           ...(dto.countryCode !== undefined ? { countryCode: dto.countryCode } : {}),
+          ...(dto.visualCardTheme !== undefined
+            ? { visualCardTheme: dto.visualCardTheme }
+            : {}),
           updatedAt: new Date(),
         },
         select: STORY_DETAIL_SELECT,
@@ -299,6 +321,11 @@ export class StoriesService {
 
     const mediaAssetId = await this.assertMediaUsable(userId, dto.mediaAssetId);
     const audioAssetId = await this.assertMediaUsable(userId, dto.audioAssetId);
+    const transcript = sanitizeStoryContent(dto.transcript ?? '');
+
+    if (transcript && !audioAssetId) {
+      throw new BadRequestException('La transcripción necesita un audio en la etapa.');
+    }
 
     const stage = await this.prisma.$transaction(async (tx) => {
       const aggregate = await tx.storyUpdate.aggregate({
@@ -308,7 +335,14 @@ export class StoriesService {
       const stageOrder = (aggregate._max.stageOrder ?? 0) + 1;
 
       const created = await tx.storyUpdate.create({
-        data: { storyId, content, mediaAssetId, audioAssetId, stageOrder },
+        data: {
+          storyId,
+          content,
+          mediaAssetId,
+          audioAssetId,
+          ...(transcript ? { transcript } : {}),
+          stageOrder,
+        },
         select: STAGE_SELECT,
       });
 
@@ -422,14 +456,25 @@ export class StoriesService {
       nextAudioId = dto.audioAssetId === null ? null : await this.assertMediaUsable(userId, dto.audioAssetId);
     }
 
+    const transcript =
+      dto.transcript === undefined ? undefined : sanitizeStoryContent(dto.transcript ?? '');
+    const finalAudio = dto.audioAssetId !== undefined ? nextAudioId : stage.audioAssetId;
+
+    if (transcript && !finalAudio) {
+      throw new BadRequestException('La transcripción necesita un audio en la etapa.');
+    }
+
     // Una etapa puede quedar sin texto mientras conserve imagen o audio.
     if (content !== undefined && content === '') {
       const finalMedia = dto.mediaAssetId !== undefined ? nextMediaId : stage.mediaAssetId;
-      const finalAudio = dto.audioAssetId !== undefined ? nextAudioId : stage.audioAssetId;
       if (!finalMedia && !finalAudio) {
         throw new BadRequestException('La etapa necesita texto, imagen o audio.');
       }
     }
+
+    const audioChanged = nextAudioId !== undefined && nextAudioId !== stage.audioAssetId;
+    const clearTranscript =
+      transcript === undefined ? audioChanged : transcript.length === 0;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.storyUpdate.update({
@@ -438,6 +483,9 @@ export class StoriesService {
           ...(content !== undefined ? { content } : {}),
           ...(nextMediaId !== undefined ? { mediaAssetId: nextMediaId } : {}),
           ...(nextAudioId !== undefined ? { audioAssetId: nextAudioId } : {}),
+          ...(transcript !== undefined || clearTranscript
+            ? { transcript: transcript ? transcript : null }
+            : {}),
         },
         select: STAGE_SELECT,
       });
@@ -1548,6 +1596,8 @@ export class StoriesService {
     return {
       id: story.id,
       title: 'Relato retirado por su autor',
+      translations: null,
+      visualCardTheme: null,
       visibility: story.visibility,
       status: 'WITHDRAWN' as const,
       featuredAt: null,
@@ -1574,6 +1624,7 @@ export class StoriesService {
       content: stage.content,
       mediaUrl: stage.mediaAsset?.fileUrl ?? null,
       audioUrl: stage.audioAsset?.fileUrl ?? null,
+      transcript: stage.transcript ?? null,
       stageOrder: stage.stageOrder,
       createdAt: stage.createdAt,
     };
@@ -1585,6 +1636,7 @@ export class StoriesService {
     language?: string;
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
+    visualCardTheme?: string | null;
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
@@ -1605,6 +1657,7 @@ export class StoriesService {
       language: story.language ?? 'es',
       countryCode: story.countryCode ?? null,
       translations: story.translations ?? null,
+      visualCardTheme: story.visualCardTheme ?? null,
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
@@ -1634,6 +1687,7 @@ export class StoriesService {
     language?: string;
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
+    visualCardTheme?: string | null;
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
@@ -1654,6 +1708,7 @@ export class StoriesService {
       language: story.language ?? 'es',
       countryCode: story.countryCode ?? null,
       translations: story.translations ?? null,
+      visualCardTheme: story.visualCardTheme ?? null,
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
@@ -1680,6 +1735,7 @@ export class StoriesService {
     language?: string;
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
+    visualCardTheme?: string | null;
     visibility: string;
     status: StoryStatus;
     createdAt: Date;
@@ -1703,6 +1759,7 @@ export class StoriesService {
     language?: string;
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
+    visualCardTheme?: string | null;
     visibility: string;
     commentsPaused?: boolean;
     createdAt: Date;
@@ -1721,6 +1778,7 @@ export class StoriesService {
       language: story.language ?? 'es',
       countryCode: story.countryCode ?? null,
       translations: story.translations ?? null,
+      visualCardTheme: story.visualCardTheme ?? null,
       author: { name: story.character.name, avatarUrl: story.character.avatarUrl },
       commentsPaused: story.commentsPaused === true,
       categories: story.categories.map(({ category }) => category.name),
