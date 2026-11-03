@@ -90,7 +90,7 @@ export default function HelpPage() {
             Contacta ahora a los servicios de emergencia de tu país o a una línea de crisis local. No dependas
             de una respuesta de la comunidad.
           </p>
-          <button className="secondary" type="button" onClick={() => setInfo(HELP_INFO.emergency)}>
+          <button className="secondary" type="button" onClick={() => router.push('/ayuda/recursos')}>
             Encontrar recursos de mi región
           </button>
         </section>
