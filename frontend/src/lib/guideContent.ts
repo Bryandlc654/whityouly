@@ -60,23 +60,28 @@ export const GUIDES: Record<'start' | 'diary' | 'mood' | 'care' | 'tree' | 'caps
     ],
   },
   mood: {
-    title: 'Cómo usar Mis emociones',
-    intro: 'Registra lo que sientes y observa cambios sin convertir tu bienestar en una nota.',
+    title: 'Guía de tu registro emocional',
+    intro: 'Una guía breve para registrar lo que sientes y observar tus patrones privados.',
     steps: [
       {
-        icon: 'plus',
-        title: 'Registrar ahora',
-        text: 'Elige una emoción e intensidad. Puedes registrar distintos momentos del día.',
+        icon: 'heart',
+        title: 'Elige lo que más se acerca',
+        text: 'Escoge una emoción principal. No tiene que describir todo lo que sientes; es solamente una fotografía del momento.',
+      },
+      {
+        icon: 'pulse',
+        title: 'Registra la intensidad',
+        text: 'El número indica cuánta fuerza tiene la emoción, no si es buena o mala. También puedes indicar mañana, tarde, noche o todo el día.',
+      },
+      {
+        icon: 'sparkle',
+        title: 'Elige qué necesitas',
+        text: 'Después de guardar puedes pedir una pausa, ordenar tus ideas, desahogarte, sentir compañía o simplemente continuar.',
       },
       {
         icon: 'trend',
-        title: 'Observa el resumen',
-        text: 'Las gráficas muestran intensidad y frecuencia. No hay una forma correcta de sentir.',
-      },
-      {
-        icon: 'calendar',
-        title: 'Revisa tu mapa',
-        text: 'Día, semana y mes te ayudan a ver contexto. Tu información permanece privada.',
+        title: 'Observa, sin diagnosticarte',
+        text: 'Tus gráficas muestran patrones privados. No son una evaluación médica y nunca se publican en tu perfil.',
       },
     ],
   },

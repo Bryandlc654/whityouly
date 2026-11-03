@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from 'react';
+import GuideModal from './GuideModal';
 import Icon from './Icon';
+import { GUIDES } from '@/lib/guideContent';
 
 export const MOODS = [
   { name: 'Calma', emoji: '😌' },
@@ -51,11 +54,17 @@ export default function MoodModal({
   onClose,
 }: MoodModalProps) {
   const editing = mode === 'edit';
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  if (guideOpen) {
+    return <GuideModal guide={GUIDES.mood} onClose={() => setGuideOpen(false)} />;
+  }
 
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-label="Registrar estado emocional">
       <div className="modal-head">
         <div>
+          <span className="micro-label">REGISTRO PRIVADO</span>
           <h2>{editing ? 'Editar registro' : '¿Cómo te sientes?'}</h2>
           <p>
             {editing
@@ -63,9 +72,15 @@ export default function MoodModal({
               : 'Un registro rápido y privado. Puedes hacerlo una vez o varias veces al día.'}
           </p>
         </div>
-        <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
-          <Icon name="x" />
-        </button>
+        <div className="modal-head-actions">
+          <button className="guide-btn" type="button" onClick={() => setGuideOpen(true)}>
+            <Icon name="help" />
+            <span>Guía</span>
+          </button>
+          <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
+            <Icon name="x" />
+          </button>
+        </div>
       </div>
 
       <div className="mood-picker">
