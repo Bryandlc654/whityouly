@@ -16,6 +16,7 @@ import {
   getTree,
   updateTreeCustomization,
   type TreeDecoration,
+  type TreePathKey,
   type TreeView,
 } from '@/lib/tree';
 
@@ -29,6 +30,12 @@ const PARTS: { key: keyof TreeView['parts']; label: string; hint: string; icon: 
   { key: 'flowers', label: 'Flores', hint: 'Comentarios marcados “Me ayudó”', icon: 'sparkle' },
   { key: 'fruits', label: 'Frutos', hint: 'Ciclos y cápsulas completados', icon: 'check' },
 ];
+
+const PATH_META: Record<TreePathKey, { icon: IconName; color: string; href: string }> = {
+  SELF_KNOWLEDGE: { icon: 'pulse', color: 'blue', href: '/mi-estado' },
+  CARE_EXPRESSION: { icon: 'sparkle', color: 'gold', href: '/cuidarme' },
+  ACCOMPANIMENT: { icon: 'heart', color: 'violet', href: '/explorar' },
+};
 
 const SPECIES: { value: TreeSpecies; label: string; requirement: string }[] = [
   { value: 'bonsai', label: 'Bonsái', requirement: 'Disponible' },
@@ -332,31 +339,27 @@ export default function MiArbolPage() {
     >
       <section className="screen tree-page">
         <MiEspacioNav active="tree" />
-        <div className="card tree-hero">
+        <header className="card tree-hero">
           <div className="tree-hero-copy">
-            <span className="privacy-badge">
-              <Icon name="lock" /> Tu crecimiento es privado
-            </span>
+            <span className="micro-label">SOLO PARA TI · OPCIONAL</span>
             <h1>Mi árbol</h1>
             <p>
-              Crece cuando te conoces, te cuidas y acompañas. Cada 300 gotas completa un árbol y conserva su lugar en
-              tu jardín.
+              Mira cómo crece tu árbol con tus momentos de autoconocimiento, cuidado y expresión. Es privado,
+              opcional y no pierde progreso por ausencias.
             </p>
           </div>
-          {tree ? (
-            <div className="tree-hero-today" aria-label={`${tree.today.earned} de ${tree.today.max} gotas hoy`}>
-              <span className="tree-hero-dots" aria-hidden>
-                {tree.today.paths.map((path) => (
-                  <i key={path.key} className={path.earned ? 'on' : undefined} />
-                ))}
-              </span>
-              <b>
-                {tree.today.earned}/{tree.today.max}
-              </b>
-              <small>gotas hoy</small>
-            </div>
-          ) : null}
-        </div>
+          <button
+            className="secondary tree-guide-btn"
+            type="button"
+            onClick={() =>
+              notify(
+                'Tres caminos pueden sumar una gota al día. Cada 300 gotas completan un árbol; no pierdes progreso por ausentarte.',
+              )
+            }
+          >
+            <Icon name="help" /> Cómo usarlo
+          </button>
+        </header>
 
         {error ? (
           <div className="auth-error" role="alert">
@@ -401,33 +404,69 @@ export default function MiArbolPage() {
                   pot={tree.customization.pot}
                   className="tree-art"
                 />
-                <span className="tree-stage-chip">{stageLabel}</span>
+                <span className="tree-stage-chip">
+                  <span>Etapa actual</span> · <b>{stageLabel}</b>
+                </span>
               </div>
               <div className="tree-stage-detail">
-                <span className="tree-eyebrow">
-                  Etapa {stageIndex + 1} de {tree.stages.length}
-                </span>
                 <p className="tree-counter49">
-                  Árbol {tree.cycle.number} · {tree.cycle.completed} completado{tree.cycle.completed === 1 ? '' : 's'} ·{' '}
-                  {speciesLabel(tree.customization.species)}
+                  Árbol {tree.cycle.number} · {tree.cycle.completed} completado
+                  {tree.cycle.completed === 1 ? '' : 's'} · {speciesLabel(tree.customization.species)}
                 </p>
-                <h2>
-                  {cycleDrops} de {tree.cycle.goal} gotas en este árbol
-                </h2>
-                <div className="tree-progress" aria-hidden>
-                  <i style={{ width: `${progressPct}%` }} />
-                </div>
-                <div className="tree-progress-meta">
-                  <span className="muted small">{stageLabel}</span>
-                  <span className="muted small">{tree.stage.nextLabel ?? 'Forma plena'}</span>
-                </div>
-                <p className="muted small">
+                <span className="tree-eyebrow">
+                  {tree.stage.nextLabel ? 'PRÓXIMA ETAPA' : 'ETAPA ALCANZADA'}
+                </span>
+                <h2>{tree.stage.nextLabel ?? 'Frutos'}</h2>
+                <p className="tree-stage-copy">
+                  {cycleDrops > 0
+                    ? 'Has reunido ' +
+                      cycleDrops +
+                      (cycleDrops === 1 ? ' gota' : ' gotas') +
+                      ' en este árbol.'
+                    : 'Tu árbol empieza como una semilla. Puedes cuidarlo cuando quieras.'}{' '}
                   {tree.stage.nextLabel
-                    ? `A ${remaining} ${remaining === 1 ? 'gota' : 'gotas'} de ${tree.stage.nextLabel}.`
-                    : 'Tu árbol ha llegado a su forma más plena.'}
+                    ? 'Faltan ' +
+                      remaining +
+                      (remaining === 1 ? ' gota' : ' gotas') +
+                      ' para ' +
+                      tree.stage.nextLabel +
+                      '.'
+                    : 'Tu árbol sigue contigo; puedes continuar a tu ritmo.'}
                 </p>
+                <div
+                  className="big-progress"
+                  role="progressbar"
+                  aria-label={
+                    tree.stage.nextLabel
+                      ? 'Camino de ' + stageLabel + ' a ' + tree.stage.nextLabel
+                      : 'Etapa Frutos alcanzada'
+                  }
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progressPct}
+                >
+                  <i style={{ width: progressPct + '%' }} />
+                </div>
+                <div className="progress-ends">
+                  <span>{stageLabel}</span>
+                  <span>
+                    {tree.stage.nextLabel ? remaining + ' restantes' : 'Tu cuidado continúa'}
+                  </span>
+                  <span>{tree.stage.nextLabel ?? 'Frutos'}</span>
+                </div>
+                <p className="growth-days">
+                  {tree.history.length > 0
+                    ? tree.history.length +
+                      (tree.history.length === 1
+                        ? ' día con acciones registradas'
+                        : ' días con acciones registradas')
+                    : 'Todavía no has registrado acciones de cuidado.'}
+                </p>
+                <div className="no-streak">
+                  <Icon name="shield" /> Tu progreso se conserva, aunque dejes de entrar.
+                </div>
                 <p className="tree-total49">
-                  {cycleDrops} de 300 gotas en este árbol · {tree.totalDrops} en total
+                  {cycleDrops} de {tree.cycle.goal} gotas en este árbol · {tree.totalDrops} en total
                 </p>
                 <button className="secondary" type="button" onClick={() => setCustomizeOpen(true)}>
                   Personalizar mi árbol
@@ -435,44 +474,46 @@ export default function MiArbolPage() {
               </div>
             </div>
 
-            <div className="card tree-panel">
-              <SectionHead
-                icon="plus"
-                title="Hoy"
-                sub="Tres caminos para crecer. Máximo una gota por cada uno al día."
-                right={
-                  tree.today.complete ? (
-                    <span className="tag hope">
-                      <Icon name="check" /> Camino completo
-                    </span>
-                  ) : (
-                    <span className="tree-count-pill">
-                      {tree.today.earned}/{tree.today.max} gotas
-                    </span>
-                  )
-                }
-              />
-              <div className="tree-paths">
-                {tree.today.paths.map((path) => (
-                  <div key={path.key} className={`tree-path${path.earned ? ' on' : ''}`}>
-                    <span className="tree-path-icon">
-                      <Icon name={path.earned ? 'check' : 'plus'} />
-                    </span>
-                    <div className="tree-path-text">
+            <section className="daily-growth" aria-labelledby="dailyGrowthTitle">
+              <div className="section-title">
+                <div>
+                  <h2 id="dailyGrowthTitle">Pequeños gestos para hoy</h2>
+                  <p>
+                    Elige si te apetece. Cada camino puede sumar una gota al día; no necesitas completar
+                    los tres.
+                  </p>
+                </div>
+                <span className="tree-count-pill">
+                  {tree.today.earned}/{tree.today.max} gotas hoy
+                </span>
+              </div>
+              <div className="drop-grid">
+                {tree.today.paths.map((path) => {
+                  const meta = PATH_META[path.key];
+                  return (
+                    <button
+                      key={path.key}
+                      type="button"
+                      className={'drop-card' + (path.earned ? ' done' : '')}
+                      onClick={() => router.push(meta.href)}
+                    >
+                      <span className={'drop-icon ' + meta.color}>
+                        <Icon name={path.earned ? 'check' : meta.icon} />
+                      </span>
                       <b>{path.label}</b>
                       <small>{path.hint}</small>
-                    </div>
-                    <span className="tree-path-state">{path.earned ? 'Gota obtenida' : 'Obtener 1 gota'}</span>
-                  </div>
-                ))}
+                      <em>{path.earned ? 'Gota de hoy obtenida' : 'Puede sumar 1 gota'}</em>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+            </section>
 
-            <div className="card tree-panel">
+            <div className="card tree-panel stage-card">
               <SectionHead
                 icon="trend"
-                title="De semilla a fruto"
-                sub="Cada etapa necesita gotas de cuidado dentro de este árbol."
+                title="Explora las etapas"
+                sub="Puedes verlas sin cambiar tu progreso."
               />
               <ol className="tree-ladder">
                 {tree.stages.map((stage, index) => (
@@ -494,12 +535,16 @@ export default function MiArbolPage() {
               </ol>
             </div>
 
-            <div className="card tree-panel">
+            <div className="card tree-panel stage-card">
               <SectionHead
                 icon="sparkle"
-                title="Lo que cuenta tu árbol"
-                sub="Partes que crecen con tu cuidado y tu acompañamiento."
+                title="Lo que representa tu árbol"
+                sub="Raíces, ramas, hojas, flores y frutos simbolizan tu recorrido."
               />
+              <p className="tree-meaning-copy">
+                Las etapas cambian con las gotas que acumulas; no dependen de que otras personas reaccionen a
+                tus publicaciones. Tu árbol no compara tu bienestar con el de nadie ni mide qué tan feliz estás.
+              </p>
               <div className="tree-parts">
                 {PARTS.map((part) => (
                   <div key={part.key} className="tree-part">
