@@ -1808,3 +1808,4 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .guide-btn:hover{background:#F6F3FF;border-color:#BEAFCF}
 .wy .guide-btn svg{width:16px;height:16px}
 @media(max-width:520px){.wy .guide-btn{padding:7px 9px}.wy .guide-btn span{display:none}}
+.wy .mini-tree .mini-tree-art{display:block;width:66px;height:66px}

@@ -11,6 +11,7 @@ import {
   type EmotionalSummary,
 } from '@/lib/emotionalMap';
 import { getTree, type TreeView } from '@/lib/tree';
+import TreeArt from './TreeArt';
 
 interface RightRailProps {
   summaryHidden: boolean;
@@ -84,22 +85,6 @@ const RECOMMENDATIONS: Record<string, Recommendation> = {
     cta: 'Registrar estado',
   },
 };
-
-function BonsaiMark() {
-  return (
-    <svg className="bonsai-mark" viewBox="0 0 64 64" role="img" aria-label="Bonsái">
-      <path className="mark-pot" d="M14 47h36l-4 13H18Z" />
-      <path className="mark-trunk" d="M31 48c2-11-1-17 2-25m0 16c6-5 8-9 12-13m-14 4c-5-4-7-7-11-9" />
-      <g className="mark-crown">
-        <circle cx="18" cy="21" r="10" />
-        <circle cx="30" cy="15" r="12" />
-        <circle cx="43" cy="20" r="11" />
-        <circle cx="27" cy="27" r="12" />
-        <circle cx="42" cy="29" r="10" />
-      </g>
-    </svg>
-  );
-}
 
 export default function RightRail({
   summaryHidden,
@@ -244,7 +229,12 @@ export default function RightRail({
         </div>
         <div className="tree-mini-row">
           <span className="mini-tree">
-            <BonsaiMark />
+            <TreeArt
+              className="mini-tree-art"
+              stage={tree?.stage.index ?? 0}
+              species={tree?.customization.species}
+              pot={tree?.customization.pot}
+            />
           </span>
           <div className="tree-mini-copy">
             <b>{tree?.stage.label ?? 'Tu árbol'}</b>
