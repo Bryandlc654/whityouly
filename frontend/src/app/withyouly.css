@@ -1534,3 +1534,7 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
  .wy .tree-page .tree-tabs49 button{font-size:14px;padding-inline:10px}
  .wy .tree-page .tree-parts{grid-template-columns:1fr 1fr}
 }
+
+/* El rail derecho se puede desplazar sin mostrar una barra visible. */
+.wy .right-rail{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
+.wy .right-rail::-webkit-scrollbar{display:none;width:0;height:0}
