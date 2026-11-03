@@ -35,7 +35,7 @@ interface FrameProps {
   avatarUrl?: string | null;
   activeRoute: WyRoute;
   onNavigate: (route: WyRoute) => void;
-  onOpenAccount: () => void;
+  onOpenAccount?: () => void;
   rightRail: ReactNode;
   overlay?: ReactNode;
   sheet?: ReactNode;

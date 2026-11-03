@@ -142,7 +142,7 @@ export default function DeleteAccountSection({ account, onReload }: Props) {
 
       <div className="tip">
         <Icon name="book" /> Descarga una copia de tus datos antes de continuar desde
-        Configuración → Tus datos.
+        Privacidad y mis datos.
       </div>
 
       {notice ? (
