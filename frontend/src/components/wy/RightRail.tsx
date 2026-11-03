@@ -44,6 +44,7 @@ interface Recommendation {
   title: string;
   copy: string;
   cta: string;
+  href?: string;
 }
 
 const DEFAULT_RECOMMENDATION: Recommendation = {
@@ -55,10 +56,11 @@ const DEFAULT_RECOMMENDATION: Recommendation = {
 
 const RECOMMENDATIONS: Record<string, Recommendation> = {
   Calma: {
-    icon: 'sparkle',
-    title: 'Guarda esta calma',
-    copy: 'Registra qué te ayudó a llegar aquí para poder volver a ello.',
-    cta: 'Registrar estado',
+    icon: 'bookmark',
+    title: 'Guarda este momento',
+    copy: 'Conserva lo que hoy te hizo bien para volver a leerlo en el futuro.',
+    cta: 'Crear cápsula',
+    href: '/mis-capsulas',
   },
   Ansiedad: {
     icon: 'pulse',
@@ -217,9 +219,15 @@ export default function RightRail({
             </small>
           ) : null}
         </div>
-        <button className="secondary" type="button" onClick={onMood}>
-          {recommendation.cta}
-        </button>
+        {recommendation.href ? (
+          <Link className="secondary" href={recommendation.href}>
+            {recommendation.cta}
+          </Link>
+        ) : (
+          <button className="secondary" type="button" onClick={onMood}>
+            {recommendation.cta}
+          </button>
+        )}
       </section>
 
       <section className="right-card card tree-mini">
