@@ -166,7 +166,7 @@ export default function StoryPage() {
         router.push('/mi-arbol');
         break;
       case 'help':
-        router.push('/soporte');
+        router.push('/ayuda');
         break;
       case 'notifications':
         router.push('/notificaciones');

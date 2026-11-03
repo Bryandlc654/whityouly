@@ -146,7 +146,7 @@ export default function NotificationsPage() {
         router.push('/mi-arbol');
         break;
       case 'help':
-        router.push('/soporte');
+        router.push('/ayuda');
         break;
       case 'notifications':
         void loadNotifications();

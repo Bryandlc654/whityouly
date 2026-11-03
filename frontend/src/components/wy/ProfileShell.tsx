@@ -106,7 +106,7 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
       case 'character':
         break;
       case 'help':
-        router.push('/soporte');
+        router.push('/ayuda');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');

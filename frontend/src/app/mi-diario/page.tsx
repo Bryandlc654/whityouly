@@ -284,7 +284,7 @@ export default function DiaryPage() {
         router.push('/notificaciones');
         break;
       case 'help':
-        router.push('/soporte');
+        router.push('/ayuda');
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');

@@ -480,7 +480,7 @@ export default function FeedPage() {
         router.push('/notificaciones');
         break;
       case 'help':
-        router.push('/soporte');
+        router.push('/ayuda');
         break;
       case 'profile':
         router.push('/cuenta');

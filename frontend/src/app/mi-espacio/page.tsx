@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -148,7 +148,7 @@ export default function MiEspacioPage() {
         router.push('/notificaciones');
         break;
       case 'help':
-        router.push('/soporte');
+        router.push('/ayuda');
         break;
       default:
         break;
