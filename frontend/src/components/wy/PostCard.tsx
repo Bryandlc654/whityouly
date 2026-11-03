@@ -125,7 +125,9 @@ export default function PostCard({
 
       <div className="post-tags">
         <span className="tag">{story.category}</span>
-        <span className="tag update">{story.updateKind}</span>
+        {story.updateKind && story.updateKind !== 'Relato' ? (
+          <span className="tag update">{story.updateKind}</span>
+        ) : null}
         {story.translation ? (
           <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
             {translated ? 'Ver original' : 'Ver traducción'}

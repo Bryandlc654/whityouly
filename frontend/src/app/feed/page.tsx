@@ -607,7 +607,7 @@ export default function FeedPage() {
               <div>
                 <h2>¿Cómo estás ahora?</h2>
                 <p>
-                  <Icon name="lock" /> Solo para ti
+                  <Icon name="lock" /> Opcional · Solo para ti
                 </p>
               </div>
               <button className="text-link" type="button" onClick={() => openMood()}>
@@ -644,7 +644,8 @@ export default function FeedPage() {
                 type="button"
                 onClick={() => setComposerOpen(true)}
               >
-                Comparte tu relato
+                <span>Comparte tu relato</span>
+                <Icon name="edit" />
               </button>
             )}
           </div>
