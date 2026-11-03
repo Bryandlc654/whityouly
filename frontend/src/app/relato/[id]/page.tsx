@@ -300,6 +300,11 @@ export default function StoryPage() {
                     author: story.author?.name ?? 'Withyouly',
                     initials: initialsOf(story.author?.name),
                     category: story.categories[0],
+                    format: story.updates[0]?.audioUrl
+                      ? 'Audio con transcripción'
+                      : story.visualCardTheme
+                        ? 'Tarjeta visual'
+                        : 'Relato escrito',
                   })
                 }
               >

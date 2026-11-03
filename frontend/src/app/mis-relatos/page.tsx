@@ -476,6 +476,11 @@ export default function MyStoriesPage() {
                   author: character?.name ?? 'Withyouly',
                   initials: initialsOf(character?.name),
                   category: story.categories[0],
+                  format: story.opening?.audioUrl
+                    ? 'Audio con transcripción'
+                    : story.visualCardTheme
+                      ? 'Tarjeta visual'
+                      : 'Relato escrito',
                 }),
             },
           ]

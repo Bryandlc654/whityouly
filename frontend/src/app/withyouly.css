@@ -1538,3 +1538,39 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 /* El rail derecho se puede desplazar sin mostrar una barra visible. */
 .wy .right-rail{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
 .wy .right-rail::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* Compartir: hub de opciones antes del personalizador de imagen. */
+.wy .modal.share-hub-modal{width:min(620px,100%);max-height:min(860px,92vh);overflow-x:hidden;overflow-y:auto}
+.wy .share-hub-modal .modal-head h2{font-size:24px;line-height:1.2}
+.wy .share-hub-modal .modal-head p{font-size:14px;line-height:1.5}
+.wy .share-story-context{display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;align-items:center;margin:17px 0;padding:13px;border:1px solid #E6E1EC;border-radius:15px;background:#FBFAFF}
+.wy .share-story-context .avatar{width:48px;height:48px;flex:0 0 48px;font-size:12px}
+.wy .share-story-meta{min-width:0}
+.wy .share-story-meta b,.wy .share-story-meta small,.wy .share-story-meta span{display:block}
+.wy .share-story-meta small,.wy .share-story-meta span{color:#746D7A;font-size:11px;line-height:1.45}
+.wy .share-story-meta b{margin:4px 0;color:#191A20;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.wy .share-hub-modal .share-privacy-note{margin:0 0 15px;padding:12px 13px;border-radius:13px;background:#FFF7E8;color:#685740;font-size:12px;line-height:1.5}
+.wy .share-hub-modal .share-privacy-note svg{flex:0 0 18px;width:18px;margin-top:1px;color:#9B7127}
+.wy .share-choice-list{display:grid;gap:8px;margin:15px 0 0}
+.wy .share-choice-list>button{display:grid;grid-template-columns:42px minmax(0,1fr) 17px;align-items:center;gap:11px;min-height:70px;padding:11px 13px;border:1px solid #E5E0EB;border-radius:15px;background:#FFF;color:#38313F;text-align:left;cursor:pointer}
+.wy .share-choice-list>button:hover,.wy .share-choice-list>button:focus-visible{border-color:#9B84EA;background:#FAF8FF}
+.wy .share-choice-list>button:disabled{opacity:.58;cursor:default}
+.wy .share-choice-list>button>svg:first-child{width:20px;height:20px;padding:10px;border-radius:12px;box-sizing:content-box;background:#F1EDFF;color:#6246F5}
+.wy .share-choice-list>button>svg:last-child{width:17px;height:17px;color:#827B89}
+.wy .share-choice-list b,.wy .share-choice-list small{display:block}
+.wy .share-choice-list b{font-size:14px;line-height:1.35}
+.wy .share-choice-list small{margin-top:4px;color:#746D7A;font-size:12px;line-height:1.35}
+.wy .share-choice-list .image-choice{border-color:#CAE7DD;background:#F7FCFA}
+.wy .share-choice-list .image-choice>svg:first-child{background:#E8F7F1;color:#317B60}
+.wy .share-choice-list .card-choice{border-color:#D6CCF6;background:linear-gradient(105deg,#F1ECFF,#FFF)}
+.wy .share-choice-list .card-choice>svg:first-child{background:#E9E1FF;color:#5C3DD8}
+.wy .share-builder-actions .ghost svg{transform:rotate(180deg)}
+@media(max-width:820px){
+ .wy .modal.share-hub-modal{padding:18px;border-radius:20px}
+ .wy .share-hub-modal .modal-head h2{font-size:22px}
+ .wy .share-story-context{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:11px}
+ .wy .share-story-context .avatar{width:44px;height:44px;flex-basis:44px}
+ .wy .share-choice-list>button{grid-template-columns:39px minmax(0,1fr) auto;padding:10px}
+ .wy .share-choice-list b{font-size:13px}
+ .wy .share-choice-list small{font-size:11px}
+}

@@ -418,6 +418,11 @@ export default function FeedPage() {
       author: story.author.name,
       initials: initialsOf(story.author.name),
       category: story.categories[0],
+      format: story.opening?.audioUrl
+        ? 'Audio con transcripción'
+        : story.visualCardTheme
+          ? 'Tarjeta visual'
+          : 'Relato escrito',
     });
   };
   const openPostMenu = (storyId: string) => {
@@ -526,6 +531,11 @@ export default function FeedPage() {
               author: entry.author,
               initials: entry.initials,
               category: entry.category,
+              format: entry.audioUrl
+                ? 'Audio con transcripción'
+                : entry.visualCardTheme
+                  ? 'Tarjeta visual'
+                  : 'Relato escrito',
             })
           }
         />

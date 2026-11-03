@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Avatar from './Avatar';
 import Icon from './Icon';
 
 export interface ShareStoryData {
@@ -10,6 +11,7 @@ export interface ShareStoryData {
   author: string;
   initials: string;
   category?: string;
+  format?: string;
 }
 
 interface Props {
@@ -241,6 +243,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
   const [excerpt, setExcerpt] = useState(() => defaultExcerpt(story.text));
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState<'link' | 'copy' | 'download' | 'share' | null>(null);
+  const [view, setView] = useState<'options' | 'customize'>('options');
 
   useEffect(() => {
     setLink(`${window.location.origin}/relato/${encodeURIComponent(story.id)}`);
@@ -319,160 +322,266 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
   };
 
   return (
-    <div className="modal share-builder-modal" role="dialog" aria-modal="true" aria-label="Compartir relato">
+    <div
+      className={`modal ${view === 'options' ? 'share-hub-modal' : 'share-builder-modal'}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={view === 'options' ? 'Compartir relato' : 'Personalizar imagen para compartir'}
+    >
       <div className="modal-head">
         <div>
-          <span className="micro-label">COMPARTIR SIN EXPONER TU IDENTIDAD</span>
-          <h2>Compartir relato</h2>
-          <p>Comparte el enlace real o crea una tarjeta visual. Tú eliges el estilo y el formato.</p>
+          <span className="micro-label">
+            {view === 'options' ? 'COMPARTIR SIN EXPONER TU IDENTIDAD' : 'IMAGEN PARA COMPARTIR'}
+          </span>
+          <h2>{view === 'options' ? 'Compartir relato' : 'Personaliza tu imagen'}</h2>
+          <p>
+            {view === 'options'
+              ? 'Compártelo como enlace o como imagen. Tú eliges el formato.'
+              : 'Cambia el color, formato y extracto antes de compartir.'}
+          </p>
         </div>
         <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
           <Icon name="x" />
         </button>
       </div>
 
-      <div className="share-story-context">
-        <div className="share-story-meta">
-          <small>{story.category ?? 'Relato'} · {story.author}</small>
-          <b>{story.title}</b>
-        </div>
-      </div>
-
-      <div className="share-privacy-note">
-        <Icon name="shield" />
-        <span>
-          <b>Revisa el contenido antes de compartir.</b> Un enlace o una imagen pueden circular fuera de Withyouly.
-          Nunca añadimos tu correo ni tu nombre real.
-        </span>
-      </div>
-
-      <div className="share-builder-layout">
-        <section className="share-builder-controls">
-          <div className="share-builder-section">
-            <h3>1. Elige un estilo</h3>
-            <div className="share-template-grid">
-              {(Object.entries(TEMPLATES) as [CardTemplate, (typeof TEMPLATES)[CardTemplate]][]).map(([key, item]) => (
-                <button
-                  key={key}
-                  className={template === key ? 'selected' : undefined}
-                  type="button"
-                  aria-pressed={template === key}
-                  onClick={() => setTemplate(key)}
-                >
-                  <i style={{ background: `linear-gradient(135deg, ${item.from}, ${item.to})` }} />
-                  <span>{item.label}</span>
-                </button>
-              ))}
+      {view === 'options' ? (
+        <>
+          <div className="share-story-context">
+            <Avatar initials={story.initials} size="sm" alt={`Avatar de ${story.author}`} />
+            <div className="share-story-meta">
+              <small>
+                {story.category ?? 'Relato'} · {story.format ?? 'Relato escrito'}
+              </small>
+              <b>{story.title}</b>
+              <span>por {story.author}</span>
             </div>
           </div>
 
-          <div className="share-builder-section">
-            <h3>2. Elige el formato</h3>
-            <div className="share-format-grid">
-              {(Object.entries(FORMATS) as [CardFormat, (typeof FORMATS)[CardFormat]][]).map(([key, item]) => (
-                <button
-                  key={key}
-                  className={format === key ? 'selected' : undefined}
-                  type="button"
-                  aria-pressed={format === key}
-                  onClick={() => setFormat(key)}
-                >
-                  <b>{item.label}</b>
-                  <small>{item.size}</small>
-                </button>
-              ))}
-            </div>
+          <div className="share-privacy-note">
+            <Icon name="shield" />
+            <span>
+              <b>Revisa el contenido antes de compartir.</b> Un enlace o una imagen pueden circular fuera de
+              Withyouly. Nunca añadimos tu correo ni tu nombre real.
+            </span>
           </div>
 
-          <div className="share-builder-section">
-            <label htmlFor="shareExcerpt">
-              <h3>3. Revisa el extracto</h3>
-            </label>
-            <textarea
-              id="shareExcerpt"
-              value={excerpt}
-              maxLength={500}
-              onChange={(event) => setExcerpt(event.target.value)}
-            />
-            <small className="share-builder-hint">Evita nombres, lugares o datos que puedan identificarte. Máximo 500 caracteres.</small>
-          </div>
-
-          <div className="share-toggles">
-            <label>
+          <div className="share-choice-list">
+            <button
+              type="button"
+              onClick={() => void shareLink()}
+              disabled={busy !== null}
+              aria-label="Compartir como enlace"
+            >
+              <Icon name="share" />
               <span>
-                <b>Mostrar seudónimo</b>
-                <small>Nunca se muestra el nombre real.</small>
+                <b>{busy === 'link' ? 'Abriendo opciones…' : 'Compartir enlace'}</b>
+                <small>Abre WhatsApp, mensajes u otra aplicación compatible.</small>
               </span>
-              <input type="checkbox" checked={alias} onChange={(event) => setAlias(event.target.checked)} />
-            </label>
-            <label>
-              <span>
-                <b>Invitar a leer el relato completo</b>
-                <small>Incluye el enlace en la tarjeta.</small>
-              </span>
-              <input type="checkbox" checked={includeLink} onChange={(event) => setIncludeLink(event.target.checked)} />
-            </label>
-          </div>
-        </section>
+              <Icon name="chevron" />
+            </button>
 
-        <section className="share-preview-pane">
-          <div className="share-preview-label">
-            <span>Vista previa</span>
-            <small>{size.size}px</small>
+            <button
+              className="image-choice"
+              type="button"
+              onClick={() => void exportCard(true)}
+              disabled={busy !== null}
+              aria-label="Compartir como imagen"
+            >
+              <Icon name="image" />
+              <span>
+                <b>{busy === 'share' ? 'Preparando imagen…' : 'Compartir imagen'}</b>
+                <small>Envía directamente la tarjeta visual desde tu dispositivo.</small>
+              </span>
+              <Icon name="chevron" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void exportCard(false)}
+              disabled={busy !== null}
+              aria-label="Descargar imagen"
+            >
+              <Icon name="download" />
+              <span>
+                <b>{busy === 'download' ? 'Generando imagen…' : 'Descargar imagen'}</b>
+                <small>Guarda la tarjeta en formato PNG para usarla cuando quieras.</small>
+              </span>
+              <Icon name="chevron" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void copyLink()}
+              disabled={busy !== null}
+              aria-label="Copiar enlace"
+            >
+              <Icon name="link" />
+              <span>
+                <b>{busy === 'copy' ? 'Copiando enlace…' : 'Copiar enlace'}</b>
+                <small>Copia el acceso al relato completo.</small>
+              </span>
+              <Icon name="chevron" />
+            </button>
+
+            <button
+              className="card-choice"
+              type="button"
+              onClick={() => setView('customize')}
+              disabled={busy !== null}
+              aria-label="Personalizar imagen"
+            >
+              <Icon name="sparkle" />
+              <span>
+                <b>Personalizar imagen</b>
+                <small>Cambia el color, formato y extracto antes de compartir.</small>
+              </span>
+              <Icon name="chevron" />
+            </button>
           </div>
-          <article
-            className="share-card-preview"
-            style={{
-              background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
-              color: colors.ink,
-              aspectRatio: size.ratio,
-            }}
-          >
-            <div className="share-card-top">
-              <b>Withyouly</b>
-              {story.category ? <span style={{ background: colors.soft }}>{story.category}</span> : null}
+        </>
+      ) : (
+        <>
+          <div className="share-story-context">
+            <Avatar initials={story.initials} size="sm" alt={`Avatar de ${story.author}`} />
+            <div className="share-story-meta">
+              <small>
+                {story.category ?? 'Relato'} · {story.format ?? 'Relato escrito'}
+              </small>
+              <b>{story.title}</b>
+              <span>por {story.author}</span>
             </div>
-            <div className="share-card-body">
-              <h3>{story.title}</h3>
-              <p>{excerpt}</p>
-            </div>
-            <div className="share-card-footer">
-              <b>{alias ? story.author : 'Compartido de forma anónima'}</b>
-              {includeLink ? (
-                <small>
-                  Lee el relato completo
-                  <br />
-                  {host}
+          </div>
+
+          <div className="share-builder-layout">
+            <section className="share-builder-controls">
+              <div className="share-builder-section">
+                <h3>1. Elige un estilo</h3>
+                <div className="share-template-grid">
+                  {(Object.entries(TEMPLATES) as [CardTemplate, (typeof TEMPLATES)[CardTemplate]][]).map(([key, item]) => (
+                    <button
+                      key={key}
+                      className={template === key ? 'selected' : undefined}
+                      type="button"
+                      aria-pressed={template === key}
+                      onClick={() => setTemplate(key)}
+                    >
+                      <i style={{ background: `linear-gradient(135deg, ${item.from}, ${item.to})` }} />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="share-builder-section">
+                <h3>2. Elige el formato</h3>
+                <div className="share-format-grid">
+                  {(Object.entries(FORMATS) as [CardFormat, (typeof FORMATS)[CardFormat]][]).map(([key, item]) => (
+                    <button
+                      key={key}
+                      className={format === key ? 'selected' : undefined}
+                      type="button"
+                      aria-pressed={format === key}
+                      onClick={() => setFormat(key)}
+                    >
+                      <b>{item.label}</b>
+                      <small>{item.size}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="share-builder-section">
+                <label htmlFor="shareExcerpt">
+                  <h3>3. Revisa el extracto</h3>
+                </label>
+                <textarea
+                  id="shareExcerpt"
+                  value={excerpt}
+                  maxLength={500}
+                  onChange={(event) => setExcerpt(event.target.value)}
+                />
+                <small className="share-builder-hint">
+                  Evita nombres, lugares o datos que puedan identificarte. Máximo 500 caracteres.
                 </small>
-              ) : null}
-            </div>
-          </article>
-        </section>
-      </div>
+              </div>
 
-      <div className="share-export-note">
-        <Icon name="lock" />
-        La imagen contiene solo el extracto, la categoría y el seudónimo que ves arriba. Mi diario, las cápsulas y los
-        borradores no se comparten desde aquí.
-      </div>
+              <div className="share-toggles">
+                <label>
+                  <span>
+                    <b>Mostrar seudónimo</b>
+                    <small>Nunca se muestra el nombre real.</small>
+                  </span>
+                  <input type="checkbox" checked={alias} onChange={(event) => setAlias(event.target.checked)} />
+                </label>
+                <label>
+                  <span>
+                    <b>Invitar a leer el relato completo</b>
+                    <small>Incluye el enlace en la tarjeta.</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={includeLink}
+                    onChange={(event) => setIncludeLink(event.target.checked)}
+                  />
+                </label>
+              </div>
+            </section>
 
-      <div className="modal-actions share-builder-actions">
-        <button className="ghost" type="button" onClick={onClose} disabled={busy !== null}>
-          Cerrar
-        </button>
-        <button className="secondary" type="button" onClick={() => void copyLink()} disabled={busy !== null}>
-          <Icon name="link" /> {busy === 'copy' ? 'Copiando…' : 'Copiar enlace'}
-        </button>
-        <button className="secondary" type="button" onClick={() => void shareLink()} disabled={busy !== null}>
-          <Icon name="share" /> {busy === 'link' ? 'Abriendo…' : 'Compartir enlace'}
-        </button>
-        <button className="secondary" type="button" onClick={() => void exportCard(false)} disabled={busy !== null}>
-          <Icon name="download" /> {busy === 'download' ? 'Generando…' : 'Descargar imagen'}
-        </button>
-        <button className="primary" type="button" onClick={() => void exportCard(true)} disabled={busy !== null}>
-          <Icon name="image" /> {busy === 'share' ? 'Preparando…' : 'Compartir imagen'}
-        </button>
-      </div>
+            <section className="share-preview-pane">
+              <div className="share-preview-label">
+                <span>Vista previa</span>
+                <small>{size.size}px</small>
+              </div>
+              <article
+                className="share-card-preview"
+                style={{
+                  background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
+                  color: colors.ink,
+                  aspectRatio: size.ratio,
+                }}
+              >
+                <div className="share-card-top">
+                  <b>Withyouly</b>
+                  {story.category ? <span style={{ background: colors.soft }}>{story.category}</span> : null}
+                </div>
+                <div className="share-card-body">
+                  <h3>{story.title}</h3>
+                  <p>{excerpt}</p>
+                </div>
+                <div className="share-card-footer">
+                  <b>{alias ? story.author : 'Compartido de forma anónima'}</b>
+                  {includeLink ? (
+                    <small>
+                      Lee el relato completo
+                      <br />
+                      {host}
+                    </small>
+                  ) : null}
+                </div>
+              </article>
+            </section>
+          </div>
+
+          <div className="share-export-note">
+            <Icon name="lock" />
+            La imagen contiene solo el extracto, la categoría y el seudónimo que ves arriba. Mi diario, las
+            cápsulas y los borradores no se comparten desde aquí.
+          </div>
+
+          <div className="modal-actions share-builder-actions">
+            <button className="ghost" type="button" onClick={() => setView('options')} disabled={busy !== null}>
+              <Icon name="chevron" /> Volver
+            </button>
+            <button className="secondary" type="button" onClick={() => void exportCard(false)} disabled={busy !== null}>
+              <Icon name="download" /> {busy === 'download' ? 'Generando…' : 'Descargar imagen'}
+            </button>
+            <button className="primary" type="button" onClick={() => void exportCard(true)} disabled={busy !== null}>
+              <Icon name="image" /> {busy === 'share' ? 'Preparando…' : 'Compartir imagen'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
