@@ -160,6 +160,7 @@ export default function AccountPage() {
         router.push('/explorar');
         break;
       case 'profile':
+        router.push('/cuenta');
         break;
       case 'help':
         router.push('/ayuda');

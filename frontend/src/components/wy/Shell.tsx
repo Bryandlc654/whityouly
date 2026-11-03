@@ -50,12 +50,11 @@ function TopBar({
   characterInitials,
   avatarUrl,
   onNavigate,
-  onOpenAccount,
   onOpenStory,
   unreadNotifications = 0,
 }: Pick<
   FrameProps,
-  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'unreadNotifications'
+  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'unreadNotifications'
 > & { onOpenStory: (storyId: string, title: string) => void }) {
   return (
     <header className="topbar">
@@ -77,8 +76,8 @@ function TopBar({
           <button
             className="avatar avatar-sm"
             type="button"
-            onClick={onOpenAccount}
-            aria-label="Mi cuenta"
+            onClick={() => onNavigate('profile')}
+            aria-label="Mi perfil"
           >
             {avatarUrl ? (
               <Image src={avatarUrl} alt="" width={42} height={42} unoptimized />
@@ -131,8 +130,7 @@ function LeftRail({
 function BottomNav({
   activeRoute,
   onNavigate,
-  onOpenAccount,
-}: Pick<FrameProps, 'activeRoute' | 'onNavigate' | 'onOpenAccount'>) {
+}: Pick<FrameProps, 'activeRoute' | 'onNavigate'>) {
   return (
     <nav className="bottom-nav" aria-label="Navegación móvil">
       <button
@@ -165,7 +163,7 @@ function BottomNav({
       <button
         type="button"
         className={activeRoute === 'profile' ? 'active' : undefined}
-        onClick={onOpenAccount}
+        onClick={() => onNavigate('profile')}
       >
         <Icon name="user" />
         <small>Perfil</small>
@@ -179,7 +177,6 @@ export default function WyFrame({
   avatarUrl,
   activeRoute,
   onNavigate,
-  onOpenAccount,
   rightRail,
   overlay,
   sheet,
@@ -196,7 +193,6 @@ export default function WyFrame({
         characterInitials={characterInitials}
         avatarUrl={avatarUrl}
         onNavigate={onNavigate}
-        onOpenAccount={onOpenAccount}
         onOpenStory={(storyId, title) => setSearchReader({ id: storyId, title })}
         unreadNotifications={unreadNotifications}
       />
@@ -209,7 +205,7 @@ export default function WyFrame({
           {rightRail}
         </aside>
       </div>
-      <BottomNav activeRoute={activeRoute} onNavigate={onNavigate} onOpenAccount={onOpenAccount} />
+      <BottomNav activeRoute={activeRoute} onNavigate={onNavigate} />
       {searchReader ? (
         <div className="modal-layer">
           <StoryViewer
