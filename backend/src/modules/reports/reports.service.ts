@@ -35,7 +35,22 @@ export interface MyReportView {
  */
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {
+  }
+
+  /** Reporte general enviado desde Ayuda y seguridad, sin un contenido concreto. */
+  async createGeneral(userId: string, reason: string) {
+    const report = await this.prisma.report.create({
+      data: {
+        reporterUserId: userId,
+        reportedType: 'GENERAL',
+        reportedId: userId,
+        reason,
+      },
+      select: { id: true, status: true, createdAt: true },
+    });
+    return report;
+  }
 
   async listMine(userId: string, query: ListMyReportsQueryDto) {
     const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);

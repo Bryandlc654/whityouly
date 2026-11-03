@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { saveCharacterPrivacy } from '@/lib/characters';
 import type { PrivacySettings } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
+import ContentPreferencesSection from './ContentPreferencesSection';
 
 interface Props {
   settings?: PrivacySettings | null;
@@ -145,6 +146,8 @@ export default function PrivacySection({ settings, onSaved }: Props) {
           </label>
         </div>
       </div>
+
+      <ContentPreferencesSection />
 
       {status ? (
         <p

@@ -27,6 +27,11 @@ export default function GuideModal({ guide, onClose }: Props) {
         </button>
       </div>
 
+      {step.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={step.image} alt="" className="guide-illustration" />
+      ) : null}
+
       <div className="guide-modal-step">
         <span className="guide-modal-icon">
           <Icon name={step.icon} />

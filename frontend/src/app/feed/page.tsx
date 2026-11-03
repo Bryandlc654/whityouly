@@ -27,6 +27,7 @@ import {
   unsupportStory,
 } from '@/lib/interactions';
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
+import { saveAuthorPreference } from '@/lib/contentPreferences';
 import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
 import { unreadNotificationsCount } from '@/lib/notifications';
@@ -67,7 +68,9 @@ function toEntry(story: FollowingStory, authorName: string, preferredLanguage: s
     initials: initialsOf(story.author.name),
     time: relativeTime(story.createdAt),
     category: story.categories[0] ?? 'Relato',
-    updateKind: story.stageCount > 1 ? `Evolución · ${story.stageCount} etapas` : 'Relato',
+    updateKind:
+      story.opening?.updateKind ??
+      (story.stageCount > 1 ? `Evolución · ${story.stageCount} etapas` : 'Relato'),
     updateDate: relativeTime(story.updatedAt),
     updateText: '',
     title: story.title,
@@ -429,12 +432,49 @@ export default function FeedPage() {
     });
   };
   const openPostMenu = (storyId: string) => {
+    const story = (feedItems ?? []).find((item) => item.id === storyId);
+    const authorName = story?.author.name;
     setSheet({
       title: 'Opciones del relato',
       rows: [
         { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => void toggleFollowStory(storyId) },
         { label: 'Guardar relato', icon: 'bookmark', onClick: () => void toggleSave(storyId) },
         { label: 'Compartir relato', icon: 'share', onClick: () => shareFromId(storyId) },
+        ...(authorName && authorName !== name
+          ? [
+              {
+                label: 'Silenciar autor',
+                icon: 'eye' as const,
+                onClick: () => {
+                  void saveAuthorPreference(authorName, 'MUTE').then(() => {
+                    notify('Silenciaste a este autor.');
+                    void loadFeed();
+                  });
+                },
+              },
+              {
+                label: 'Ver menos de este autor',
+                icon: 'trend' as const,
+                onClick: () => {
+                  void saveAuthorPreference(authorName, 'LESS').then(() => {
+                    notify('Verás menos contenido de este autor.');
+                    void loadFeed();
+                  });
+                },
+              },
+              {
+                label: 'Bloquear autor',
+                icon: 'lock' as const,
+                danger: true,
+                onClick: () => {
+                  void saveAuthorPreference(authorName, 'BLOCK').then(() => {
+                    notify('Bloqueaste a este autor.');
+                    void loadFeed();
+                  });
+                },
+              },
+            ]
+          : []),
         {
           label: 'Reportar contenido',
           icon: 'flag',

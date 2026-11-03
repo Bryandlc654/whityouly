@@ -64,6 +64,7 @@ model User {
   diaryNotes         DiaryNote[]
   treeGarden         TreeGarden?
   treeStyles         TreeStyle[]
+  authorPreferences  AuthorPreference[]
 
   @@map("users")
 }
@@ -395,12 +396,15 @@ model StoryUpdate {
   audioAssetId String?
   // Transcripción opcional del audio de esta etapa. Se guarda solo si hay audio.
   transcript   String?
+  // Tipo de continuación: conversación, decisión, reflexión o cierre.
+  updateKind   String?
   stageOrder   Int      @default(1)
   createdAt    DateTime @default(now())
 
   story      Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
   mediaAsset MediaAsset? @relation("StoryUpdateMedia", fields: [mediaAssetId], references: [id], onDelete: SetNull)
   audioAsset MediaAsset? @relation("StoryUpdateAudio", fields: [audioAssetId], references: [id], onDelete: SetNull)
+  comments   Comment[]
 
   // Postgres no indexa las claves foráneas por su cuenta, y al borrar un
   // archivo se cuenta cuántas veces lo referencia cada tabla.
@@ -508,6 +512,7 @@ enum CommentStatus {
 model Comment {
   id          String        @id @default(uuid())
   storyId     String
+  storyUpdateId String?
   characterId String
   parentId    String?
   content     String
@@ -516,6 +521,7 @@ model Comment {
   updatedAt   DateTime      @updatedAt
 
   story     Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyUpdate StoryUpdate? @relation(fields: [storyUpdateId], references: [id], onDelete: SetNull)
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
@@ -712,6 +718,7 @@ enum ReportedType {
   STORY
   COMMENT
   CREATION
+  GENERAL
 }
 
 enum ReportStatus {
@@ -1024,4 +1031,24 @@ model PlaylistTrack {
 
   @@id([playlistId, musicTrackId])
   @@map("playlist_tracks")
+}
+
+enum AuthorPreferenceKind {
+  MUTE
+  BLOCK
+  LESS
+}
+
+model AuthorPreference {
+  id         String                 @id @default(uuid())
+  userId     String
+  authorName String
+  kind       AuthorPreferenceKind
+  createdAt  DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, authorName, kind])
+  @@index([userId, kind])
+  @@map("author_preferences")
 }

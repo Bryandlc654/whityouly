@@ -19,6 +19,7 @@ import {
 
 interface Props {
   storyId: string;
+  updateId?: string;
   onNotify?: (message: string) => void;
   commentsPaused?: boolean;
 }
@@ -39,6 +40,7 @@ function relativeTime(value: string): string {
 
 export default function CommentSection({
   storyId,
+  updateId,
   onNotify,
   commentsPaused = false,
 }: Props) {
@@ -65,7 +67,7 @@ export default function CommentSection({
     async (reset = true) => {
       if (reset) setLoading(true);
       setError('');
-      const result = await listComments(storyId, reset ? undefined : (nextCursor ?? undefined));
+      const result = await listComments(storyId, reset ? undefined : (nextCursor ?? undefined), updateId);
       if (result.status !== 'ok') {
         setError(result.message);
         setLoading(false);
@@ -76,7 +78,7 @@ export default function CommentSection({
       setCommentCount(result.data.commentCount);
       setLoading(false);
     },
-    [storyId, nextCursor],
+    [storyId, nextCursor, updateId],
   );
 
   useEffect(() => {
@@ -124,7 +126,7 @@ export default function CommentSection({
     if (!content.trim() || busy) return;
     setBusy(true);
     setError('');
-    const result = await createComment(storyId, { content: content.trim(), parentId });
+    const result = await createComment(storyId, { content: content.trim(), parentId, storyUpdateId: updateId });
     setBusy(false);
 
     if (result.status === 'ok') {

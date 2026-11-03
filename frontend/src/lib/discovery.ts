@@ -1,4 +1,4 @@
-﻿import { API_URL } from './api';
+import { API_URL } from './api';
 import { authFetch } from './auth';
 import { safeAvatarUrl } from './avatar';
 import type { LoadResult } from './account';
@@ -67,6 +67,7 @@ function parseStage(value: unknown): StoryStage | null {
     mediaUrl: safeUrl(record.mediaUrl),
     audioUrl: safeUrl(record.audioUrl),
     transcript: typeof record.transcript === 'string' ? record.transcript : null,
+    updateKind: typeof record.updateKind === 'string' ? record.updateKind : null,
     stageOrder: typeof record.stageOrder === 'number' ? record.stageOrder : 0,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
   };

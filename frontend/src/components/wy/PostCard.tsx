@@ -57,6 +57,7 @@ export default function PostCard({
 }: PostCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [translated, setTranslated] = useState(false);
+  const [warningRevealed, setWarningRevealed] = useState(!story.contentWarning);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [textOverflows, setTextOverflows] = useState(false);
 
@@ -79,7 +80,7 @@ export default function PostCard({
   const visibleText = translated && story.translation ? story.translation.content : story.text;
 
   return (
-    <article className="post card">
+    <article className={`post card${story.contentWarning && !warningRevealed ? ' sensitive-locked' : ''}`}>
       <div className="post-head">
         <Avatar initials={story.initials} />
         <div>
@@ -138,6 +139,20 @@ export default function PostCard({
         {followingStory ? <span className="tag hope">Siguiendo relato</span> : null}
       </div>
 
+      {story.contentWarning && !warningRevealed ? (
+        <div className="content-warning-gate">
+          <span className="content-warning-icon"><Icon name="shield" /></span>
+          <div>
+            <b>Aviso de contenido</b>
+            <p>{story.contentWarning}</p>
+            <button className="secondary" type="button" onClick={() => setWarningRevealed(true)}>
+              Ver contenido
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="post-body">
       {story.contentWarning ? (
         <div className="content-warning">
           <Icon name="shield" />
@@ -211,6 +226,7 @@ export default function PostCard({
           </div>
         </div>
       ) : null}
+      </div>
 
       <div className="post-stats">
         <span>{supportCount ?? story.support + (supported ? 1 : 0)} personas están contigo</span>

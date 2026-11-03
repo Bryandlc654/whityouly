@@ -91,6 +91,7 @@ export default function StoryForm({
   const [showOptions, setShowOptions] = useState(false);
   const [publicationKind, setPublicationKind] = useState<'new' | 'continuation'>('new');
   const [continuationId, setContinuationId] = useState('');
+  const [continuationKind, setContinuationKind] = useState('Nueva reflexión');
   const [ownStories, setOwnStories] = useState<MyStoryListItem[]>([]);
   const [ownStoriesLoading, setOwnStoriesLoading] = useState(false);
   const [contentWarning, setContentWarning] = useState('');
@@ -267,6 +268,7 @@ export default function StoryForm({
         mediaAssetId: audioStory ? undefined : mediaId ?? undefined,
         audioAssetId: audioStory ? audioId ?? undefined : undefined,
         transcript: audioStory ? transcript.trim() || undefined : undefined,
+        updateKind: continuationKind,
       });
 
       if (stage.status !== 'ok') {
@@ -497,6 +499,23 @@ export default function StoryForm({
                 </option>
               ))
             )}
+          </select>
+        </label>
+      ) : null}
+
+      {continuation ? (
+        <label className="field-label">
+          ¿Qué ocurrió?
+          <select
+            className="field"
+            value={continuationKind}
+            onChange={(event) => setContinuationKind(event.target.value)}
+          >
+            <option>Hubo una conversación</option>
+            <option>Tomé una decisión o algo cambió</option>
+            <option>Nueva reflexión</option>
+            <option>Cierre que deseo compartir</option>
+            <option>Sin clasificación</option>
           </select>
         </label>
       ) : null}

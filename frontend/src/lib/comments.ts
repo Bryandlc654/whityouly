@@ -13,6 +13,7 @@ export interface StoryComment {
   content: string | null;
   deleted: boolean;
   parentId: string | null;
+  storyUpdateId: string | null;
   author: CommentAuthor;
   isOwn: boolean;
   helpfulCount: number;
@@ -51,6 +52,7 @@ function parseComment(value: unknown): StoryComment | null {
     content: typeof record.content === 'string' ? record.content : null,
     deleted: record.deleted === true,
     parentId: typeof record.parentId === 'string' ? record.parentId : null,
+    storyUpdateId: typeof record.storyUpdateId === 'string' ? record.storyUpdateId : null,
     author: {
       name: typeof authorRecord.name === 'string' ? authorRecord.name : 'Anónimo',
       avatarUrl: safeAvatarUrl(authorRecord.avatarUrl),
@@ -168,9 +170,11 @@ export function deleteCommentDraft(
 export function listComments(
   storyId: string,
   cursor?: string,
+  updateId?: string,
 ): Promise<LoadResult<CommentPage>> {
   const query = new URLSearchParams();
   if (cursor) query.set('cursor', cursor);
+  if (updateId) query.set('updateId', updateId);
 
   return request(
     `/comments/story/${encodeURIComponent(storyId)}?${query.toString()}`,
@@ -194,11 +198,11 @@ export function listComments(
 
 export function createComment(
   storyId: string,
-  input: { content: string; parentId?: string },
+  input: { content: string; parentId?: string; storyUpdateId?: string },
 ): Promise<LoadResult<StoryComment>> {
   return request(
     `/comments/story/${encodeURIComponent(storyId)}`,
-    jsonInit('POST', { content: input.content, parentId: input.parentId }),
+    jsonInit('POST', { content: input.content, parentId: input.parentId, storyUpdateId: input.storyUpdateId }),
     'No se pudo publicar el comentario.',
     parseComment,
   );

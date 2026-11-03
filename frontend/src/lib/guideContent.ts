@@ -2,6 +2,7 @@ import type { IconName } from '@/components/wy/icons';
 
 export interface GuideStep {
   icon: IconName;
+  image?: string;
   title: string;
   text: string;
 }
@@ -19,16 +20,19 @@ export const GUIDES: Record<'start' | 'diary' | 'mood' | 'care' | 'tree' | 'caps
     steps: [
       {
         icon: 'book',
+        image: '/help/write.svg',
         title: 'Leer y acompañar',
         text: 'Explora relatos y responde con respeto. “Estoy contigo” no exige explicar nada.',
       },
       {
         icon: 'edit',
+        image: '/help/format.svg',
         title: 'Compartir un relato',
         text: 'Puedes publicar texto, tarjeta visual o audio. También guardar un borrador y volver después.',
       },
       {
         icon: 'heart',
+        image: '/help/published.svg',
         title: 'Un momento para ti',
         text: 'Mi espacio reúne diario, emociones, cuidado, árbol y cápsulas. Todo privado y opcional.',
       },

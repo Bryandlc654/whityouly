@@ -1,0 +1,1 @@
+ALTER TYPE "ReportedType" ADD VALUE 'GENERAL';

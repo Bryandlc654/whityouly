@@ -1,0 +1,1 @@
+ALTER TABLE "story_updates" ADD COLUMN "updateKind" TEXT;

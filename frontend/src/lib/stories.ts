@@ -28,6 +28,7 @@ export interface StoryStage {
   mediaUrl: string | null;
   audioUrl: string | null;
   transcript: string | null;
+  updateKind: string | null;
   stageOrder: number;
   createdAt: string;
 }
@@ -155,6 +156,7 @@ function parseStage(value: unknown): StoryStage | null {
     mediaUrl: safeUrl(record.mediaUrl),
     audioUrl: safeUrl(record.audioUrl),
     transcript: typeof record.transcript === 'string' ? record.transcript : null,
+    updateKind: typeof record.updateKind === 'string' ? record.updateKind : null,
     stageOrder: typeof record.stageOrder === 'number' ? record.stageOrder : 0,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
   };
@@ -420,7 +422,7 @@ export function updateStory(id: string, patch: UpdateStoryInput): Promise<LoadRe
 
 export function addStoryStage(
   id: string,
-  input: { content: string; mediaAssetId?: string; audioAssetId?: string; transcript?: string },
+  input: { content: string; mediaAssetId?: string; audioAssetId?: string; transcript?: string; updateKind?: string },
 ): Promise<LoadResult<StoryStage>> {
   return authedRequest(
     `/stories/me/${encodeURIComponent(id)}/updates`,
@@ -691,7 +693,7 @@ export function getFeed(): Promise<LoadResult<{ items: FollowingStory[] }>> {
 
 /** Feed pÃºblico (relatos publicados con visibilidad pÃºblica). */
 export function listPublicStories(
-  params: { cursor?: string; q?: string; category?: string; emotion?: string; tag?: string } = {},
+  params: { cursor?: string; q?: string; category?: string; emotion?: string; tag?: string; countryCode?: string } = {},
 ): Promise<LoadResult<FollowingPage>> {
   const query = new URLSearchParams();
   if (params.cursor) query.set('cursor', params.cursor);
@@ -699,6 +701,7 @@ export function listPublicStories(
   if (params.category) query.set('category', params.category);
   if (params.emotion) query.set('emotion', params.emotion);
   if (params.tag) query.set('tag', params.tag);
+  if (params.countryCode) query.set('countryCode', params.countryCode);
 
   return authedRequest(
     `/stories?${query.toString()}`,

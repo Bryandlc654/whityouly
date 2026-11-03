@@ -28,6 +28,7 @@ const COMMENT_SELECT = {
   content: true,
   status: true,
   parentId: true,
+  storyUpdateId: true,
   characterId: true,
   createdAt: true,
   updatedAt: true,
@@ -40,6 +41,7 @@ interface CommentRow {
   content: string;
   status: string;
   parentId: string | null;
+  storyUpdateId?: string | null;
   characterId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -110,6 +112,16 @@ export class CommentsService {
 
     const character = await this.requireCommenterCharacter(userId);
 
+    if (dto.storyUpdateId) {
+      const stage = await this.prisma.storyUpdate.findFirst({
+        where: { id: dto.storyUpdateId, storyId },
+        select: { id: true },
+      });
+      if (!stage) {
+        throw new BadRequestException('La etapa indicada no pertenece a este relato.');
+      }
+    }
+
     const content = sanitizeCommentContent(dto.content);
     if (!content) {
       throw new BadRequestException('El comentario no puede estar vacío.');
@@ -140,7 +152,7 @@ export class CommentsService {
     }
 
     const comment = await this.prisma.comment.create({
-      data: { storyId, characterId: character.id, parentId, content },
+      data: { storyId, storyUpdateId: dto.storyUpdateId ?? null, characterId: character.id, parentId, content },
       select: COMMENT_SELECT,
     });
 
@@ -225,7 +237,11 @@ export class CommentsService {
     // Los comentarios moderados/ocultos no se devuelven; los borrados se
     // muestran como "comentario eliminado" para no romper la jerarquía.
     const rows = await this.prisma.comment.findMany({
-      where: { storyId, status: { in: [CommentStatus.ACTIVE, CommentStatus.DELETED] } },
+      where: {
+        storyId,
+        ...(query.updateId ? { storyUpdateId: query.updateId } : {}),
+        status: { in: [CommentStatus.ACTIVE, CommentStatus.DELETED] },
+      },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: take + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
@@ -235,7 +251,11 @@ export class CommentsService {
     const hasMore = rows.length > take;
     const items = hasMore ? rows.slice(0, take) : rows;
     const commentCount = await this.prisma.comment.count({
-      where: { storyId, status: CommentStatus.ACTIVE },
+      where: {
+        storyId,
+        ...(query.updateId ? { storyUpdateId: query.updateId } : {}),
+        status: CommentStatus.ACTIVE,
+      },
     });
 
     // Qué comentarios de esta página ha marcado el lector como "me ayudó".
@@ -424,6 +444,7 @@ export class CommentsService {
       content: deleted ? null : row.content,
       deleted,
       parentId: row.parentId,
+      storyUpdateId: row.storyUpdateId ?? null,
       author: { name: row.character.name, avatarUrl: row.character.avatarUrl },
       isOwn: row.characterId === viewerCharacterId,
       helpfulCount: row._count?.helpfulMarks ?? 0,

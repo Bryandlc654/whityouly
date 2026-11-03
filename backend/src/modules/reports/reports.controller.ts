@@ -1,10 +1,10 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReportsService } from './reports.service';
-import { ListMyReportsQueryDto } from './dto/reports.dto';
+import { CreateGeneralReportDto, ListMyReportsQueryDto } from './dto/reports.dto';
 
 type AuthenticatedRequest = Request & { user: { userId: string } };
 
@@ -14,6 +14,13 @@ type AuthenticatedRequest = Request & { user: { userId: string } };
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
+
+  @Post()
+  @Throttle({ default: { limit: 10, ttl: 60 * 60_000 } })
+  @ApiOperation({ summary: 'Enviar un reporte general desde Ayuda y seguridad' })
+  createGeneral(@Req() req: AuthenticatedRequest, @Body() dto: CreateGeneralReportDto) {
+    return this.reportsService.createGeneral(req.user.userId, dto.reason);
+  }
 
   @Get('mine')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })

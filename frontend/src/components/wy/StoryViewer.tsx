@@ -43,7 +43,13 @@ export default function StoryViewer({
   const [story, setStory] = useState<MyStory | null>(initial ?? null);
   const [busy, setBusy] = useState(!initial);
   const [error, setError] = useState('');
+  const [warningRevealed, setWarningRevealed] = useState(!initial?.contentWarning);
+  const [commentUpdateId, setCommentUpdateId] = useState('all');
   const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    setWarningRevealed(!story?.contentWarning);
+  }, [story?.id, story?.contentWarning]);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -92,7 +98,7 @@ export default function StoryViewer({
   }, [storyId, initial]);
 
   const body = (
-    <div className="story-reader">
+    <div className={`story-reader${story?.contentWarning && !warningRevealed ? ' sensitive-locked' : ''}`}>
       {error ? (
         <div className="auth-error" role="alert">
           {error}
@@ -135,6 +141,19 @@ export default function StoryViewer({
             </div>
           ) : (
             <>
+              {story.contentWarning && !warningRevealed ? (
+                <div className="content-warning-gate">
+                  <span className="content-warning-icon"><Icon name="shield" /></span>
+                  <div>
+                    <b>Aviso de contenido</b>
+                    <p>{story.contentWarning}</p>
+                    <button className="secondary" type="button" onClick={() => setWarningRevealed(true)}>
+                      Ver contenido
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               {story.contentWarning ? (
                 <div className="content-warning">
                   <Icon name="shield" />
@@ -197,8 +216,24 @@ export default function StoryViewer({
               </div>
 
               <div className="story-reader-comments">
+                <label className="comment-scope-select">
+                  Comentarios de
+                  <select
+                    value={commentUpdateId}
+                    onChange={(event) => setCommentUpdateId(event.target.value)}
+                  >
+                    <option value="all">Todo el relato</option>
+                    {story.updates.map((stage) => (
+                      <option key={stage.id} value={stage.id}>
+                        Etapa {stage.stageOrder}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <CommentSection
+                  key={commentUpdateId}
                   storyId={story.id}
+                  updateId={commentUpdateId === 'all' ? undefined : commentUpdateId}
                   onNotify={onNotify}
                   commentsPaused={story.commentsPaused}
                 />

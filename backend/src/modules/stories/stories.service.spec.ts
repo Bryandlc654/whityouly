@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { QuotaService } from '../../common/quota/quota.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { TreeService } from '../tree/tree.service.js';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service.js';
 
 function detailRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -97,6 +98,7 @@ describe('StoriesService', () => {
         { provide: QuotaService, useValue: quota },
         { provide: NotificationsService, useValue: notifications },
         { provide: TreeService, useValue: { award: vi.fn().mockResolvedValue(true) } },
+        { provide: ContentPreferencesService, useValue: { hiddenAuthorNames: vi.fn().mockResolvedValue([]) } },
       ],
     }).compile();
 

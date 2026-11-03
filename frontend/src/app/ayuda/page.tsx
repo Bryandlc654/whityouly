@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from '@/components/wy/Icon';
 import ProfileShell from '@/components/wy/ProfileShell';
+import { createGeneralReport } from '@/lib/reports';
+import { REPORT_REASONS, REPORT_REASON_LABELS } from '@/lib/moderation';
 
 interface HelpInfo {
   title: string;
@@ -73,6 +75,10 @@ const HELP_INFO: Record<string, HelpInfo> = {
 export default function HelpPage() {
   const router = useRouter();
   const [info, setInfo] = useState<HelpInfo | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const [reportDone, setReportDone] = useState(false);
 
   return (
     <ProfileShell>
@@ -100,7 +106,7 @@ export default function HelpPage() {
             <span><Icon name="flag" /></span>
             <h3>Reportar contenido</h3>
             <p>Acoso, datos personales, autolesión, violencia o contenido que incumpla las normas.</p>
-            <button className="text-link" type="button" onClick={() => setInfo(HELP_INFO.report)}>
+            <button className="text-link" type="button" onClick={() => { setReportDone(false); setReportError('' ); setReportOpen(true); }}>
               Abrir reporte
             </button>
           </article>
@@ -151,6 +157,100 @@ export default function HelpPage() {
             <span><Icon name="chevron" /></span>
           </button>
         </div>
+
+        {reportOpen ? (
+          <div
+            className="modal-layer"
+            role="presentation"
+            onClick={() => {
+              if (!reportBusy) setReportOpen(false);
+            }}
+          >
+            <div
+              className="modal report-help-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reportHelpTitle"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="modal-head">
+                <div>
+                  <span className="micro-label">REPORTAR CONTENIDO</span>
+                  <h2 id="reportHelpTitle">{reportDone ? 'Reporte enviado' : '¿Qué quieres reportar?'}</h2>
+                  <p>
+                    {reportDone
+                      ? 'Tu reporte fue enviado a revisión. Puedes seguir su estado desde Mis reportes.'
+                      : 'Elige el motivo que mejor describa la situación. No se comparte tu identidad con la persona reportada.'}
+                  </p>
+                </div>
+                <button
+                  className="close"
+                  type="button"
+                  onClick={() => setReportOpen(false)}
+                  aria-label="Cerrar"
+                  disabled={reportBusy}
+                >
+                  <Icon name="x" />
+                </button>
+              </div>
+
+              {reportError ? (
+                <p className="auth-error" role="alert">
+                  {reportError}
+                </p>
+              ) : null}
+
+              {reportDone ? (
+                <div className="report-done-block">
+                  <span className="pop-check">
+                    <Icon name="check" />
+                  </span>
+                  <div className="modal-actions">
+                    <button className="ghost" type="button" onClick={() => setReportOpen(false)}>
+                      Cerrar
+                    </button>
+                    <button
+                      className="primary"
+                      type="button"
+                      onClick={() => router.push('/mis-reportes')}
+                    >
+                      Ver seguimiento
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="report-reason-list">
+                  {REPORT_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      disabled={reportBusy}
+                      onClick={() => {
+                        setReportBusy(true);
+                        setReportError('');
+                        void createGeneralReport(reason).then((result) => {
+                          setReportBusy(false);
+                          if (result.status !== 'ok') {
+                            setReportError(result.message);
+                            return;
+                          }
+                          setReportDone(true);
+                        });
+                      }}
+                    >
+                      <Icon name={reason === 'THREATS' || reason === 'HARASSMENT' ? 'shield' : 'flag'} />
+                      <span>
+                        <b>{REPORT_REASON_LABELS[reason]}</b>
+                        <small>Enviar este motivo a revisión de seguridad.</small>
+                      </span>
+                      <Icon name="chevron" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {info ? (
           <div className="modal-layer" role="presentation" onClick={() => setInfo(null)}>

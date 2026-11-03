@@ -314,6 +314,11 @@ export class CreateStoryUpdateDto {
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string;
 
+  @ApiPropertyOptional({ enum: ['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'] })
+  @IsOptional()
+  @IsIn(['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'], { message: 'El tipo de continuación no es válido' })
+  updateKind?: string;
+
   @ApiPropertyOptional({ description: 'Transcripción opcional del audio de esta etapa.' })
   @Transform(trim)
   @IsOptional()
@@ -350,6 +355,11 @@ export class UpdateStoryUpdateDto {
   @IsOptional()
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string | null;
+
+  @ApiPropertyOptional({ enum: ['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'] })
+  @IsOptional()
+  @IsIn(['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'], { message: 'El tipo de continuación no es válido' })
+  updateKind?: string;
 
   @ApiPropertyOptional({
     nullable: true,
@@ -411,6 +421,12 @@ export class ListPublicStoriesQueryDto {
   @IsString()
   @MaxLength(80)
   q?: string;
+
+  @ApiPropertyOptional({ enum: COUNTRY_CODES, description: 'Filtra por país del relato.' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @IsOptional()
+  @IsIn([...COUNTRY_CODES], { message: 'El país del relato no es válido' })
+  countryCode?: (typeof COUNTRY_CODES)[number];
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -35,6 +35,7 @@ import {
   NOTIFICATION_TYPES,
 } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 20;
@@ -71,6 +72,7 @@ const STAGE_SELECT = {
   mediaAssetId: true,
   audioAssetId: true,
   transcript: true,
+  updateKind: true,
   stageOrder: true,
   createdAt: true,
   mediaAsset: { select: { fileUrl: true } },
@@ -83,6 +85,7 @@ type StageRow = {
   mediaAssetId: string | null;
   audioAssetId: string | null;
   transcript?: string | null;
+  updateKind?: string | null;
   stageOrder: number;
   createdAt: Date;
   mediaAsset?: { fileUrl: string } | null;
@@ -149,6 +152,7 @@ export class StoriesService {
     private readonly quota: QuotaService,
     private readonly notifications: NotificationsService,
     private readonly tree: TreeService,
+    private readonly contentPreferences: ContentPreferencesService,
   ) {}
 
   // --- Escritura (propietario) ---------------------------------------------
@@ -365,6 +369,7 @@ export class StoriesService {
           mediaAssetId,
           audioAssetId,
           ...(transcript ? { transcript } : {}),
+          ...(dto.updateKind ? { updateKind: dto.updateKind } : {}),
           stageOrder,
         },
         select: STAGE_SELECT,
@@ -510,6 +515,7 @@ export class StoriesService {
           ...(transcript !== undefined || clearTranscript
             ? { transcript: transcript ? transcript : null }
             : {}),
+          ...(dto.updateKind !== undefined ? { updateKind: dto.updateKind } : {}),
         },
         select: STAGE_SELECT,
       });
@@ -909,6 +915,7 @@ export class StoriesService {
       where: {
         status: StoryStatus.PUBLISHED,
         visibility: 'PUBLIC',
+        ...(query.countryCode ? { countryCode: query.countryCode } : {}),
         ...(query.q
           ? {
               OR: [
@@ -1190,7 +1197,14 @@ export class StoriesService {
    * aún no tiene señales, cae a popularidad + frescura.
    */
   async getFeed(userId: string) {
-    const baseWhere = { status: StoryStatus.PUBLISHED, visibility: 'PUBLIC' } as const;
+    const hiddenAuthors = await this.contentPreferences.hiddenAuthorNames(userId);
+    const baseWhere = {
+      status: StoryStatus.PUBLISHED,
+      visibility: 'PUBLIC' as const,
+      ...(hiddenAuthors.length > 0
+        ? { character: { name: { notIn: hiddenAuthors } } }
+        : {}),
+    };
 
     // El personaje (con sus intereses) se lee una vez y se reutiliza para
     // resolver los seguidos y el perfil, sin consultas duplicadas.
@@ -1232,6 +1246,9 @@ export class StoriesService {
               characterId: { in: followedIds },
               status: StoryStatus.PUBLISHED,
               visibility: { in: ['PUBLIC', 'FOLLOWERS'] },
+              ...(hiddenAuthors.length > 0
+                ? { character: { name: { notIn: hiddenAuthors } } }
+                : {}),
             },
             orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
             take: FOLLOWING_FEED_LIMIT,
@@ -1650,6 +1667,7 @@ export class StoriesService {
       mediaUrl: stage.mediaAsset?.fileUrl ?? null,
       audioUrl: stage.audioAsset?.fileUrl ?? null,
       transcript: stage.transcript ?? null,
+      updateKind: stage.updateKind ?? null,
       stageOrder: stage.stageOrder,
       createdAt: stage.createdAt,
     };

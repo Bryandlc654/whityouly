@@ -19,6 +19,11 @@ export class CreateCommentDto extends CommentContentDto {
   @IsOptional()
   @IsUUID('4', { message: 'El comentario original no es válido' })
   parentId?: string;
+
+  @ApiPropertyOptional({ description: 'Etapa del relato sobre la que se comenta.' })
+  @IsOptional()
+  @IsUUID('4', { message: 'La etapa indicada no es válida' })
+  storyUpdateId?: string;
 }
 
 export class EditCommentDto extends CommentContentDto {}
@@ -66,4 +71,9 @@ export class ListCommentsQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+
+  @ApiPropertyOptional({ description: 'Filtra comentarios por etapa del relato.' })
+  @IsOptional()
+  @IsUUID('4', { message: 'La etapa indicada no es válida' })
+  updateId?: string;
 }

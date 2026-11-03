@@ -17,6 +17,7 @@ import { listPublicStories, type FollowingStory } from '@/lib/stories';
 import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
 import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
 import { followCharacter, listFollowing, unfollowCharacter } from '@/lib/follows';
+import { COUNTRIES } from '@/lib/locales';
 
 type SearchTab = 'all' | 'stories' | 'people' | 'categories';
 
@@ -80,6 +81,7 @@ export default function ExplorePage() {
   const [q, setQ] = useState('');
   const [selCat, setSelCat] = useState<string | null>(null);
   const [selEmo, setSelEmo] = useState<string | null>(null);
+  const [selCountry, setSelCountry] = useState<string | null>(null);
   const [tab, setTab] = useState<SearchTab>('all');
 
   const [stories, setStories] = useState<FollowingStory[]>([]);
@@ -92,6 +94,7 @@ export default function ExplorePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftCat, setDraftCat] = useState('');
   const [draftEmo, setDraftEmo] = useState('');
+  const [draftCountry, setDraftCountry] = useState('');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -99,7 +102,7 @@ export default function ExplorePage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const term = q.trim();
-  const searchMode = Boolean(term || selCat || selEmo);
+  const searchMode = Boolean(term || selCat || selEmo || selCountry);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -187,6 +190,7 @@ export default function ExplorePage() {
           q: term || undefined,
           category: selCat ?? undefined,
           emotion: selEmo ?? undefined,
+          countryCode: selCountry ?? undefined,
         }),
         term
           ? searchCharacters(term, 12)
@@ -213,12 +217,12 @@ export default function ExplorePage() {
       active = false;
       clearTimeout(timer);
     };
-  }, [searchMode, term, selCat, selEmo]);
+  }, [searchMode, term, selCat, selEmo, selCountry]);
 
   useEffect(() => {
     if (!searchMode) return;
     setTab(term ? 'all' : 'stories');
-  }, [searchMode, term, selCat, selEmo]);
+  }, [searchMode, term, selCat, selEmo, selCountry]);
 
   const logout = useCallback(async () => {
     await endSession();
@@ -281,12 +285,14 @@ export default function ExplorePage() {
   const openFilters = () => {
     setDraftCat(selCat ?? '');
     setDraftEmo(selEmo ?? '');
+    setDraftCountry(selCountry ?? '');
     setFiltersOpen(true);
   };
 
   const applyFilters = () => {
     setSelCat(draftCat || null);
     setSelEmo(draftEmo || null);
+    setSelCountry(draftCountry || null);
     setFiltersOpen(false);
   };
 
@@ -338,7 +344,15 @@ export default function ExplorePage() {
   const activeFilters = [
     selCat ? { key: 'category' as const, label: selCat } : null,
     selEmo ? { key: 'emotion' as const, label: selEmo } : null,
-  ].filter((item): item is { key: 'category' | 'emotion'; label: string } => item !== null);
+    selCountry
+      ? {
+          key: 'country' as const,
+          label: COUNTRIES.find((item) => item.code === selCountry)?.label ?? selCountry,
+        }
+      : null,
+  ].filter(
+    (item): item is { key: 'category' | 'emotion' | 'country'; label: string } => item !== null,
+  );
 
   const renderStory = (story: FollowingStory) => (
     <article key={story.id} className="card story-row explore-story">
@@ -529,6 +543,21 @@ export default function ExplorePage() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label htmlFor="filterCountry">País o región</label>
+                <select
+                  id="filterCountry"
+                  value={draftCountry}
+                  onChange={(event) => setDraftCountry(event.target.value)}
+                >
+                  <option value="">Global</option>
+                  {COUNTRIES.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="modal-actions">
@@ -590,7 +619,8 @@ export default function ExplorePage() {
                 aria-label={`Quitar filtro: ${filter.label}`}
                 onClick={() => {
                   if (filter.key === 'category') setSelCat(null);
-                  else setSelEmo(null);
+                  else if (filter.key === 'emotion') setSelEmo(null);
+                  else setSelCountry(null);
                 }}
               >
                 {filter.label}

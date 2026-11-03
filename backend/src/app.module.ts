@@ -35,6 +35,7 @@ import { TreeModule } from './modules/tree/tree.module';
 import { CapsulesModule } from './modules/capsules/capsules.module';
 import { CareActivitiesModule } from './modules/care-activities/care-activities.module';
 import { DiaryModule } from './modules/diary/diary.module';
+import { ContentPreferencesModule } from './modules/content-preferences/content-preferences.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { DiaryModule } from './modules/diary/diary.module';
     CapsulesModule,
     CareActivitiesModule,
     DiaryModule,
+    ContentPreferencesModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

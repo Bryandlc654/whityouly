@@ -1,6 +1,7 @@
 import { API_URL } from './api';
 import { authFetch } from './auth';
 import type { LoadResult } from './account';
+import type { ReportReason } from './comments';
 
 export type MyReportStatus = 'PENDING' | 'IN_REVIEW' | 'RESOLVED' | 'REJECTED';
 export type MyReportAction = 'DISMISS' | 'HIDE' | 'SUSPEND' | 'RESTORE';
@@ -142,4 +143,43 @@ export async function listMyReports(
   } catch {
     return { status: 'error', message: 'No se pudieron cargar tus reportes.' };
   }
+}
+
+/** Reporte general desde Ayuda y seguridad, sin un contenido concreto. */
+export async function createGeneralReport(
+  reason: ReportReason,
+): Promise<LoadResult<{ id: string; status: string }>> {
+  let response: Response;
+  try {
+    response = await authFetch(`${API_URL}/reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+
+  if (!response.ok) {
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      /* sin cuerpo */
+    }
+    return {
+      status: 'error',
+      message: messageFrom(body, 'No se pudo enviar el reporte.'),
+    };
+  }
+
+  const record = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  return {
+    status: 'ok',
+    data: {
+      id: typeof record?.id === 'string' ? record.id : '',
+      status: typeof record?.status === 'string' ? record.status : 'PENDING',
+    },
+  };
 }
