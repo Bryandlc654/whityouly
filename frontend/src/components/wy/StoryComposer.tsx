@@ -11,17 +11,21 @@ interface Props {
 }
 
 /**
- * Envoltorio en modal del formulario de publicación, para las pantallas que lo
- * abren encima del contenido (por ejemplo «Mis relatos»). El feed publica en
- * línea con `StoryForm`, sin modal.
+ * Envoltorio en modal del formulario de publicación. El feed y Mis relatos
+ * abren el mismo flujo de publicación encima del contenido.
  */
 export default function StoryComposer({ onClose, onCreated, initialDraft }: Props) {
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-label="Compartir relato">
+    <div
+      className="modal compose-studio-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Compartir relato"
+    >
       <div className="modal-head">
         <div>
-          <h2>Compartir un relato</h2>
-          <p>Escribes bajo tu seudónimo. Puedes guardarlo como borrador y publicarlo cuando quieras.</p>
+          <h2>Comparte tu relato</h2>
+          <p>Elige texto, tarjeta visual o audio. Escribes bajo tu seudónimo y puedes guardarlo como borrador.</p>
         </div>
         <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
           <Icon name="x" />

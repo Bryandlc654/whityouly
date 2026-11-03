@@ -17,6 +17,8 @@ const CONTENT_MAX = 5000;
 const MAX_EMOTIONS = 5;
 const MAX_TAGS = 10;
 
+type StoryFormat = 'text' | 'card' | 'audio';
+
 export interface StoryDraftSeed {
   title?: string;
   content?: string;
@@ -65,16 +67,20 @@ export default function StoryForm({
   const [visibility, setVisibility] = useState<StoryVisibility>('PUBLIC');
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [mediaName, setMediaName] = useState('');
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [audioId, setAudioId] = useState<string | null>(null);
   const [audioName, setAudioName] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [transcript, setTranscript] = useState('');
-  const [cardTheme, setCardTheme] = useState<VisualCardTheme | null>(
-    initialDraft?.visualCardTheme ?? null,
+  const [format, setFormat] = useState<StoryFormat>(
+    initialDraft?.visualCardTheme ? 'card' : 'text',
   );
-  // Las categorías, emociones y etiquetas se muestran al abrir el compositor,
-  // no detrás de un botón. El botón permite plegarlas si se prefiere.
-  const [showOptions, setShowOptions] = useState(true);
+  const [cardTheme, setCardTheme] = useState<VisualCardTheme>(
+    initialDraft?.visualCardTheme ?? 'lavender',
+  );
+  const [previewOpen, setPreviewOpen] = useState(false);
+  // Los detalles opcionales se pliegan para que el flujo principal quede limpio.
+  const [showOptions, setShowOptions] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState<'draft' | 'publish' | null>(null);
@@ -122,6 +128,7 @@ export default function StoryForm({
     if (result.status === 'ok') {
       setMediaId(result.data.id);
       setMediaName(result.data.originalName ?? 'Imagen adjunta');
+      setMediaUrl(result.data.fileUrl);
       return;
     }
     setError(result.message);
@@ -148,8 +155,10 @@ export default function StoryForm({
   }
 
   const titleReady = title.trim().length >= 3;
-  // Se puede publicar solo texto, solo imagen o solo audio (o combinarlos).
-  const contentReady = content.trim().length > 0 || Boolean(mediaId || audioId);
+  const contentReady =
+    format === 'audio'
+      ? Boolean(audioId)
+      : content.trim().length > 0 || Boolean(mediaId);
   const canSubmit = titleReady && contentReady && !saving && !uploading && !done;
 
   async function submit(publish: boolean) {
@@ -158,20 +167,21 @@ export default function StoryForm({
     setAction(publish ? 'publish' : 'draft');
     setError('');
 
+    const audioStory = format === 'audio';
     const result = await createStory({
       title: title.trim(),
-      content: content.trim(),
+      content: audioStory ? transcript.trim() : content.trim(),
       language,
       countryCode: countryCode || null,
       visibility,
       publish,
-      visualCardTheme: cardTheme,
+      visualCardTheme: format === 'card' ? cardTheme : null,
       categories: category ? [category] : [],
       emotions,
       tags,
-      mediaAssetId: mediaId ?? undefined,
-      audioAssetId: audioId ?? undefined,
-      audioTranscript: transcript.trim() || undefined,
+      mediaAssetId: audioStory ? undefined : mediaId ?? undefined,
+      audioAssetId: audioStory ? audioId ?? undefined : undefined,
+      audioTranscript: audioStory ? transcript.trim() || undefined : undefined,
     });
 
     setSaving(null);
@@ -189,64 +199,6 @@ export default function StoryForm({
   const options = (
     <>
       {catalogError ? <p className="hint" style={{ marginTop: 10 }}>{catalogError}</p> : null}
-
-      <div className="story-card-picker">
-        <div className="story-card-picker-head">
-          <div>
-            <b>Formato de publicación</b>
-            <span className="hint">Puedes publicarlo como relato de lectura o como tarjeta visual.</span>
-          </div>
-          <div className="segmented">
-            <button
-              type="button"
-              className={!cardTheme ? 'active' : undefined}
-              aria-pressed={!cardTheme}
-              onClick={() => setCardTheme(null)}
-            >
-              Relato
-            </button>
-            <button
-              type="button"
-              className={cardTheme ? 'active' : undefined}
-              aria-pressed={Boolean(cardTheme)}
-              onClick={() => setCardTheme((value) => value ?? 'lavender')}
-            >
-              Tarjeta visual
-            </button>
-          </div>
-        </div>
-
-        {cardTheme ? (
-          <>
-            <div className="story-card-themes" role="group" aria-label="Tema de la tarjeta visual">
-              {VISUAL_CARD_THEMES.map((theme) => (
-                <button
-                  key={theme.id}
-                  type="button"
-                  className={`story-card-theme theme-${theme.id}${
-                    cardTheme === theme.id ? ' active' : ''
-                  }`}
-                  aria-pressed={cardTheme === theme.id}
-                  title={theme.description}
-                  onClick={() => setCardTheme(theme.id)}
-                >
-                  <span aria-hidden />
-                  {theme.label}
-                </button>
-              ))}
-            </div>
-            <VisualStoryCard
-              theme={cardTheme}
-              title={title.trim() || 'Tu título aparece aquí'}
-              text={content.trim() || 'El texto de tu relato se mostrará sobre este fondo.'}
-              category={category}
-              author="Tú"
-              compact
-              preview
-            />
-          </>
-        ) : null}
-      </div>
 
       <StoryTaxonomyFields
         catalog={catalog}
@@ -322,7 +274,49 @@ export default function StoryForm({
         </p>
       ) : null}
 
-      {minimal ? (
+      <div className="compose-tabs" role="tablist" aria-label="Formato del relato">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={format === 'text'}
+          className={format === 'text' ? 'active' : undefined}
+          onClick={() => setFormat('text')}
+        >
+          <Icon name="edit" />
+          <span>
+            <b>Texto</b>
+            <small>Relato clásico</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={format === 'card'}
+          className={format === 'card' ? 'active' : undefined}
+          onClick={() => setFormat('card')}
+        >
+          <Icon name="sparkle" />
+          <span>
+            <b>Tarjeta visual</b>
+            <small>Diseño en el feed</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={format === 'audio'}
+          className={format === 'audio' ? 'active' : undefined}
+          onClick={() => setFormat('audio')}
+        >
+          <Icon name="music" />
+          <span>
+            <b>Audio</b>
+            <small>Voz + transcripción</small>
+          </span>
+        </button>
+      </div>
+
+      {format !== 'audio' ? (minimal ? (
         <>
           <input
             className="composer-title"
@@ -369,27 +363,103 @@ export default function StoryForm({
             {content.trim().length}/{CONTENT_MAX}
           </p>
         </>
+      )) : (
+        <label className="field-label" style={{ marginTop: 10 }}>
+          Título
+          <input
+            className="field story-field"
+            type="text"
+            value={title}
+            maxLength={TITLE_MAX}
+            placeholder="Ponle un título a lo que quieres contar"
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
       )}
 
-      <AudioRecorder
-        audioUrl={audioUrl}
-        transcript={transcript}
-        language={language}
-        disabled={uploading || saving !== null || done}
-        onRecorded={(recorded) => {
-          setAudioId(recorded.id);
-          setAudioName(recorded.name);
-          setAudioUrl(recorded.url);
-          setTranscript(recorded.transcript);
-        }}
-        onClear={() => {
-          setAudioId(null);
-          setAudioName('');
-          setAudioUrl(null);
-          setTranscript('');
-        }}
-        onTranscriptChange={setTranscript}
-      />
+      {format === 'card' ? (
+        <div className="story-card-picker">
+          <div className="story-card-picker-head">
+            <div>
+              <b>Diseño de tu tarjeta</b>
+              <span className="hint">
+                El título y el relato se colocan automáticamente. Elige el estilo que más te represente.
+              </span>
+            </div>
+          </div>
+          <div className="story-card-themes" role="group" aria-label="Tema de la tarjeta visual">
+            {VISUAL_CARD_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                type="button"
+                className={`story-card-theme theme-${theme.id}${
+                  cardTheme === theme.id ? ' active' : ''
+                }`}
+                aria-pressed={cardTheme === theme.id}
+                title={theme.description}
+                onClick={() => setCardTheme(theme.id)}
+              >
+                <span aria-hidden />
+                {theme.label}
+              </button>
+            ))}
+          </div>
+          <VisualStoryCard
+            theme={cardTheme}
+            title={title.trim() || 'Tu título aparece aquí'}
+            text={content.trim() || 'El texto de tu relato se mostrará sobre este fondo.'}
+            category={category}
+            author="Tú"
+            compact
+            preview
+          />
+        </div>
+      ) : null}
+
+      {format === 'audio' ? (
+        <>
+          <div className="audio-privacy-note">
+            <Icon name="shield" />
+            <div>
+              <b>Tu voz puede permitir que otras personas te reconozcan</b>
+              <p>
+                No menciones nombres, direcciones, centros de estudio, trabajos ni otros datos
+                identificables.
+              </p>
+            </div>
+          </div>
+          <AudioRecorder
+            audioUrl={audioUrl}
+            transcript={transcript}
+            language={language}
+            disabled={uploading || saving !== null || done}
+            onRecorded={(recorded) => {
+              setAudioId(recorded.id);
+              setAudioName(recorded.name);
+              setAudioUrl(recorded.url);
+              setTranscript(recorded.transcript);
+            }}
+            onClear={() => {
+              setAudioId(null);
+              setAudioName('');
+              setAudioUrl(null);
+              setTranscript('');
+            }}
+            onTranscriptChange={setTranscript}
+          />
+          <div className="audio-upload-row">
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => audioInput.current?.click()}
+              disabled={uploading || saving !== null || done}
+            >
+              <Icon name="music" /> {audioName ? 'Cambiar archivo de audio' : 'Subir archivo de audio'}
+            </button>
+            <span className="hint">También puedes grabar directamente o subir un audio existente.</span>
+          </div>
+        </>
+      ) : null}
 
       <input
         ref={fileInput}
@@ -455,13 +525,25 @@ export default function StoryForm({
           </div>
         </div>
       ) : (
-        <div className="row-between" style={{ marginTop: 12 }}>
+        <div className="row-between compose-tools-row" style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="secondary" onClick={() => fileInput.current?.click()} disabled={uploading}>
-              <Icon name="sparkle" /> {mediaName ? 'Imagen ✓' : 'Imagen'}
-            </button>
-            <button type="button" className="secondary" onClick={() => audioInput.current?.click()} disabled={uploading}>
-              <Icon name="music" /> {audioName ? 'Audio ✓' : 'Audio'}
+            {format !== 'audio' ? (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => fileInput.current?.click()}
+                disabled={uploading}
+              >
+                <Icon name="sparkle" /> {mediaName ? 'Cambiar imagen' : 'Imagen'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setPreviewOpen(true)}
+              disabled={!titleReady}
+            >
+              <Icon name="eye" /> Vista previa
             </button>
             <button type="button" className="secondary" onClick={() => setShowOptions((value) => !value)}>
               <Icon name="settings" /> {showOptions ? 'Menos opciones' : 'Categoría y más'}
@@ -480,6 +562,9 @@ export default function StoryForm({
           <button className="ghost" type="button" onClick={onCancel} disabled={saving !== null || done}>
             Cancelar
           </button>
+          <button className="secondary" type="button" onClick={() => setPreviewOpen(true)} disabled={!titleReady}>
+            <Icon name="eye" /> Vista previa
+          </button>
           <button className="secondary" type="button" onClick={() => void submit(false)} disabled={!canSubmit}>
             {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
           </button>
@@ -490,8 +575,77 @@ export default function StoryForm({
             onClick={() => void submit(true)}
             disabled={!canSubmit}
           >
-            {saving === 'publish' ? 'Publicando…' : 'Publicar'}
+            {saving === 'publish'
+              ? 'Publicando…'
+              : format === 'card'
+                ? 'Publicar tarjeta'
+                : format === 'audio'
+                  ? 'Publicar audio'
+                  : 'Publicar relato'}
           </button>
+        </div>
+      ) : null}
+
+      {previewOpen ? (
+        <div
+          className="compose-preview-layer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vista previa del relato"
+          onClick={() => setPreviewOpen(false)}
+        >
+          <div className="modal compose-preview-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <span className="micro-label">VISTA PREVIA</span>
+                <h2>Así se verá tu publicación</h2>
+                <p>Revisa el resultado antes de guardarlo o publicarlo.</p>
+              </div>
+              <button className="close" type="button" onClick={() => setPreviewOpen(false)} aria-label="Cerrar">
+                <Icon name="x" />
+              </button>
+            </div>
+
+            {format === 'card' ? (
+              <VisualStoryCard
+                theme={cardTheme}
+                title={title.trim() || 'Tu título aparecerá aquí'}
+                text={content.trim() || 'El texto de tu relato aparecerá aquí.'}
+                mediaUrl={mediaUrl}
+                category={category}
+                author="Tú"
+              />
+            ) : (
+              <article className="compose-preview-story">
+                <h2>{title.trim() || 'Tu título aparecerá aquí'}</h2>
+                {format === 'audio' ? (
+                  <>
+                    <p>{transcript.trim() || 'Tu audio aparecerá aquí.'}</p>
+                    {audioUrl ? (
+                      // eslint-disable-next-line jsx-a11y/media-has-caption
+                      <audio controls src={audioUrl} className="post-audio" />
+                    ) : (
+                      <p className="hint">Todavía no has añadido un audio.</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p>{content.trim() || 'Tu relato aparecerá aquí.'}</p>
+                    {mediaUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={mediaUrl} alt="" className="post-media" />
+                    ) : null}
+                  </>
+                )}
+              </article>
+            )}
+
+            <div className="modal-actions">
+              <button className="primary" type="button" onClick={() => setPreviewOpen(false)}>
+                Volver a editar
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

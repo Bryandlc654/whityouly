@@ -15,7 +15,7 @@ import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
-import StoryForm from '@/components/wy/StoryForm';
+import StoryComposer from '@/components/wy/StoryComposer';
 import { followCharacter, listFollowing, unfollowCharacter, whatIFollow } from '@/lib/follows';
 import {
   followStory,
@@ -559,7 +559,16 @@ export default function FeedPage() {
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={
-        shareStory ? (
+        composerOpen ? (
+          <StoryComposer
+            onClose={() => setComposerOpen(false)}
+            onCreated={(_story, published) => {
+              setComposerOpen(false);
+              notify(published ? 'Tu relato se publicó.' : 'Tu borrador se guardó.');
+              void loadFeed();
+            }}
+          />
+        ) : shareStory ? (
           <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
         ) : reader ? (
           <StoryViewer
@@ -633,34 +642,15 @@ export default function FeedPage() {
         <section className="composer card" ref={composerRef}>
           <div className="composer-top">
             <Avatar initials={initials} avatarUrl={character?.avatarUrl} />
-            {composerOpen ? (
-              <div>
-                <b>{name || 'tu seudónimo'}</b>
-                <div className="post-time">Publicarás con este seudónimo</div>
-              </div>
-            ) : (
-              <button
-                className="composer-trigger"
-                type="button"
-                onClick={() => setComposerOpen(true)}
-              >
-                <span>Comparte tu relato</span>
-                <Icon name="edit" />
-              </button>
-            )}
+            <button
+              className="composer-trigger"
+              type="button"
+              onClick={() => setComposerOpen(true)}
+            >
+              <span>Comparte tu relato</span>
+              <Icon name="edit" />
+            </button>
           </div>
-
-          {composerOpen ? (
-            <StoryForm
-              variant="minimal"
-              onCreated={() => {
-                setComposerOpen(false);
-                notify('Tu relato se guardó.');
-                void loadFeed();
-              }}
-              onCancel={() => setComposerOpen(false)}
-            />
-          ) : null}
         </section>
 
         <div className="feed-tabs" role="tablist" aria-label="Vista del feed">
