@@ -693,7 +693,15 @@ export function getFeed(): Promise<LoadResult<{ items: FollowingStory[] }>> {
 
 /** Feed pÃºblico (relatos publicados con visibilidad pÃºblica). */
 export function listPublicStories(
-  params: { cursor?: string; q?: string; category?: string; emotion?: string; tag?: string; countryCode?: string } = {},
+  params: {
+    cursor?: string;
+    q?: string;
+    category?: string;
+    emotion?: string;
+    tag?: string;
+    countryCode?: string;
+    limit?: number;
+  } = {},
 ): Promise<LoadResult<FollowingPage>> {
   const query = new URLSearchParams();
   if (params.cursor) query.set('cursor', params.cursor);
@@ -702,6 +710,7 @@ export function listPublicStories(
   if (params.emotion) query.set('emotion', params.emotion);
   if (params.tag) query.set('tag', params.tag);
   if (params.countryCode) query.set('countryCode', params.countryCode);
+  if (params.limit) query.set('limit', String(params.limit));
 
   return authedRequest(
     `/stories?${query.toString()}`,
