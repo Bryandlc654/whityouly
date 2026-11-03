@@ -9,7 +9,8 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
-import PrivacyMark from '@/components/wy/PrivacyMark';
+import GuideModal from '@/components/wy/GuideModal';
+import { GUIDES } from '@/lib/guideContent';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import MoodModal, { MOOD_EMOJI } from '@/components/wy/MoodModal';
 import {
@@ -150,6 +151,7 @@ export default function EmotionalMapPage() {
 
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const [range, setRange] = useState<RangeDays>(7);
   const [summary, setSummary] = useState<EmotionalSummary | null>(null);
@@ -493,9 +495,16 @@ export default function EmotionalMapPage() {
       <section className="screen mood-page">
         <MiEspacioNav active="mood" />
 
-        <section className="card mood-hero">
+        <section className="card mood-hero mood-hero57">
+          <div className="mood-hero-head57">
+            <span className="privacy-badge">
+              <Icon name="lock" /> Solo para ti
+            </span>
+            <button className="secondary mood-guide-btn57" type="button" onClick={() => setGuideOpen(true)}>
+              <Icon name="help" /> Cómo usarlo
+            </button>
+          </div>
           <div className="mood-hero-copy">
-            <span className="micro-label">TU ESPACIO PRIVADO</span>
             <h1>Mi espacio emocional</h1>
             <div className="purpose-copy">
               <b>¿Para qué sirve?</b>
@@ -505,9 +514,12 @@ export default function EmotionalMapPage() {
               </span>
             </div>
           </div>
-          <div className="hero-actions">
+          <div className="hero-actions mood-hero-actions57">
             <button className="primary mood-hero-cta" type="button" onClick={() => openCreate()}>
-              <Icon name="plus" /> Registrar ahora
+              <Icon name="plus" /> Registrar cómo me siento
+            </button>
+            <button className="text-link" type="button" onClick={() => router.push('/mi-diario')}>
+              Volver a mi diario
             </button>
           </div>
         </section>
@@ -559,7 +571,6 @@ export default function EmotionalMapPage() {
               </button>
             ))}
           </div>
-          <PrivacyMark className="period-privacy" />
         </div>
 
         {/* Intensidad y tendencia */}
@@ -1010,6 +1021,12 @@ export default function EmotionalMapPage() {
             </div>
           ) : null}
         </div>
+
+        {guideOpen ? (
+          <div className="modal-layer">
+            <GuideModal guide={GUIDES.mood} onClose={() => setGuideOpen(false)} />
+          </div>
+        ) : null}
       </section>
     </WyFrame>
   );

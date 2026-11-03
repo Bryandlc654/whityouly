@@ -15,7 +15,9 @@ import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
+import GuideModal from '@/components/wy/GuideModal';
 import StoryComposer from '@/components/wy/StoryComposer';
+import { GUIDES } from '@/lib/guideContent';
 import { followCharacter, listFollowing, unfollowCharacter, whatIFollow } from '@/lib/follows';
 import {
   followStory,
@@ -73,6 +75,10 @@ function toEntry(story: FollowingStory, authorName: string, preferredLanguage: s
     language: story.language,
     countryCode: story.countryCode,
     visualCardTheme: story.visualCardTheme,
+    contentWarning: story.contentWarning,
+    musicLabel: story.musicLabel,
+    externalShare: story.externalShare,
+    guestReadable: story.guestReadable,
     transcript: story.opening?.transcript ?? null,
     translation:
       preferredLanguage && preferredLanguage !== story.language
@@ -80,6 +86,7 @@ function toEntry(story: FollowingStory, authorName: string, preferredLanguage: s
         : null,
     support: story.supportCount,
     comments: story.commentCount,
+    stageCount: story.stageCount,
     mediaUrl: story.opening?.mediaUrl ?? null,
     audioUrl: story.opening?.audioUrl ?? null,
     isOwn,
@@ -114,6 +121,7 @@ export default function FeedPage() {
   const [moodSaving, setMoodSaving] = useState(false);
   const [moodError, setMoodError] = useState('');
   const [moodRegisteredToday, setMoodRegisteredToday] = useState<boolean | null>(null);
+  const [introOpen, setIntroOpen] = useState(false);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -234,6 +242,12 @@ export default function FeedPage() {
     if (!loading) void loadMoodToday();
   }, [loading, loadMoodToday]);
 
+  useEffect(() => {
+    if (!character) return;
+    if (window.localStorage.getItem('withyouly-how-to-start-v58') === 'seen') return;
+    setIntroOpen(true);
+  }, [character]);
+
   // Si la pestaña sigue abierta al cambiar el día, se vuelve a comprobar.
   useEffect(() => {
     const onVisible = () => {
@@ -267,11 +281,6 @@ export default function FeedPage() {
   };
 
   const openMood = (name = 'Esperanza') => {
-    if (moodRegisteredToday === true) {
-      notify('Ya registraste cómo te sientes hoy.');
-      return;
-    }
-
     setMoodName(name);
     setMoodNote('');
     setMoodError('');
@@ -279,15 +288,7 @@ export default function FeedPage() {
   };
 
   const openIntro = () => {
-    setSheet({
-      title: 'Cómo empezar',
-      rows: [
-        { label: 'Registrar cómo me siento', icon: 'pulse', onClick: () => openMood() },
-        { label: 'Explorar relatos', icon: 'search', onClick: () => router.push('/explorar') },
-        { label: 'Cuidar mi espacio', icon: 'trend', onClick: () => router.push('/mi-estado') },
-        { label: 'Ayuda y seguridad', icon: 'shield', onClick: () => router.push('/soporte') },
-      ],
-    });
+    setIntroOpen(true);
   };
 
   const saveMood = async () => {
@@ -418,6 +419,8 @@ export default function FeedPage() {
       author: story.author.name,
       initials: initialsOf(story.author.name),
       category: story.categories[0],
+      externalShare: story.externalShare,
+      guestReadable: story.guestReadable,
       format: story.opening?.audioUrl
         ? 'Audio con transcripción'
         : story.visualCardTheme
@@ -523,6 +526,7 @@ export default function FeedPage() {
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
           onComment={() => setReader({ id: story.id, title: story.title })}
+          onOpenStory={() => setReader({ id: story.id, title: story.title })}
           onShare={() =>
             setShareStory({
               id: entry.id,
@@ -531,6 +535,8 @@ export default function FeedPage() {
               author: entry.author,
               initials: entry.initials,
               category: entry.category,
+              externalShare: entry.externalShare,
+              guestReadable: entry.guestReadable,
               format: entry.audioUrl
                 ? 'Audio con transcripción'
                 : entry.visualCardTheme
@@ -569,7 +575,15 @@ export default function FeedPage() {
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={
-        composerOpen ? (
+        introOpen ? (
+          <GuideModal
+            guide={GUIDES.start}
+            onClose={() => {
+              window.localStorage.setItem('withyouly-how-to-start-v58', 'seen');
+              setIntroOpen(false);
+            }}
+          />
+        ) : composerOpen ? (
           <StoryComposer
             onClose={() => setComposerOpen(false)}
             onCreated={(_story, published) => {
@@ -645,6 +659,20 @@ export default function FeedPage() {
                   <small>{mood.name}</small>
                 </button>
               ))}
+            </div>
+          </section>
+        ) : moodRegisteredToday === true ? (
+          <section className="quick-mood card compact-checkin checkin-done">
+            <div className="quick-title">
+              <div>
+                <h2>Emoción de hoy registrada</h2>
+                <p>
+                  <Icon name="lock" /> Solo para ti · Puedes registrar otro momento del día
+                </p>
+              </div>
+              <button className="text-link" type="button" onClick={() => openMood()}>
+                Registrar otra emoción
+              </button>
             </div>
           </section>
         ) : null}

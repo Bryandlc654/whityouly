@@ -7,6 +7,8 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
+import GuideModal from '@/components/wy/GuideModal';
+import { GUIDES } from '@/lib/guideContent';
 import MoodModal, { MOOD_EMOJI } from '@/components/wy/MoodModal';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -103,6 +105,7 @@ export default function DiaryPage() {
 
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [trashCount, setTrashCount] = useState(0);
   const [nextCursor, setNextCursor] = useState<{ at: string; id: string } | null>(null);
@@ -667,6 +670,9 @@ export default function DiaryPage() {
             <h1>Mi diario</h1>
             <p>Guarda recuerdos, ideas y cómo te sientes. Este espacio es tuyo, para usarlo cuando quieras.</p>
           </div>
+          <button className="secondary diary-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
+            <Icon name="help" /> Cómo usarlo
+          </button>
         </header>
 
         <div className="diary-create-actions">
@@ -858,6 +864,12 @@ export default function DiaryPage() {
             </div>
           ) : null}
         </section>
+
+        {guideOpen ? (
+          <div className="modal-layer">
+            <GuideModal guide={GUIDES.diary} onClose={() => setGuideOpen(false)} />
+          </div>
+        ) : null}
       </section>
     </WyFrame>
   );

@@ -269,7 +269,17 @@ export default function AudioRecorder({
       setRecording(true);
       setStarting(false);
       setElapsed(0);
-      timerRef.current = setInterval(() => setElapsed((value) => value + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setElapsed((value) => {
+          const next = value + 1;
+          if (next >= 120) {
+            recordingRef.current = false;
+            if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+            return 120;
+          }
+          return next;
+        });
+      }, 1000);
 
       if (transcribe) startRecognition();
     } catch (cause) {
@@ -313,24 +323,50 @@ export default function AudioRecorder({
 
       {recording ? (
         <div className="audio-recording" role="status" aria-live="polite">
+          <div className="record-wave" aria-hidden>
+            {Array.from({ length: 28 }, (_, index) => (
+              <i key={index} style={{ height: `${8 + ((index * 7) % 24)}px` }} />
+            ))}
+          </div>
           <span className="audio-recording-dot" aria-hidden />
           <b>Grabando {formatTime(elapsed)}</b>
           <button className="secondary sm" type="button" onClick={stopRecording}>
             Detener y guardar
           </button>
         </div>
-      ) : (
+      ) : audioUrl ? (
         <div className="audio-recorder-actions">
           <button
-            className={audioUrl ? 'ghost sm' : 'secondary sm'}
+            className="ghost sm"
             type="button"
             onClick={() => void startRecording()}
             disabled={disabled || starting || uploading}
           >
             <Icon name="music" />
-            {starting ? 'Abriendo micrófono...' : audioUrl ? 'Grabar de nuevo' : 'Grabar audio'}
+            Grabar de nuevo
           </button>
-          {!audioUrl ? (
+        </div>
+      ) : (
+        <>
+          <div className="audio-record-stage">
+            <button
+              className="record-button"
+              type="button"
+              onClick={() => void startRecording()}
+              disabled={disabled || starting || uploading}
+              aria-label="Iniciar grabación"
+            >
+              <Icon name="music" />
+            </button>
+            <b>{starting ? 'Abriendo micrófono…' : 'Toca para comenzar'}</b>
+            <p>Duración máxima: 2:00 minutos</p>
+            <div className="record-wave" aria-hidden>
+              {Array.from({ length: 28 }, (_, index) => (
+                <i key={index} style={{ height: `${8 + ((index * 7) % 24)}px` }} />
+              ))}
+            </div>
+          </div>
+          <div className="audio-recorder-actions">
             <label className="audio-transcribe-toggle">
               <input
                 type="checkbox"
@@ -340,8 +376,8 @@ export default function AudioRecorder({
               />
               Transcribir mientras grabo
             </label>
-          ) : null}
-        </div>
+          </div>
+        </>
       )}
 
       {!speechSupported ? (

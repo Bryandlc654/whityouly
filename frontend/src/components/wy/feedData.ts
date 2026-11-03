@@ -13,9 +13,14 @@ export interface FeedStory {
   language: string;
   countryCode: string | null;
   visualCardTheme?: import('@/lib/visualCards').VisualCardTheme | null;
+  contentWarning?: string | null;
+  musicLabel?: string | null;
+  externalShare?: boolean;
+  guestReadable?: boolean;
   transcript?: string | null;
   translation?: { title: string; content: string } | null;
   support: number;
   comments: number;
+  stageCount?: number;
   music?: string;
 }

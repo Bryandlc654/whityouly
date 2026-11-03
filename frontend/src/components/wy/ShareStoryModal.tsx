@@ -12,6 +12,8 @@ export interface ShareStoryData {
   initials: string;
   category?: string;
   format?: string;
+  externalShare?: boolean;
+  guestReadable?: boolean;
 }
 
 interface Props {
@@ -366,6 +368,12 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
             </span>
           </div>
 
+          {story.externalShare === false ? (
+            <div className="privacy-share-block">
+              <Icon name="lock" />
+              Este relato está disponible en la comunidad, pero su autor desactivó la distribución externa.
+            </div>
+          ) : (
           <div className="share-choice-list">
             <button
               type="button"
@@ -439,6 +447,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
               <Icon name="chevron" />
             </button>
           </div>
+          )}
         </>
       ) : (
         <>

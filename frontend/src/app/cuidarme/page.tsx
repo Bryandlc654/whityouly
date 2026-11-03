@@ -7,6 +7,8 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
+import GuideModal from '@/components/wy/GuideModal';
+import { GUIDES } from '@/lib/guideContent';
 import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -364,6 +366,7 @@ export default function CarePage() {
   const [latestMood, setLatestMood] = useState<LatestMood | null>(null);
   const [pendingSteps, setPendingSteps] = useState<CareActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const [view, setView] = useState<View>('library');
   const [completion, setCompletion] = useState<Completion | null>(null);
@@ -897,9 +900,14 @@ export default function CarePage() {
           <h1>Cuidarme</h1>
           <p>Elige cómo quieres cuidarte ahora. No hay puntos, respuestas correctas ni obligación de continuar.</p>
         </div>
-        <span className="privacy-badge">
-          <Icon name="lock" /> Privado
-        </span>
+        <div className="care-hero-actions">
+          <span className="privacy-badge">
+            <Icon name="lock" /> Privado
+          </span>
+          <button className="secondary care-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
+            <Icon name="help" /> Cómo usarlo
+          </button>
+        </div>
       </section>
 
       <section className="care-context card">
@@ -1920,6 +1928,13 @@ export default function CarePage() {
         {view === 'vent' ? renderVent() : null}
         {view === 'company' ? renderCompany() : null}
         {view === 'distract' ? renderDistract() : null}
+
+
+        {guideOpen ? (
+          <div className="modal-layer">
+            <GuideModal guide={GUIDES.care} onClose={() => setGuideOpen(false)} />
+          </div>
+        ) : null}
       </section>
     </WyFrame>
   );

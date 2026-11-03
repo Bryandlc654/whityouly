@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import Avatar from './Avatar';
 import CommentSection from './CommentSection';
@@ -43,6 +43,34 @@ export default function StoryViewer({
   const [story, setStory] = useState<MyStory | null>(initial ?? null);
   const [busy, setBusy] = useState(!initial);
   const [error, setError] = useState('');
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (variant !== 'modal') return;
+    const previousOverflow = document.body.style.overflow;
+    const marker = 'withyoulyStoryReader';
+    const previousState = window.history.state;
+    document.body.style.overflow = 'hidden';
+    window.history.pushState({ ...(previousState ?? {}), [marker]: true }, '');
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+    };
+    const onPop = () => onCloseRef.current();
+
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', onPop);
+      document.body.style.overflow = previousOverflow;
+      if (window.history.state?.[marker]) window.history.back();
+    };
+  }, [variant]);
 
   useEffect(() => {
     if (initial || !storyId) return;
@@ -107,6 +135,24 @@ export default function StoryViewer({
             </div>
           ) : (
             <>
+              {story.contentWarning ? (
+                <div className="content-warning">
+                  <Icon name="shield" />
+                  <span>
+                    <b>Aviso de contenido</b>
+                    {story.contentWarning}
+                  </span>
+                </div>
+              ) : null}
+              {story.musicLabel ? (
+                <div className="music-chip viewer-music-chip">
+                  <Icon name="music" />
+                  <div>
+                    <b>{story.musicLabel}</b>
+                    <small>Canción vinculada por el autor</small>
+                  </div>
+                </div>
+              ) : null}
               <div className="story-timeline">
                 {story.updates.map((stage, index) => {
                   const last = index === story.updates.length - 1;

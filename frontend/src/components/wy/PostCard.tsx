@@ -29,6 +29,7 @@ interface PostCardProps {
   onPlay: () => void;
   onAuthor: () => void;
   onComment: () => void;
+  onOpenStory: () => void;
   onShare: () => void;
 }
 
@@ -48,6 +49,7 @@ export default function PostCard({
   onPlay,
   onAuthor,
   onComment,
+  onOpenStory,
   onShare,
   mediaUrl,
   audioUrl,
@@ -136,6 +138,16 @@ export default function PostCard({
         {followingStory ? <span className="tag hope">Siguiendo relato</span> : null}
       </div>
 
+      {story.contentWarning ? (
+        <div className="content-warning">
+          <Icon name="shield" />
+          <span>
+            <b>Aviso de contenido</b>
+            {story.contentWarning}
+          </span>
+        </div>
+      ) : null}
+
       {story.visualCardTheme ? (
         <>
           <VisualStoryCard
@@ -172,6 +184,11 @@ export default function PostCard({
           ) : null}
         </>
       )}
+      {story.stageCount && story.stageCount > 1 && !story.visualCardTheme ? (
+        <button className="post-more" type="button" onClick={onOpenStory}>
+          Ver historia completa ({story.stageCount} partes)
+        </button>
+      ) : null}
       {audioUrl ? (
         // eslint-disable-next-line jsx-a11y/media-has-caption
         <audio controls src={audioUrl} className="post-audio" />
@@ -183,13 +200,13 @@ export default function PostCard({
         </details>
       ) : null}
 
-      {story.music ? (
+      {story.musicLabel || story.music ? (
         <div className="music-chip">
           <button className="play" type="button" onClick={onPlay} aria-label="Reproducir fragmento">
             <Icon name="play" />
           </button>
           <div>
-            <b>{story.music}</b>
+            <b>{story.musicLabel ?? story.music}</b>
             <small>Canción vinculada por el autor · Vista previa</small>
           </div>
         </div>

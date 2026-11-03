@@ -461,6 +461,10 @@ export default function MyStoriesPage() {
             language: story.language,
             countryCode: story.countryCode,
             visualCardTheme: story.visualCardTheme,
+            contentWarning: story.contentWarning,
+            musicLabel: story.musicLabel,
+            externalShare: story.externalShare,
+            guestReadable: story.guestReadable,
           }),
       },
       ...(story.status === 'PUBLISHED'
@@ -476,6 +480,8 @@ export default function MyStoriesPage() {
                   author: character?.name ?? 'Withyouly',
                   initials: initialsOf(character?.name),
                   category: story.categories[0],
+                  externalShare: story.externalShare,
+                  guestReadable: story.guestReadable,
                   format: story.opening?.audioUrl
                     ? 'Audio con transcripción'
                     : story.visualCardTheme

@@ -333,6 +333,13 @@ model Story {
   translations Json?
   // Tema de la tarjeta visual. `null` = relato con formato de lectura normal.
   visualCardTheme String?
+  // Aviso opcional antes de leer: duelo, violencia, autolesión u otro tema difícil.
+  contentWarning String?
+  // Canción vinculada por el autor (texto libre, sin reproducir audio).
+  musicLabel String?
+  // Permisos de distribución elegidos por el autor.
+  externalShare Boolean @default(true)
+  guestReadable Boolean @default(true)
   visibility  Visibility  @default(PUBLIC)
   status      StoryStatus @default(DRAFT)
   // Cuando la persona destaca un relato en su perfil público.

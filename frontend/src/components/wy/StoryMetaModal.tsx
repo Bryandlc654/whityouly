@@ -22,6 +22,10 @@ export interface EditableStory {
   language: string;
   countryCode: string | null;
   visualCardTheme: VisualCardTheme | null;
+  contentWarning: string | null;
+  musicLabel: string | null;
+  externalShare: boolean;
+  guestReadable: boolean;
 }
 
 interface Props {
@@ -42,6 +46,10 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
   const [cardTheme, setCardTheme] = useState<VisualCardTheme | null>(
     story.visualCardTheme,
   );
+  const [contentWarning, setContentWarning] = useState(story.contentWarning ?? '');
+  const [musicLabel, setMusicLabel] = useState(story.musicLabel ?? '');
+  const [externalShare, setExternalShare] = useState(story.externalShare !== false);
+  const [guestReadable, setGuestReadable] = useState(story.guestReadable !== false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -156,6 +164,60 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
             ))}
           </div>
         ) : null}
+      </div>
+
+      <div className="compose-advanced-settings">
+        <label className="field-label" htmlFor="metaStoryWarning">
+          Aviso de contenido <span>(opcional)</span>
+          <select
+            id="metaStoryWarning"
+            value={contentWarning}
+            onChange={(event) => setContentWarning(event.target.value)}
+          >
+            <option value="">Sin aviso</option>
+            <option value="Duelo">Duelo</option>
+            <option value="Violencia">Violencia</option>
+            <option value="Autolesión">Autolesión</option>
+            <option value="Tema difícil">Tema difícil</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="metaStoryMusic">
+          Canción vinculada <span>(opcional)</span>
+          <input
+            id="metaStoryMusic"
+            className="field"
+            value={musicLabel}
+            maxLength={120}
+            placeholder="Canción — Artista"
+            onChange={(event) => setMusicLabel(event.target.value)}
+          />
+        </label>
+        <label className="compose-toggle">
+          <span>
+            <b>Permitir compartir fuera de Withyouly</b>
+            <small>Habilita enlace, imagen y tarjeta visual.</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={externalShare}
+            onChange={(event) => {
+              setExternalShare(event.target.checked);
+              if (!event.target.checked) setGuestReadable(false);
+            }}
+          />
+        </label>
+        <label className="compose-toggle">
+          <span>
+            <b>Permitir lectura sin iniciar sesión</b>
+            <small>Solo aplica a relatos públicos.</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={guestReadable}
+            disabled={!externalShare}
+            onChange={(event) => setGuestReadable(event.target.checked)}
+          />
+        </label>
       </div>
 
       <div className="story-locale-fields">

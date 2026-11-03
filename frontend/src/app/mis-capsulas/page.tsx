@@ -7,6 +7,8 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
+import GuideModal from '@/components/wy/GuideModal';
+import { GUIDES } from '@/lib/guideContent';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
@@ -66,6 +68,7 @@ export default function CapsulesPage() {
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [capsules, setCapsules] = useState<Capsule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [listLoading, setListLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -410,6 +413,9 @@ export default function CapsulesPage() {
               </span>
             </div>
           </div>
+          <button className="secondary capsule-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
+            <Icon name="help" /> Cómo usarlo
+          </button>
         </section>
 
         <section className="card capsule-editor">
@@ -546,6 +552,13 @@ export default function CapsulesPage() {
               );
             })
           : null}
+
+
+        {guideOpen ? (
+          <div className="modal-layer">
+            <GuideModal guide={GUIDES.capsules} onClose={() => setGuideOpen(false)} />
+          </div>
+        ) : null}
       </section>
     </WyFrame>
   );

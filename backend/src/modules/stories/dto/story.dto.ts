@@ -113,6 +113,30 @@ export class CreateStoryDto {
   @IsIn(VISUAL_CARD_THEMES, { message: 'El tema de la tarjeta visual no es válido' })
   visualCardTheme?: VisualCardThemeValue;
 
+  @ApiPropertyOptional({ description: 'Aviso de contenido opcional antes de leer.' })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(80, { message: 'El aviso de contenido no puede superar los 80 caracteres' })
+  contentWarning?: string;
+
+  @ApiPropertyOptional({ description: 'Canción vinculada por el autor.' })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(120, { message: 'La canción no puede superar los 120 caracteres' })
+  musicLabel?: string;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  externalShare?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  guestReadable?: boolean;
+
   @ApiPropertyOptional({
     default: false,
     description: 'Si es true el relato se publica; si no, queda como borrador privado.',
@@ -211,6 +235,30 @@ export class UpdateStoryDto {
   @IsOptional()
   @IsIn(VISUAL_CARD_THEMES, { message: 'El tema de la tarjeta visual no es válido' })
   visualCardTheme?: VisualCardThemeValue | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(80, { message: 'El aviso de contenido no puede superar los 80 caracteres' })
+  contentWarning?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(120, { message: 'La canción no puede superar los 120 caracteres' })
+  musicLabel?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  externalShare?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  guestReadable?: boolean;
 
   @ApiPropertyOptional({ type: [String] })
   @Transform(normalizeNames)

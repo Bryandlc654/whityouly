@@ -14,7 +14,7 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import StoryViewer from '@/components/wy/StoryViewer';
 import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import { viewStory, type MyStory } from '@/lib/stories';
+import { viewPublicStory, viewStory, type MyStory } from '@/lib/stories';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -69,7 +69,7 @@ export default function StoryPage() {
 
     setStoryLoading(true);
     setError('');
-    const result = await viewStory(storyId);
+    const result = tokenStorage.getAccess() ? await viewStory(storyId) : await viewPublicStory(storyId);
     setStoryLoading(false);
 
     if (result.status === 'ok') {
@@ -84,7 +84,7 @@ export default function StoryPage() {
   useEffect(() => {
     const verify = async () => {
       if (!tokenStorage.getAccess()) {
-        router.replace('/login');
+        setLoading(false);
         return;
       }
 
@@ -300,6 +300,8 @@ export default function StoryPage() {
                     author: story.author?.name ?? 'Withyouly',
                     initials: initialsOf(story.author?.name),
                     category: story.categories[0],
+                    externalShare: story.externalShare,
+                    guestReadable: story.guestReadable,
                     format: story.updates[0]?.audioUrl
                       ? 'Audio con transcripción'
                       : story.visualCardTheme

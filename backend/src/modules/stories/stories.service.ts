@@ -96,6 +96,10 @@ const STORY_DETAIL_SELECT = {
   countryCode: true,
   translations: true,
   visualCardTheme: true,
+  contentWarning: true,
+  musicLabel: true,
+  externalShare: true,
+  guestReadable: true,
   visibility: true,
   status: true,
   featuredAt: true,
@@ -118,6 +122,10 @@ const STORY_LIST_SELECT = {
   countryCode: true,
   translations: true,
   visualCardTheme: true,
+  contentWarning: true,
+  musicLabel: true,
+  externalShare: true,
+  guestReadable: true,
   visibility: true,
   status: true,
   featuredAt: true,
@@ -186,6 +194,10 @@ export class StoriesService {
           language: dto.language ?? 'es',
           countryCode: dto.countryCode ?? null,
           ...(dto.visualCardTheme ? { visualCardTheme: dto.visualCardTheme } : {}),
+          contentWarning: dto.contentWarning?.trim() || null,
+          musicLabel: dto.musicLabel?.trim() || null,
+          externalShare: dto.externalShare !== false,
+          guestReadable: dto.guestReadable !== false,
           visibility: (dto.visibility ?? 'PUBLIC') as VisibilityValue,
           status,
           updates: {
@@ -246,6 +258,10 @@ export class StoriesService {
       dto.language === undefined &&
       dto.countryCode === undefined &&
       dto.visualCardTheme === undefined &&
+      dto.contentWarning === undefined &&
+      dto.musicLabel === undefined &&
+      dto.externalShare === undefined &&
+      dto.guestReadable === undefined &&
       categoryIds === undefined &&
       emotionIds === undefined &&
       tagIds === undefined
@@ -294,6 +310,14 @@ export class StoriesService {
           ...(dto.visualCardTheme !== undefined
             ? { visualCardTheme: dto.visualCardTheme }
             : {}),
+          ...(dto.contentWarning !== undefined
+            ? { contentWarning: dto.contentWarning?.trim() || null }
+            : {}),
+          ...(dto.musicLabel !== undefined
+            ? { musicLabel: dto.musicLabel?.trim() || null }
+            : {}),
+          ...(dto.externalShare !== undefined ? { externalShare: dto.externalShare } : {}),
+          ...(dto.guestReadable !== undefined ? { guestReadable: dto.guestReadable } : {}),
           updatedAt: new Date(),
         },
         select: STORY_DETAIL_SELECT,
@@ -930,6 +954,7 @@ export class StoriesService {
         id: storyId,
         status: { in: [StoryStatus.PUBLISHED, StoryStatus.WITHDRAWN] },
         visibility: 'PUBLIC',
+        guestReadable: true,
       },
       select: STORY_DETAIL_SELECT,
     });
@@ -1637,6 +1662,10 @@ export class StoriesService {
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
     visualCardTheme?: string | null;
+    contentWarning?: string | null;
+    musicLabel?: string | null;
+    externalShare?: boolean;
+    guestReadable?: boolean;
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
@@ -1658,6 +1687,10 @@ export class StoriesService {
       countryCode: story.countryCode ?? null,
       translations: story.translations ?? null,
       visualCardTheme: story.visualCardTheme ?? null,
+      contentWarning: story.contentWarning ?? null,
+      musicLabel: story.musicLabel ?? null,
+      externalShare: story.externalShare !== false,
+      guestReadable: story.guestReadable !== false,
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
@@ -1688,6 +1721,10 @@ export class StoriesService {
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
     visualCardTheme?: string | null;
+    contentWarning?: string | null;
+    musicLabel?: string | null;
+    externalShare?: boolean;
+    guestReadable?: boolean;
     visibility: string;
     status: StoryStatus;
     featuredAt?: Date | null;
@@ -1709,6 +1746,10 @@ export class StoriesService {
       countryCode: story.countryCode ?? null,
       translations: story.translations ?? null,
       visualCardTheme: story.visualCardTheme ?? null,
+      contentWarning: story.contentWarning ?? null,
+      musicLabel: story.musicLabel ?? null,
+      externalShare: story.externalShare !== false,
+      guestReadable: story.guestReadable !== false,
       visibility: story.visibility,
       status: story.status,
       featuredAt: story.featuredAt ?? null,
@@ -1736,6 +1777,10 @@ export class StoriesService {
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
     visualCardTheme?: string | null;
+    contentWarning?: string | null;
+    musicLabel?: string | null;
+    externalShare?: boolean;
+    guestReadable?: boolean;
     visibility: string;
     status: StoryStatus;
     createdAt: Date;
@@ -1760,6 +1805,10 @@ export class StoriesService {
     countryCode?: string | null;
     translations?: Prisma.JsonValue | null;
     visualCardTheme?: string | null;
+    contentWarning?: string | null;
+    musicLabel?: string | null;
+    externalShare?: boolean;
+    guestReadable?: boolean;
     visibility: string;
     commentsPaused?: boolean;
     createdAt: Date;
@@ -1779,6 +1828,10 @@ export class StoriesService {
       countryCode: story.countryCode ?? null,
       translations: story.translations ?? null,
       visualCardTheme: story.visualCardTheme ?? null,
+      contentWarning: story.contentWarning ?? null,
+      musicLabel: story.musicLabel ?? null,
+      externalShare: story.externalShare !== false,
+      guestReadable: story.guestReadable !== false,
       author: { name: story.character.name, avatarUrl: story.character.avatarUrl },
       commentsPaused: story.commentsPaused === true,
       categories: story.categories.map(({ category }) => category.name),

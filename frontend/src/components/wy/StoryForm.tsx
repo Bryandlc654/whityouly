@@ -8,7 +8,15 @@ import StoryTaxonomyFields from './StoryTaxonomyFields';
 import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
 import { uploadAudio, uploadFile } from '@/lib/files';
 import { fetchAccount } from '@/lib/account';
-import { createStory, type MyStory, type StoryVisibility } from '@/lib/stories';
+import {
+  addStoryStage,
+  createStory,
+  getMyStory,
+  listMyStories,
+  type MyStory,
+  type MyStoryListItem,
+  type StoryVisibility,
+} from '@/lib/stories';
 import { COUNTRIES, LANGUAGES } from '@/lib/locales';
 import { VISUAL_CARD_THEMES, type VisualCardTheme } from '@/lib/visualCards';
 
@@ -81,6 +89,15 @@ export default function StoryForm({
   const [previewOpen, setPreviewOpen] = useState(false);
   // Los detalles opcionales se pliegan para que el flujo principal quede limpio.
   const [showOptions, setShowOptions] = useState(false);
+  const [publicationKind, setPublicationKind] = useState<'new' | 'continuation'>('new');
+  const [continuationId, setContinuationId] = useState('');
+  const [ownStories, setOwnStories] = useState<MyStoryListItem[]>([]);
+  const [ownStoriesLoading, setOwnStoriesLoading] = useState(false);
+  const [contentWarning, setContentWarning] = useState('');
+  const [musicLabel, setMusicLabel] = useState('');
+  const [externalShare, setExternalShare] = useState(true);
+  const [guestReadable, setGuestReadable] = useState(true);
+  const [draftStatus, setDraftStatus] = useState('');
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState<'draft' | 'publish' | null>(null);
@@ -102,6 +119,74 @@ export default function StoryForm({
       active = false;
     };
   }, [initialDraft?.language, initialDraft?.countryCode]);
+
+  useEffect(() => {
+    if (initialDraft) return;
+    const raw = window.sessionStorage.getItem('withyouly-compose-draft');
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as Record<string, unknown>;
+      if (typeof draft.title === 'string') setTitle(draft.title);
+      if (typeof draft.content === 'string') setContent(draft.content);
+      if (typeof draft.transcript === 'string') setTranscript(draft.transcript);
+      if (typeof draft.category === 'string') setCategory(draft.category);
+      if (Array.isArray(draft.emotions)) setEmotions(draft.emotions.filter((item): item is string => typeof item === 'string'));
+      if (Array.isArray(draft.tags)) setTags(draft.tags.filter((item): item is string => typeof item === 'string'));
+      if (typeof draft.contentWarning === 'string') setContentWarning(draft.contentWarning);
+      if (typeof draft.musicLabel === 'string') setMusicLabel(draft.musicLabel);
+      if (draft.externalShare === false) setExternalShare(false);
+      if (draft.guestReadable === false) setGuestReadable(false);
+      setDraftStatus('Borrador recuperado de este dispositivo.');
+    } catch {
+      /* borrador local inválido */
+    }
+  }, [initialDraft]);
+
+  useEffect(() => {
+    if (initialDraft) return;
+    const timer = window.setTimeout(() => {
+      const draft = {
+        title,
+        content,
+        transcript,
+        category,
+        emotions,
+        tags,
+        contentWarning,
+        musicLabel,
+        externalShare,
+        guestReadable,
+      };
+      if (!title.trim() && !content.trim() && !transcript.trim() && !musicLabel.trim()) return;
+      window.sessionStorage.setItem('withyouly-compose-draft', JSON.stringify(draft));
+      setDraftStatus('Borrador guardado automáticamente.');
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [
+    title,
+    content,
+    transcript,
+    category,
+    emotions,
+    tags,
+    contentWarning,
+    musicLabel,
+    externalShare,
+    guestReadable,
+    initialDraft,
+  ]);
+
+  useEffect(() => {
+    if (publicationKind !== 'continuation' || ownStories.length > 0) return;
+    setOwnStoriesLoading(true);
+    void listMyStories({ status: 'PUBLISHED' }).then((result) => {
+      if (result.status === 'ok') {
+        setOwnStories(result.data.items);
+        if (!continuationId && result.data.items[0]) setContinuationId(result.data.items[0].id);
+      }
+      setOwnStoriesLoading(false);
+    });
+  }, [publicationKind, ownStories.length, continuationId]);
 
   useEffect(() => {
     let active = true;
@@ -154,12 +239,19 @@ export default function StoryForm({
     setError(result.message);
   }
 
-  const titleReady = title.trim().length >= 3;
+  const continuation = publicationKind === 'continuation';
+  const titleReady = continuation || title.trim().length >= 3;
   const contentReady =
     format === 'audio'
       ? Boolean(audioId)
       : content.trim().length > 0 || Boolean(mediaId);
-  const canSubmit = titleReady && contentReady && !saving && !uploading && !done;
+  const canSubmit =
+    titleReady &&
+    contentReady &&
+    (!continuation || Boolean(continuationId)) &&
+    !saving &&
+    !uploading &&
+    !done;
 
   async function submit(publish: boolean) {
     if (!canSubmit) return;
@@ -168,6 +260,35 @@ export default function StoryForm({
     setError('');
 
     const audioStory = format === 'audio';
+
+    if (continuation) {
+      const stage = await addStoryStage(continuationId, {
+        content: audioStory ? transcript.trim() : content.trim(),
+        mediaAssetId: audioStory ? undefined : mediaId ?? undefined,
+        audioAssetId: audioStory ? audioId ?? undefined : undefined,
+        transcript: audioStory ? transcript.trim() || undefined : undefined,
+      });
+
+      if (stage.status !== 'ok') {
+        setSaving(null);
+        setError(stage.message);
+        return;
+      }
+
+      const parent = await getMyStory(continuationId);
+      setSaving(null);
+
+      if (parent.status !== 'ok') {
+        setError(parent.message);
+        return;
+      }
+
+      window.sessionStorage.removeItem('withyouly-compose-draft');
+      setDone(true);
+      window.setTimeout(() => onCreated(parent.data, true), 1000);
+      return;
+    }
+
     const result = await createStory({
       title: title.trim(),
       content: audioStory ? transcript.trim() : content.trim(),
@@ -176,6 +297,10 @@ export default function StoryForm({
       visibility,
       publish,
       visualCardTheme: format === 'card' ? cardTheme : null,
+      contentWarning: contentWarning || null,
+      musicLabel: musicLabel.trim() || null,
+      externalShare,
+      guestReadable,
       categories: category ? [category] : [],
       emotions,
       tags,
@@ -187,6 +312,7 @@ export default function StoryForm({
     setSaving(null);
 
     if (result.status === 'ok') {
+      window.sessionStorage.removeItem('withyouly-compose-draft');
       setDone(true);
       window.setTimeout(() => onCreated(result.data, publish), 1000);
       return;
@@ -232,6 +358,57 @@ export default function StoryForm({
           </select>
         </label>
       </div>
+
+      <div className="compose-advanced-settings">
+        <label className="field-label" htmlFor="storyWarning">
+          Aviso de contenido <span>(opcional)</span>
+          <select id="storyWarning" value={contentWarning} onChange={(event) => setContentWarning(event.target.value)}>
+            <option value="">Sin aviso</option>
+            <option value="Duelo">Duelo</option>
+            <option value="Violencia">Violencia</option>
+            <option value="Autolesión">Autolesión</option>
+            <option value="Tema difícil">Tema difícil</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="storyMusic">
+          Canción vinculada <span>(opcional)</span>
+          <input
+            id="storyMusic"
+            className="field"
+            type="text"
+            value={musicLabel}
+            maxLength={120}
+            placeholder="Canción — Artista"
+            onChange={(event) => setMusicLabel(event.target.value)}
+          />
+        </label>
+        <label className="compose-toggle">
+          <span>
+            <b>Permitir compartir fuera de Withyouly</b>
+            <small>Habilita enlace, imagen y tarjeta visual.</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={externalShare}
+            onChange={(event) => {
+              setExternalShare(event.target.checked);
+              if (!event.target.checked) setGuestReadable(false);
+            }}
+          />
+        </label>
+        <label className="compose-toggle">
+          <span>
+            <b>Permitir lectura sin iniciar sesión</b>
+            <small>Solo aplica a relatos públicos.</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={guestReadable}
+            disabled={!externalShare}
+            onChange={(event) => setGuestReadable(event.target.checked)}
+          />
+        </label>
+      </div>
     </>
   );
 
@@ -273,6 +450,56 @@ export default function StoryForm({
           {error}
         </p>
       ) : null}
+      {draftStatus ? <p className="hint compose-draft-status">{draftStatus}</p> : null}
+
+      <div className="compose-kind-selector">
+        <span>Tipo de publicación</span>
+        <div className="segmented" role="tablist" aria-label="Tipo de publicación">
+          <button
+            type="button"
+            role="tab"
+            className={!continuation ? 'active' : undefined}
+            aria-selected={!continuation}
+            onClick={() => setPublicationKind('new')}
+          >
+            Relato nuevo
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={continuation ? 'active' : undefined}
+            aria-selected={continuation}
+            onClick={() => {
+              setPublicationKind('continuation');
+              if (format === 'card') setFormat('text');
+            }}
+          >
+            Continuación
+          </button>
+        </div>
+      </div>
+
+      {continuation ? (
+        <label className="field-label">
+          Relato que continúa
+          <select
+            className="field"
+            value={continuationId}
+            onChange={(event) => setContinuationId(event.target.value)}
+            disabled={ownStoriesLoading}
+          >
+            {ownStories.length === 0 ? (
+              <option value="">{ownStoriesLoading ? 'Cargando tus relatos…' : 'No tienes relatos publicados'}</option>
+            ) : (
+              ownStories.map((story) => (
+                <option key={story.id} value={story.id}>
+                  {story.title}
+                </option>
+              ))
+            )}
+          </select>
+        </label>
+      ) : null}
 
       <div className="compose-tabs" role="tablist" aria-label="Formato del relato">
         <button
@@ -294,6 +521,8 @@ export default function StoryForm({
           aria-selected={format === 'card'}
           className={format === 'card' ? 'active' : undefined}
           onClick={() => setFormat('card')}
+          disabled={continuation}
+          title={continuation ? 'Las continuaciones se publican como texto o audio' : undefined}
         >
           <Icon name="sparkle" />
           <span>
@@ -318,14 +547,16 @@ export default function StoryForm({
 
       {format !== 'audio' ? (minimal ? (
         <>
-          <input
-            className="composer-title"
-            type="text"
-            value={title}
-            maxLength={TITLE_MAX}
-            placeholder="Título"
-            onChange={(event) => setTitle(event.target.value)}
-          />
+          {!continuation ? (
+            <input
+              className="composer-title"
+              type="text"
+              value={title}
+              maxLength={TITLE_MAX}
+              placeholder="Título"
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          ) : null}
           <textarea
             className="composer-body"
             value={content}
@@ -336,17 +567,19 @@ export default function StoryForm({
         </>
       ) : (
         <>
-          <label className="field-label" style={{ marginTop: 10 }}>
-            Título
-            <input
-              className="field story-field"
-              type="text"
-              value={title}
-              maxLength={TITLE_MAX}
-              placeholder="Una frase que resuma lo que quieres contar"
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </label>
+          {!continuation ? (
+            <label className="field-label" style={{ marginTop: 10 }}>
+              Título
+              <input
+                className="field story-field"
+                type="text"
+                value={title}
+                maxLength={TITLE_MAX}
+                placeholder="Una frase que resuma lo que quieres contar"
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+          ) : null}
 
           <label className="field-label">
             Tu relato

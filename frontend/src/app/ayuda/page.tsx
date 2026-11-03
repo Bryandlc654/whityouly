@@ -18,6 +18,7 @@ const HELP_INFO: Record<string, HelpInfo> = {
       'Si tú o alguien está en peligro inmediato, no esperes una respuesta de la comunidad. Contacta ahora a los servicios de emergencia de tu país o a una línea de crisis local.',
     points: [
       'Llama al número de emergencias de tu región.',
+      'En Perú puedes contactar la Línea 113 Salud, opción 1, para orientación en salud mental.',
       'Si puedes, avisa a una persona de confianza que esté cerca.',
       'No compartas datos personales en espacios públicos mientras buscas ayuda.',
       'Withyouly acompaña, pero no reemplaza atención psicológica, médica ni servicios de emergencia.',

@@ -44,6 +44,10 @@ export interface MyStory {
   countryCode: string | null;
   translations: StoryTranslations | null;
   visualCardTheme: VisualCardTheme | null;
+  contentWarning: string | null;
+  musicLabel: string | null;
+  externalShare: boolean;
+  guestReadable: boolean;
   visibility: StoryVisibility;
   status: StoryStatus;
   author: { name: string; avatarUrl: string | null } | null;
@@ -69,6 +73,10 @@ export interface MyStoryListItem {
   countryCode: string | null;
   translations: StoryTranslations | null;
   visualCardTheme: VisualCardTheme | null;
+  contentWarning: string | null;
+  musicLabel: string | null;
+  externalShare: boolean;
+  guestReadable: boolean;
   visibility: StoryVisibility;
   status: StoryStatus;
   featuredAt: string | null;
@@ -92,6 +100,10 @@ export interface CreateStoryInput {
   countryCode?: string | null;
   visibility?: StoryVisibility;
   visualCardTheme?: VisualCardTheme | null;
+  contentWarning?: string | null;
+  musicLabel?: string | null;
+  externalShare?: boolean;
+  guestReadable?: boolean;
   publish?: boolean;
   categories?: string[];
   emotions?: string[];
@@ -107,6 +119,10 @@ export interface UpdateStoryInput {
   countryCode?: string | null;
   visibility?: StoryVisibility;
   visualCardTheme?: VisualCardTheme | null;
+  contentWarning?: string | null;
+  musicLabel?: string | null;
+  externalShare?: boolean;
+  guestReadable?: boolean;
   categories?: string[];
   emotions?: string[];
   tags?: string[];
@@ -181,6 +197,10 @@ function parseStory(value: unknown): MyStory | null {
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: parseTranslations(record.translations),
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
+    contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
+    musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    externalShare: record.externalShare !== false,
+    guestReadable: record.guestReadable !== false,
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
     author:
@@ -219,6 +239,10 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: parseTranslations(record.translations),
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
+    contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
+    musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    externalShare: record.externalShare !== false,
+    guestReadable: record.guestReadable !== false,
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
     status: (record.status as StoryStatus) ?? 'DRAFT',
     featuredAt: typeof record.featuredAt === 'string' ? record.featuredAt : null,
@@ -360,6 +384,29 @@ export function viewStory(id: string): Promise<LoadResult<MyStory>> {
     'No se pudo cargar el relato.',
     (body) => parseStory(body),
   );
+}
+
+/** Lectura de un enlace público sin sesión, si el autor lo permitió. */
+export async function viewPublicStory(id: string): Promise<LoadResult<MyStory>> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/stories/${encodeURIComponent(id)}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { Accept: 'application/json' },
+    });
+  } catch {
+    return { status: 'error', message: 'No se pudo cargar el relato.' };
+  }
+
+  if (!response.ok) {
+    return { status: 'error', message: 'Ese relato no existe o no está disponible.' };
+  }
+
+  const parsed = parseStory(await response.json().catch(() => null));
+  return parsed
+    ? { status: 'ok', data: parsed }
+    : { status: 'error', message: 'La respuesta del servidor no se pudo leer.' };
 }
 
 export function updateStory(id: string, patch: UpdateStoryInput): Promise<LoadResult<MyStory>> {
@@ -528,6 +575,10 @@ export interface FollowingStory {
   countryCode: string | null;
   translations: StoryTranslations | null;
   visualCardTheme: VisualCardTheme | null;
+  contentWarning: string | null;
+  musicLabel: string | null;
+  externalShare: boolean;
+  guestReadable: boolean;
   author: { name: string; avatarUrl: string | null };
   categories: string[];
   emotions: StoryEmotion[];
@@ -572,6 +623,10 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
     countryCode: typeof record.countryCode === 'string' ? record.countryCode : null,
     translations: parseTranslations(record.translations),
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
+    contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
+    musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    externalShare: record.externalShare !== false,
+    guestReadable: record.guestReadable !== false,
     author: { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },
     categories: parseNames(record.categories),
     emotions: parseEmotions(record.emotions),

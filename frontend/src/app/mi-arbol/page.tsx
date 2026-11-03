@@ -9,6 +9,8 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
+import GuideModal from '@/components/wy/GuideModal';
+import { GUIDES } from '@/lib/guideContent';
 import type { IconName } from '@/components/wy/icons';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import TreeArt, { type TreePot, type TreeSpecies } from '@/components/wy/TreeArt';
@@ -101,6 +103,7 @@ export default function MiArbolPage() {
   const router = useRouter();
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [tree, setTree] = useState<TreeView | null>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<TreeTab>('tree');
@@ -348,15 +351,7 @@ export default function MiArbolPage() {
               opcional y no pierde progreso por ausencias.
             </p>
           </div>
-          <button
-            className="secondary tree-guide-btn"
-            type="button"
-            onClick={() =>
-              notify(
-                'Tres caminos pueden sumar una gota al día. Cada 300 gotas completan un árbol; no pierdes progreso por ausentarte.',
-              )
-            }
-          >
+          <button className="secondary tree-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
             <Icon name="help" /> Cómo usarlo
           </button>
         </header>
@@ -670,6 +665,13 @@ export default function MiArbolPage() {
               ))}
             </div>
           </section>
+        ) : null}
+
+
+        {guideOpen ? (
+          <div className="modal-layer">
+            <GuideModal guide={GUIDES.tree} onClose={() => setGuideOpen(false)} />
+          </div>
         ) : null}
       </section>
     </WyFrame>
