@@ -463,7 +463,7 @@ export default function FeedPage() {
         router.push('/siguiendo');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');

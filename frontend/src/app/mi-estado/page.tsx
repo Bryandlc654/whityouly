@@ -8,6 +8,7 @@ import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
+import MiEspacioNav from '@/components/wy/MiEspacioNav';
 import PrivacyMark from '@/components/wy/PrivacyMark';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import MoodModal, { MOOD_EMOJI } from '@/components/wy/MoodModal';
@@ -490,28 +491,7 @@ export default function EmotionalMapPage() {
       }
     >
       <section className="screen mood-page">
-        <nav className="emotion-nav card" aria-label="Mi espacio personal">
-          <button className="active" type="button">
-            <Icon name="pulse" />
-            <span>Resumen</span>
-          </button>
-          <button type="button" onClick={() => router.push('/cuidarme')}>
-            <Icon name="heart" />
-            <span>Cuidarme</span>
-          </button>
-          <button type="button" onClick={() => router.push('/mi-diario')}>
-            <Icon name="book" />
-            <span>Diario</span>
-          </button>
-          <button type="button" onClick={() => router.push('/mis-capsulas')}>
-            <Icon name="calendar" />
-            <span>Cápsulas</span>
-          </button>
-          <button type="button" onClick={() => router.push('/mi-arbol')}>
-            <Icon name="trend" />
-            <span>Mi árbol</span>
-          </button>
-        </nav>
+        <MiEspacioNav active="mood" />
 
         <section className="card mood-hero">
           <div className="mood-hero-copy">

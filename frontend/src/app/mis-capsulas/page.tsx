@@ -6,6 +6,7 @@ import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
+import MiEspacioNav from '@/components/wy/MiEspacioNav';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
@@ -171,7 +172,7 @@ export default function CapsulesPage() {
         router.push('/feed');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');
@@ -396,6 +397,7 @@ export default function CapsulesPage() {
       }
     >
       <section className="screen capsules-page">
+        <MiEspacioNav active="capsules" />
         <section className="card capsule-hero">
           <div>
             <span className="micro-label">PRIVADA POR DEFECTO</span>

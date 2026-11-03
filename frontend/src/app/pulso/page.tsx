@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
@@ -149,7 +149,7 @@ export default function PulsoPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         break;

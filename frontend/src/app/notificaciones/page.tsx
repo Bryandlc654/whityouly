@@ -137,7 +137,7 @@ export default function NotificationsPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');

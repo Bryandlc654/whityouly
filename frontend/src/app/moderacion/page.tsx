@@ -325,7 +325,7 @@ export default function ModerationPage() {
         router.push('/cuenta');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');

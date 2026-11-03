@@ -158,7 +158,7 @@ export default function WithdrawnStoriesPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');

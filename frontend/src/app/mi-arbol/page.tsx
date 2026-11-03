@@ -8,6 +8,7 @@ import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
+import MiEspacioNav from '@/components/wy/MiEspacioNav';
 import type { IconName } from '@/components/wy/icons';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import TreeArt, { type TreePot, type TreeSpecies } from '@/components/wy/TreeArt';
@@ -191,7 +192,7 @@ export default function MiArbolPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');
@@ -330,6 +331,7 @@ export default function MiArbolPage() {
       }
     >
       <section className="screen tree-page">
+        <MiEspacioNav active="tree" />
         <div className="card tree-hero">
           <div className="tree-hero-copy">
             <span className="privacy-badge">

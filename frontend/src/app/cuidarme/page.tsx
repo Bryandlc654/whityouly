@@ -6,6 +6,7 @@ import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
+import MiEspacioNav from '@/components/wy/MiEspacioNav';
 import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -615,7 +616,7 @@ export default function CarePage() {
         router.push('/feed');
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');
@@ -1910,28 +1911,7 @@ export default function CarePage() {
       }
     >
       <section className="screen care-page">
-        <nav className="emotion-nav card" aria-label="Mi espacio personal">
-          <button type="button" onClick={() => router.push('/mi-estado')}>
-            <Icon name="pulse" />
-            <span>Resumen</span>
-          </button>
-          <button className="active" type="button">
-            <Icon name="heart" />
-            <span>Cuidarme</span>
-          </button>
-          <button type="button" onClick={() => router.push('/mi-diario')}>
-            <Icon name="book" />
-            <span>Diario</span>
-          </button>
-          <button type="button" onClick={() => router.push('/mis-capsulas')}>
-            <Icon name="calendar" />
-            <span>Cápsulas</span>
-          </button>
-          <button type="button" onClick={() => router.push('/mi-arbol')}>
-            <Icon name="trend" />
-            <span>Mi árbol</span>
-          </button>
-        </nav>
+        <MiEspacioNav active="care" />
 
         {view === 'library' ? renderLibrary() : null}
         {view === 'calm' ? renderCalm() : null}

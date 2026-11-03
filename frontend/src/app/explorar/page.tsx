@@ -259,7 +259,7 @@ export default function ExplorePage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case 'mood':
-        router.push('/mi-estado');
+        router.push('/mi-espacio');
         break;
       case 'pulso':
         router.push('/pulso');
