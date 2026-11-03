@@ -202,7 +202,6 @@ export default function StoryPage() {
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
       activeRoute="notifications"
-      className="feed-reference"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}

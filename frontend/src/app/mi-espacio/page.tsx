@@ -174,7 +174,6 @@ export default function MiEspacioPage() {
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
       activeRoute="mood"
-      className="feed-reference"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}

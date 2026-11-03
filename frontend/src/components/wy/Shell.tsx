@@ -188,7 +188,7 @@ export default function WyFrame({
   const [searchReader, setSearchReader] = useState<{ id: string; title: string } | null>(null);
 
   return (
-    <div className={`wy${className ? ` ${className}` : ''}`}>
+    <div className={`wy feed-reference${className ? ` ${className}` : ''}`}>
       <TopBar
         characterInitials={characterInitials}
         avatarUrl={avatarUrl}

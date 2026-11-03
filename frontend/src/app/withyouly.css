@@ -1040,14 +1040,14 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .recommended-copy h3{margin:4px 0 3px;font-size:17px;line-height:1.25}
 .wy .recommended-copy p{margin:0;font-size:12px;line-height:1.5;color:#50535D}
 .wy .recommended-copy small{display:block;margin-top:6px;font-size:11px;font-weight:750;color:#50535D}
-.wy .recommended-card>button{min-width:118px;min-height:42px;font-size:12px;padding:8px 12px}
+.wy .recommended-card>button,.wy .recommended-card>a{min-width:118px;min-height:42px;font-size:12px;padding:8px 12px;text-decoration:none}
 .wy .right-rail .recommended-card.compact{grid-template-columns:43px minmax(0,1fr);gap:10px;padding:14px}
 .wy .right-rail .recommended-card.compact .recommended-icon{width:43px;height:43px;border-radius:13px}
 .wy .right-rail .recommended-card.compact .recommended-icon svg{width:21px;height:21px}
 .wy .right-rail .recommended-card.compact .recommended-copy h3{font-size:15px}
 .wy .right-rail .recommended-card.compact .recommended-copy p{font-size:12px}
 .wy .right-rail .recommended-card.compact .recommended-copy small{font-size:10px}
-.wy .right-rail .recommended-card.compact>button{grid-column:1/-1;width:100%}
+.wy .right-rail .recommended-card.compact>button,.wy .right-rail .recommended-card.compact>a{grid-column:1/-1;width:100%}
 .wy .tree-mini{overflow:hidden;background:#FFF;box-shadow:none}
 .wy .tree-mini .summary-title h3{font-size:18px;line-height:1.15}
 .wy .tree-mini-row{display:grid;grid-template-columns:66px 1fr;align-items:center;gap:9px;margin:5px 0 12px}
@@ -1067,7 +1067,7 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .prompt-card .micro-label{margin-bottom:6px}
 .wy .prompt-card h3{font-size:16px;margin:0 0 8px}
 .wy .prompt-card p{font-size:13px;line-height:1.5;margin:0 0 12px}
-.wy .prompt-card button{width:100%;font-size:12px;padding:9px 10px}
+.wy .prompt-card button,.wy .prompt-card a{width:100%;font-size:12px;padding:9px 10px;text-decoration:none}
 .wy .summary-toggle{background:#F4F2FB;color:#50535D}
 .wy .summary-hidden p{color:#50535D}
 

@@ -610,7 +610,6 @@ export default function FeedPage() {
       characterInitials={initials}
       avatarUrl={character?.avatarUrl}
       activeRoute="home"
-      className="feed-reference"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
