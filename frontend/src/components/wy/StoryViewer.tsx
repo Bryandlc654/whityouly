@@ -58,9 +58,17 @@ export default function StoryViewer({
   useEffect(() => {
     if (variant !== 'modal') return;
     const previousOverflow = document.body.style.overflow;
+    // Al bloquear el scroll del documento desaparece la barra de desplazamiento
+    // y el contenido centrado se desplaza. Reservamos su ancho para que el
+    // lector lateral se abra sin saltos ni franjas vacías.
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const previousPaddingRight = document.body.style.paddingRight;
     const marker = 'withyoulyStoryReader';
     const previousState = window.history.state;
     document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
     window.history.pushState({ ...(previousState ?? {}), [marker]: true }, '');
 
     const onKey = (event: KeyboardEvent) => {
@@ -74,6 +82,7 @@ export default function StoryViewer({
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('popstate', onPop);
       document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
       if (window.history.state?.[marker]) window.history.back();
     };
   }, [variant]);
