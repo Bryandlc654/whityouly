@@ -1732,11 +1732,16 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 }
 
 /* Recursos de ayuda inmediata. */
-.wy .urgent-help-page .screen-back{display:block;padding:4px 0}
-.wy .urgent-help-page .screen-back>button{display:inline-flex;align-items:center;gap:6px;padding-left:0;color:#6246F5}
-.wy .urgent-help-page .screen-back>button svg{transform:rotate(180deg)}
-.wy .urgent-help-page .screen-back h1{margin:14px 0 4px;color:#111;font-size:25px;line-height:1.3}
-.wy .urgent-help-page .screen-back p{margin:0;color:#50535D;font-size:14px;line-height:1.55}
+.wy .urgent-help-page .screen-back,
+.wy .help-subpage .screen-back{display:block;padding:4px 0}
+.wy .urgent-help-page .screen-back>button,
+.wy .help-subpage .screen-back>button{display:inline-flex;align-items:center;gap:6px;padding-left:0;color:#6246F5}
+.wy .urgent-help-page .screen-back>button svg,
+.wy .help-subpage .screen-back>button svg{transform:rotate(180deg)}
+.wy .urgent-help-page .screen-back h1,
+.wy .help-subpage .screen-back h1{margin:14px 0 4px;color:#111;font-size:25px;line-height:1.3}
+.wy .urgent-help-page .screen-back p,
+.wy .help-subpage .screen-back p{margin:0;color:#50535D;font-size:14px;line-height:1.55}
 .wy .help-country-card{padding:19px}
 .wy .help-country-card label{display:block;margin-bottom:7px;color:#191A20;font-size:14px;font-weight:700}
 .wy .help-country-card select{width:100%;min-height:46px;padding:10px 12px;border:1px solid #D5D7DD;border-radius:11px;background:#FFF;color:#191A20;font:inherit}
@@ -1744,7 +1749,18 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .resource-result b{display:block;color:#236C4A;font-size:15px}
 .wy .resource-result p{margin:6px 0 10px;font-size:14px;line-height:1.6}
 .wy .resource-result .text-link{padding-left:0;font-size:14px;font-weight:650}
-.wy .urgent-help-page .tip{margin-top:0}
+.wy .urgent-help-page .tip,
+.wy .help-subpage .tip{margin-top:0}
+
+/* Guía para publicar sin revelar la identidad. */
+.wy .privacy-guide-card{padding:20px}
+.wy .privacy-checklist{display:grid;gap:15px;margin-bottom:20px}
+.wy .privacy-checklist>div{display:grid;grid-template-columns:25px minmax(0,1fr);gap:10px;align-items:start}
+.wy .privacy-checklist svg{width:20px;height:20px;color:#4F9D73}
+.wy .privacy-checklist b,.wy .privacy-checklist small{display:block}
+.wy .privacy-checklist b{color:#191A20;font-size:15px;line-height:1.4}
+.wy .privacy-checklist small{margin-top:4px;color:#50535D;font-size:13px;line-height:1.5}
+.wy .privacy-guide-card>button{margin-top:4px}
 
 /* Reporte general desde Ayuda y seguridad. */
 .wy .report-help-modal{width:min(560px,100%);max-height:min(820px,92vh);overflow:auto}

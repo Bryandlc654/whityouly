@@ -8,62 +8,8 @@ import EmergencyResources from '@/components/wy/EmergencyResources';
 import { createGeneralReport } from '@/lib/reports';
 import { REPORT_REASONS, REPORT_REASON_LABELS } from '@/lib/moderation';
 
-interface HelpInfo {
-  title: string;
-  intro: string;
-  points: string[];
-}
-
-const HELP_INFO: Record<string, HelpInfo> = {
-  report: {
-    title: 'Cómo reportar contenido',
-    intro:
-      'Puedes reportar acoso, datos personales, amenazas, autolesión, violencia o cualquier contenido que incumpla las normas.',
-    points: [
-      'Abre el menú “Más opciones” del relato o comentario.',
-      'Elige “Reportar” y selecciona el motivo que mejor describa la situación.',
-      'El equipo de seguridad revisará el contexto antes de tomar una decisión.',
-      'Tu identidad no se comparte con la persona reportada.',
-    ],
-  },
-  safety: {
-    title: 'Cómo cuidamos la comunidad',
-    intro:
-      'La seguridad combina filtros automáticos, reportes y revisión humana. Un reporte no elimina automáticamente una publicación.',
-    points: [
-      'Los reportes llegan a una revisión de seguridad.',
-      'Las situaciones delicadas pueden requerir contexto adicional.',
-      'La moderación no diagnostica ni sustituye atención profesional.',
-      'Puedes consultar el estado de tus reportes desde tu cuenta.',
-    ],
-  },
-  identity: {
-    title: 'Publica sin revelar tu identidad',
-    intro:
-      'Tu correo y tu nombre real nunca se muestran en la comunidad. Estos consejos reducen el riesgo de identificarte por detalles del relato.',
-    points: [
-      'Cambia nombres, lugares y fechas que puedan identificarte.',
-      'Evita combinaciones de detalles únicos, aunque parezcan pequeños.',
-      'Escucha el audio antes de publicarlo: la voz y el fondo también informan.',
-      'No incluyas teléfonos, direcciones, centros de estudio ni lugares de trabajo.',
-    ],
-  },
-  rules: {
-    title: 'Normas de la comunidad',
-    intro: 'Reglas simples para compartir y acompañar sin hacer daño.',
-    points: [
-      'Acompaña, no diagnostiques ni indiques tratamientos.',
-      'Protege la identidad propia y la de otras personas.',
-      'No se permite acoso, humillación, amenazas ni discriminación.',
-      'Reporta situaciones de riesgo o exposición de datos.',
-      'Comenta desde tu experiencia y evita juzgar.',
-    ],
-  },
-};
-
 export default function HelpPage() {
   const router = useRouter();
-  const [info, setInfo] = useState<HelpInfo | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
   const [reportError, setReportError] = useState('');
@@ -95,7 +41,7 @@ export default function HelpPage() {
             <span><Icon name="shield" /></span>
             <h3>Centro de seguridad</h3>
             <p>Cómo cuidamos la comunidad y qué conducta se espera.</p>
-            <button className="text-link" type="button" onClick={() => setInfo(HELP_INFO.safety)}>
+            <button className="text-link" type="button" onClick={() => router.push('/ayuda/normas')}>
               Conocer el proceso
             </button>
           </article>
@@ -104,7 +50,7 @@ export default function HelpPage() {
             <span><Icon name="lock" /></span>
             <h3>Protege tu identidad</h3>
             <p>Consejos para publicar sin revelar información personal.</p>
-            <button className="text-link" type="button" onClick={() => setInfo(HELP_INFO.identity)}>
+            <button className="text-link" type="button" onClick={() => router.push('/ayuda/privacidad')}>
               Ver recomendaciones
             </button>
           </article>
@@ -120,7 +66,7 @@ export default function HelpPage() {
         </div>
 
         <div className="help-list card">
-          <button className="settings-row" type="button" onClick={() => setInfo(HELP_INFO.rules)}>
+          <button className="settings-row" type="button" onClick={() => router.push('/ayuda/normas')}>
             <span><Icon name="book" /></span>
             <span>
               <b>Normas de la comunidad</b>
@@ -232,38 +178,6 @@ export default function HelpPage() {
           </div>
         ) : null}
 
-        {info ? (
-          <div className="modal-layer" role="presentation" onClick={() => setInfo(null)}>
-            <div
-              className="modal help-info-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="helpInfoTitle"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="modal-head">
-                <div>
-                  <span className="micro-label">AYUDA Y SEGURIDAD</span>
-                  <h2 id="helpInfoTitle">{info.title}</h2>
-                </div>
-                <button className="close" type="button" onClick={() => setInfo(null)} aria-label="Cerrar">
-                  <Icon name="x" />
-                </button>
-              </div>
-              <p>{info.intro}</p>
-              <ul className="help-info-list">
-                {info.points.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-              <div className="modal-actions">
-                <button className="primary" type="button" onClick={() => setInfo(null)}>
-                  Entendido
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </section>
     </ProfileShell>
   );
