@@ -16,7 +16,6 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
 import GuideModal from '@/components/wy/GuideModal';
-import StoryComposer from '@/components/wy/StoryComposer';
 import { GUIDES } from '@/lib/guideContent';
 import { followCharacter, listFollowing, unfollowCharacter, whatIFollow } from '@/lib/follows';
 import {
@@ -113,7 +112,6 @@ export default function FeedPage() {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
-  const [composerOpen, setComposerOpen] = useState(false);
   const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
   const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
@@ -133,7 +131,6 @@ export default function FeedPage() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
-  const composerRef = useRef<HTMLElement>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -144,11 +141,6 @@ export default function FeedPage() {
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
-
-  // Al abrir el compositor en línea, se lleva a la vista (puede estar arriba).
-  useEffect(() => {
-    if (composerOpen) composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [composerOpen]);
 
   useEffect(() => {
     const verifySession = async () => {
@@ -529,7 +521,7 @@ export default function FeedPage() {
         router.push('/cuenta');
         break;
       case 'my-stories':
-        setComposerOpen(true);
+        router.push('/mis-relatos');
         break;
       case 'explore':
         router.push('/explorar');
@@ -623,15 +615,6 @@ export default function FeedPage() {
               setIntroOpen(false);
             }}
           />
-        ) : composerOpen ? (
-          <StoryComposer
-            onClose={() => setComposerOpen(false)}
-            onCreated={(_story, published) => {
-              setComposerOpen(false);
-              notify(published ? 'Tu relato se publicó.' : 'Tu borrador se guardó.');
-              void loadFeed();
-            }}
-          />
         ) : shareStory ? (
           <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
         ) : reader ? (
@@ -717,13 +700,13 @@ export default function FeedPage() {
           </section>
         ) : null}
 
-        <section className="composer card" ref={composerRef}>
+        <section className="composer card">
           <div className="composer-top">
             <Avatar initials={initials} avatarUrl={character?.avatarUrl} />
             <button
               className="composer-trigger"
               type="button"
-              onClick={() => setComposerOpen(true)}
+              onClick={() => router.push('/crear')}
             >
               <span>Comparte tu relato</span>
               <Icon name="edit" />
