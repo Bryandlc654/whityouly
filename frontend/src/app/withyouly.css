@@ -1783,3 +1783,22 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .create-story-card .story-form{padding:0}
 .wy .create-story-card .compose-tabs{margin-top:14px}
 @media(max-width:820px){.wy .create-story-card{padding:17px;border-radius:16px}.wy .create-story-screen .screen-heading{padding:0 2px}}
+/* Cómo empezar: elección rápida y acceso opcional al carrusel. */
+.wy .how-to-start-modal{width:min(560px,100%);padding:24px}
+.wy .how-to-start-modal .modal-head h2{color:#111;font-size:26px;line-height:1.2}
+.wy .how-to-start-modal .modal-head p{color:#50535D;font-size:14px;line-height:1.55}
+.wy .welcome-choices{display:grid;gap:8px;margin:18px 0 12px}
+.wy .welcome-choices>button{display:grid;grid-template-columns:38px minmax(0,1fr) 17px;align-items:center;gap:12px;min-height:66px;padding:11px 13px;border:1px solid #E5E0EB;border-radius:14px;background:#FFF;color:#191A20;text-align:left;cursor:pointer}
+.wy .welcome-choices>button:hover{border-color:#B8ACFA;background:#FAF8FF}
+.wy .welcome-choices>button>svg:first-child{width:20px;height:20px;padding:9px;border-radius:11px;box-sizing:content-box;background:#F1EDFF;color:#6246F5}
+.wy .welcome-choices>button>svg:last-child{width:17px;height:17px;color:#827B89}
+.wy .welcome-choices b,.wy .welcome-choices small{display:block}
+.wy .welcome-choices b{font-size:14px;line-height:1.35}
+.wy .welcome-choices small{margin-top:3px;color:#6F6875;font-size:12px;line-height:1.4}
+.wy .intro-optional54{display:inline-flex;align-items:center;gap:7px;padding:8px 0;border:0;background:transparent;color:#6246F5;font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.wy .intro-optional54 svg{width:18px;height:18px}
+.wy .how-to-start-footer{display:flex;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid #E2E3E8}
+.wy .how-to-start-footer .text-link{font-size:13px}
+@media(max-width:600px){.wy .how-to-start-modal{padding:19px}.wy .how-to-start-modal .modal-head h2{font-size:22px}.wy .welcome-choices>button{grid-template-columns:35px minmax(0,1fr) auto;gap:10px}}
+.wy .intro-start54{display:block;margin:12px auto 0;border:0;background:transparent;color:#6246F5;font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.wy .guide-modal .intro-start54{margin-bottom:4px}

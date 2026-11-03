@@ -7,9 +7,10 @@ import type { GuideContent } from '@/lib/guideContent';
 interface Props {
   guide: GuideContent;
   onClose: () => void;
+  onShowChoices?: () => void;
 }
 
-export default function GuideModal({ guide, onClose }: Props) {
+export default function GuideModal({ guide, onClose, onShowChoices }: Props) {
   const [index, setIndex] = useState(0);
   const step = guide.steps[index];
   const last = index === guide.steps.length - 1;
@@ -47,6 +48,12 @@ export default function GuideModal({ guide, onClose }: Props) {
           <i key={item.title} className={dotIndex === index ? 'active' : undefined} />
         ))}
       </div>
+
+      {onShowChoices ? (
+        <button className="intro-start54" type="button" onClick={onShowChoices}>
+          Ver opciones para empezar
+        </button>
+      ) : null}
 
       <div className="modal-actions guide-modal-actions">
         <button className="ghost" type="button" onClick={onClose}>

@@ -16,6 +16,7 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
 import GuideModal from '@/components/wy/GuideModal';
+import HowToStartModal from '@/components/wy/HowToStartModal';
 import { GUIDES } from '@/lib/guideContent';
 import { followCharacter, listFollowing, unfollowCharacter, whatIFollow } from '@/lib/follows';
 import {
@@ -123,6 +124,7 @@ export default function FeedPage() {
   const [moodError, setMoodError] = useState('');
   const [moodRegisteredToday, setMoodRegisteredToday] = useState<boolean | null>(null);
   const [introOpen, setIntroOpen] = useState(false);
+  const [introMode, setIntroMode] = useState<'choices' | 'guide'>('choices');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -240,6 +242,7 @@ export default function FeedPage() {
   useEffect(() => {
     if (!character) return;
     if (window.localStorage.getItem('withyouly-how-to-start-v58') === 'seen') return;
+    setIntroMode('guide');
     setIntroOpen(true);
   }, [character]);
 
@@ -282,7 +285,13 @@ export default function FeedPage() {
     setMoodOpen(true);
   };
 
+  const closeIntro = () => {
+    window.localStorage.setItem('withyouly-how-to-start-v58', 'seen');
+    setIntroOpen(false);
+  };
+
   const openIntro = () => {
+    setIntroMode('choices');
     setIntroOpen(true);
   };
 
@@ -607,13 +616,31 @@ export default function FeedPage() {
       toast={toast}
       unreadNotifications={unreadCount}
       overlay={
-        introOpen ? (
+        introOpen && introMode === 'choices' ? (
+          <HowToStartModal
+            onClose={closeIntro}
+            onRead={() => {
+              closeIntro();
+              window.setTimeout(
+                () => document.getElementById('feedList')?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+                50,
+              );
+            }}
+            onWrite={() => {
+              closeIntro();
+              router.push('/crear');
+            }}
+            onMood={() => {
+              closeIntro();
+              router.push('/mi-espacio');
+            }}
+            onShowGuide={() => setIntroMode('guide')}
+          />
+        ) : introOpen ? (
           <GuideModal
             guide={GUIDES.start}
-            onClose={() => {
-              window.localStorage.setItem('withyouly-how-to-start-v58', 'seen');
-              setIntroOpen(false);
-            }}
+            onClose={closeIntro}
+            onShowChoices={() => setIntroMode('choices')}
           />
         ) : shareStory ? (
           <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
