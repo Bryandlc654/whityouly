@@ -106,3 +106,19 @@
 .wy .join-prompt-modal>.close{position:absolute;top:12px;right:12px}
 .wy .story-viewer-page .join-prompt{margin-top:18px}
 @media(max-width:520px){.wy .guest-story-actions .ghost{display:none}.wy .join-prompt-actions button{flex:1;min-width:0}}
+
+/* ---------- Imagen para compartir: colores, patrón y vista previa ---------- */
+.wy .share-custom-colors{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.wy .share-builder-section .share-custom-colors label{display:flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid #d8d4df;border-radius:11px;background:#fff;font-size:12px;font-weight:750;color:#393341;cursor:pointer}
+.wy .share-custom-colors input[type="color"]{width:28px;height:28px;padding:0;border:0;border-radius:8px;background:none;cursor:pointer}
+.wy .share-custom-colors input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+.wy .share-custom-colors input[type="color"]::-webkit-color-swatch{border:1px solid rgba(0,0,0,.12);border-radius:8px}
+.wy .share-custom-colors .share-builder-hint{grid-column:1/-1}
+.wy .share-pattern-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.wy .share-pattern-grid button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px;border:1px solid #d8d4df;border-radius:11px;background:#fff;color:#393341;cursor:pointer}
+.wy .share-pattern-grid button.selected{border-color:#6246f5;background:#f6f4ff}
+.wy .share-pattern-grid canvas{display:block;width:100%;aspect-ratio:1;border-radius:8px}
+.wy .share-pattern-grid span{font-size:11px;font-weight:750;text-align:center}
+.wy .share-card-canvas{display:block;width:100%;height:auto;max-height:560px;object-fit:contain;border-radius:16px;box-shadow:0 16px 35px rgba(20,14,50,.16)}
+@media(max-width:520px){.wy .share-pattern-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.wy .share-builder-section .share-custom-colors label span{font-size:12px;font-weight:750}

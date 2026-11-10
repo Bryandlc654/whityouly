@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import Icon from './Icon';
 
@@ -22,15 +22,179 @@ interface Props {
   onNotify: (message: string) => void;
 }
 
-type CardTemplate = 'violet' | 'hope' | 'calm' | 'dawn';
+type CardTemplate = 'violet' | 'hope' | 'calm' | 'dawn' | 'night' | 'custom';
 type CardFormat = 'post' | 'story' | 'square';
+type CardPattern = 'none' | 'dots' | 'waves' | 'grid' | 'lines' | 'hearts' | 'sparkles';
+
+interface CardColors {
+  from: string;
+  to: string;
+  ink: string;
+  soft: string;
+}
+
+interface CardOptions {
+  colors: CardColors;
+  pattern: CardPattern;
+  logo: HTMLImageElement | null;
+}
 
 const TEMPLATES: Record<CardTemplate, { label: string; from: string; to: string; ink: string; soft: string }> = {
   violet: { label: 'Violeta', from: '#6246f5', to: '#7942cc', ink: '#ffffff', soft: 'rgba(255,255,255,.17)' },
   hope: { label: 'Esperanza', from: '#23704f', to: '#2d7d56', ink: '#ffffff', soft: 'rgba(255,255,255,.18)' },
   calm: { label: 'Calma', from: '#146b78', to: '#187a7b', ink: '#ffffff', soft: 'rgba(255,255,255,.18)' },
   dawn: { label: 'Amanecer', from: '#fff0de', to: '#efb2c4', ink: '#38283f', soft: 'rgba(255,255,255,.4)' },
+  night: { label: 'Noche', from: '#171f46', to: '#4d3d87', ink: '#ffffff', soft: 'rgba(255,255,255,.13)' },
+  custom: { label: 'Personalizado', from: '#6246f5', to: '#ef7fb0', ink: '#ffffff', soft: 'rgba(255,255,255,.17)' },
 };
+
+const PATTERNS: { id: CardPattern; label: string }[] = [
+  { id: 'none', label: 'Sin patrón' },
+  { id: 'dots', label: 'Puntos' },
+  { id: 'waves', label: 'Ondas' },
+  { id: 'grid', label: 'Cuadrícula' },
+  { id: 'lines', label: 'Líneas' },
+  { id: 'hearts', label: 'Corazones' },
+  { id: 'sparkles', label: 'Destellos' },
+];
+
+/** Luminancia relativa (WCAG) de un color #rrggbb. */
+function luminance(hex: string): number {
+  const value = hex.replace('#', '');
+  const channels = [0, 2, 4].map((index) => parseInt(value.slice(index, index + 2), 16) / 255);
+  const [r, g, b] = channels.map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Colores de texto legibles sobre un degradado elegido por la persona. */
+function customColors(from: string, to: string): CardColors {
+  const light = (luminance(from) + luminance(to)) / 2 > 0.42;
+  return {
+    from,
+    to,
+    ink: light ? '#2a2238' : '#ffffff',
+    soft: light ? 'rgba(42,34,56,.10)' : 'rgba(255,255,255,.17)',
+  };
+}
+
+/** Patrón decorativo sobre el fondo, siempre suave para no restar legibilidad. */
+function drawPattern(ctx: CanvasRenderingContext2D, pattern: CardPattern, w: number, h: number, ink: string) {
+  if (pattern === 'none') return;
+  const unit = w / 1080;
+  ctx.save();
+  ctx.fillStyle = ink;
+  ctx.strokeStyle = ink;
+  ctx.globalAlpha = 0.11;
+  ctx.lineWidth = Math.max(1, 3 * unit);
+  ctx.lineCap = 'round';
+
+  if (pattern === 'dots') {
+    const step = 54 * unit;
+    for (let y = step / 2, row = 0; y < h; y += step, row += 1) {
+      for (let x = (row % 2 ? step : step / 2); x < w; x += step) {
+        ctx.beginPath();
+        ctx.arc(x, y, 5 * unit, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (pattern === 'waves') {
+    const step = 64 * unit;
+    const amp = 14 * unit;
+    for (let y = step / 2; y < h + step; y += step) {
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 8 * unit) {
+        const yy = y + Math.sin((x / (150 * unit)) * Math.PI * 2) * amp;
+        if (x === 0) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+  } else if (pattern === 'grid') {
+    const step = 72 * unit;
+    ctx.lineWidth = Math.max(1, 2 * unit);
+    for (let x = step; x < w; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    for (let y = step; y < h; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+  } else if (pattern === 'lines') {
+    const step = 46 * unit;
+    for (let x = -h; x < w; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, h);
+      ctx.lineTo(x + h, 0);
+      ctx.stroke();
+    }
+  } else if (pattern === 'hearts' || pattern === 'sparkles') {
+    const step = 120 * unit;
+    for (let y = step / 2, row = 0; y < h + step; y += step, row += 1) {
+      for (let x = (row % 2 ? step : step / 2); x < w + step; x += step) {
+        const r = (pattern === 'hearts' ? 16 : 14) * unit;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(((row * 7 + Math.round(x)) % 5 - 2) * 0.12);
+        ctx.beginPath();
+        if (pattern === 'hearts') {
+          ctx.moveTo(0, r * 0.9);
+          ctx.bezierCurveTo(-r * 1.4, -r * 0.1, -r * 0.7, -r * 1.2, 0, -r * 0.45);
+          ctx.bezierCurveTo(r * 0.7, -r * 1.2, r * 1.4, -r * 0.1, 0, r * 0.9);
+        } else {
+          ctx.moveTo(0, -r);
+          ctx.quadraticCurveTo(0, 0, r, 0);
+          ctx.quadraticCurveTo(0, 0, 0, r);
+          ctx.quadraticCurveTo(0, 0, -r, 0);
+          ctx.quadraticCurveTo(0, 0, 0, -r);
+        }
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * Dibuja el logo. Sobre fondos claros se usan sus colores originales; sobre
+ * fondos oscuros se pinta del color del texto para que siempre se lea.
+ */
+function drawLogo(
+  ctx: CanvasRenderingContext2D,
+  logo: HTMLImageElement | null,
+  x: number,
+  y: number,
+  height: number,
+  colors: CardColors,
+) {
+  if (!logo || !logo.naturalWidth) {
+    ctx.font = `800 ${Math.round(height * 0.62)}px system-ui, sans-serif`;
+    ctx.fillStyle = colors.ink;
+    ctx.fillText('Withyouly', x, y + height * 0.18);
+    return;
+  }
+  const width = Math.round((logo.naturalWidth / logo.naturalHeight) * height);
+  const lightBackground = colors.ink !== '#ffffff';
+  if (lightBackground) {
+    ctx.drawImage(logo, x, y, width, height);
+    return;
+  }
+  const tinted = document.createElement('canvas');
+  tinted.width = width;
+  tinted.height = height;
+  const tctx = tinted.getContext('2d');
+  if (!tctx) return;
+  tctx.drawImage(logo, 0, 0, width, height);
+  tctx.globalCompositeOperation = 'source-in';
+  tctx.fillStyle = colors.ink;
+  tctx.fillRect(0, 0, width, height);
+  ctx.drawImage(tinted, x, y);
+}
 
 const FORMATS: Record<CardFormat, { label: string; size: string; w: number; h: number; ratio: string }> = {
   post: { label: 'Publicación', size: '1080 × 1350', w: 1080, h: 1350, ratio: '4 / 5' },
@@ -113,16 +277,17 @@ function wrappedCanvasLines(
 
 function buildCardCanvas(
   story: ShareStoryData,
-  template: CardTemplate,
+  options: CardOptions,
   format: CardFormat,
   excerpt: string,
   alias: boolean,
   includeLink: boolean,
   host: string,
+  target?: HTMLCanvasElement,
 ): HTMLCanvasElement {
-  const colors = TEMPLATES[template];
+  const { colors } = options;
   const size = FORMATS[format];
-  const canvas = document.createElement('canvas');
+  const canvas = target ?? document.createElement('canvas');
   canvas.width = size.w;
   canvas.height = size.h;
   const ctx = canvas.getContext('2d');
@@ -135,11 +300,12 @@ function buildCardCanvas(
   gradient.addColorStop(1, colors.to);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size.w, size.h);
+  drawPattern(ctx, options.pattern, size.w, size.h, colors.ink);
   ctx.fillStyle = colors.ink;
   ctx.textBaseline = 'top';
 
-  ctx.font = `800 ${Math.round(size.w * 0.035)}px system-ui, sans-serif`;
-  ctx.fillText('Withyouly', pad, pad);
+  drawLogo(ctx, options.logo, pad - 6, pad - 22, Math.round(size.w * 0.085), colors);
+  ctx.fillStyle = colors.ink;
 
   if (story.category) {
     const category = story.category;
@@ -237,6 +403,24 @@ function downloadBlob(blob: Blob, storyId: string, format: CardFormat) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
+/** Miniatura de un patrón con los colores actuales del fondo. */
+function PatternSwatch({ pattern, colors }: { pattern: CardPattern; colors: CardColors }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, colors.from);
+    gradient.addColorStop(1, colors.to);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Escala ampliada para que el patrón se aprecie en la miniatura.
+    drawPattern(ctx, pattern, 400, 400, colors.ink);
+  }, [pattern, colors]);
+  return <canvas ref={ref} width={120} height={120} aria-hidden />;
+}
+
 export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
   const [template, setTemplate] = useState<CardTemplate>('violet');
   const [format, setFormat] = useState<CardFormat>('post');
@@ -246,6 +430,17 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState<'link' | 'copy' | 'download' | 'share' | null>(null);
   const [view, setView] = useState<'options' | 'customize'>('options');
+  const [pattern, setPattern] = useState<CardPattern>('none');
+  const [customFrom, setCustomFrom] = useState(TEMPLATES.custom.from);
+  const [customTo, setCustomTo] = useState(TEMPLATES.custom.to);
+  const [logo, setLogo] = useState<HTMLImageElement | null>(null);
+  const previewRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const image = new Image();
+    image.onload = () => setLogo(image);
+    image.src = '/logo.png';
+  }, []);
 
   useEffect(() => {
     setLink(`${window.location.origin}/relato/${encodeURIComponent(story.id)}`);
@@ -259,8 +454,18 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
     }
   }, [link]);
 
-  const colors = TEMPLATES[template];
+  const colors: CardColors = useMemo(
+    () => (template === 'custom' ? customColors(customFrom, customTo) : TEMPLATES[template]),
+    [template, customFrom, customTo],
+  );
+  const cardOptions: CardOptions = useMemo(() => ({ colors, pattern, logo }), [colors, pattern, logo]);
   const size = FORMATS[format];
+
+  // La vista previa usa el mismo dibujo que la imagen descargada.
+  useEffect(() => {
+    if (view !== 'customize' || !previewRef.current) return;
+    buildCardCanvas(story, cardOptions, format, excerpt, alias, includeLink, host, previewRef.current);
+  }, [view, story, cardOptions, format, excerpt, alias, includeLink, host]);
 
   const copyLink = async () => {
     setBusy('copy');
@@ -295,7 +500,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
 
   const exportCard = async (share: boolean) => {
     setBusy(share ? 'share' : 'download');
-    const canvas = buildCardCanvas(story, template, format, excerpt, alias, includeLink, host);
+    const canvas = buildCardCanvas(story, cardOptions, format, excerpt, alias, includeLink, host);
     const blob = await canvasBlob(canvas);
     if (!blob) {
       setBusy(null);
@@ -339,7 +544,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
           <p>
             {view === 'options'
               ? 'Compártelo como enlace o como imagen. Tú eliges el formato.'
-              : 'Cambia el color, formato y extracto antes de compartir.'}
+              : 'Cambia el color, el patrón, el formato y el extracto antes de compartir.'}
           </p>
         </div>
         <button className="close" type="button" onClick={onClose} aria-label="Cerrar">
@@ -442,7 +647,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
               <Icon name="sparkle" />
               <span>
                 <b>Personalizar imagen</b>
-                <small>Cambia el color, formato y extracto antes de compartir.</small>
+                <small>Cambia el color, el patrón, el formato y el extracto.</small>
               </span>
               <Icon name="chevron" />
             </button>
@@ -465,7 +670,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
           <div className="share-builder-layout">
             <section className="share-builder-controls">
               <div className="share-builder-section">
-                <h3>1. Elige un estilo</h3>
+                <h3>1. Elige el fondo</h3>
                 <div className="share-template-grid">
                   {(Object.entries(TEMPLATES) as [CardTemplate, (typeof TEMPLATES)[CardTemplate]][]).map(([key, item]) => (
                     <button
@@ -475,7 +680,45 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
                       aria-pressed={template === key}
                       onClick={() => setTemplate(key)}
                     >
-                      <i style={{ background: `linear-gradient(135deg, ${item.from}, ${item.to})` }} />
+                      <i
+                        style={{
+                          background:
+                            key === 'custom'
+                              ? `linear-gradient(135deg, ${customFrom}, ${customTo})`
+                              : `linear-gradient(135deg, ${item.from}, ${item.to})`,
+                        }}
+                      />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {template === 'custom' ? (
+                  <div className="share-custom-colors">
+                    <label>
+                      <input type="color" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} />
+                      <span>Color inicial</span>
+                    </label>
+                    <label>
+                      <input type="color" value={customTo} onChange={(event) => setCustomTo(event.target.value)} />
+                      <span>Color final</span>
+                    </label>
+                    <small className="share-builder-hint">El color del texto y del logo se ajusta solo para que se lea bien.</small>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="share-builder-section">
+                <h3>2. Añade un patrón</h3>
+                <div className="share-pattern-grid">
+                  {PATTERNS.map((item) => (
+                    <button
+                      key={item.id}
+                      className={pattern === item.id ? 'selected' : undefined}
+                      type="button"
+                      aria-pressed={pattern === item.id}
+                      onClick={() => setPattern(item.id)}
+                    >
+                      <PatternSwatch pattern={item.id} colors={colors} />
                       <span>{item.label}</span>
                     </button>
                   ))}
@@ -483,7 +726,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
               </div>
 
               <div className="share-builder-section">
-                <h3>2. Elige el formato</h3>
+                <h3>3. Elige el formato</h3>
                 <div className="share-format-grid">
                   {(Object.entries(FORMATS) as [CardFormat, (typeof FORMATS)[CardFormat]][]).map(([key, item]) => (
                     <button
@@ -502,7 +745,7 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
 
               <div className="share-builder-section">
                 <label htmlFor="shareExcerpt">
-                  <h3>3. Revisa el extracto</h3>
+                  <h3>4. Revisa el extracto</h3>
                 </label>
                 <textarea
                   id="shareExcerpt"
@@ -542,39 +785,19 @@ export default function ShareStoryModal({ story, onClose, onNotify }: Props) {
                 <span>Vista previa</span>
                 <small>{size.size}px</small>
               </div>
-              <article
-                className="share-card-preview"
-                style={{
-                  background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
-                  color: colors.ink,
-                  aspectRatio: size.ratio,
-                }}
-              >
-                <div className="share-card-top">
-                  <b>Withyouly</b>
-                  {story.category ? <span style={{ background: colors.soft }}>{story.category}</span> : null}
-                </div>
-                <div className="share-card-body">
-                  <h3>{story.title}</h3>
-                  <p>{excerpt}</p>
-                </div>
-                <div className="share-card-footer">
-                  <b>{alias ? story.author : 'Compartido de forma anónima'}</b>
-                  {includeLink ? (
-                    <small>
-                      Lee el relato completo
-                      <br />
-                      {host}
-                    </small>
-                  ) : null}
-                </div>
-              </article>
+              <canvas
+                ref={previewRef}
+                className="share-card-canvas"
+                style={{ aspectRatio: size.ratio }}
+                role="img"
+                aria-label={`Vista previa de la imagen: ${story.title}`}
+              />
             </section>
           </div>
 
           <div className="share-export-note">
             <Icon name="lock" />
-            La imagen contiene solo el extracto, la categoría y el seudónimo que ves arriba. Mi diario, las
+            La imagen contiene solo el logo, el extracto, la categoría y el seudónimo que ves arriba. Mi diario, las
             cápsulas y los borradores no se comparten desde aquí.
           </div>
 
