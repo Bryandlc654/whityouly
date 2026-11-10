@@ -9,6 +9,7 @@ import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
 import PostCard from '@/components/wy/PostCard';
+import CommentsPanel from '@/components/wy/CommentsPanel';
 import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import RightRail from '@/components/wy/RightRail';
 import MoodModal from '@/components/wy/MoodModal';
@@ -125,6 +126,7 @@ export default function FeedPage() {
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
   const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
+  const [commentsFor, setCommentsFor] = useState<{ id: string; title: string; author: string } | null>(null);
   const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
@@ -577,7 +579,7 @@ export default function FeedPage() {
           onOpenMenu={() => openPostMenu(entry.id)}
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
-          onComment={() => setReader({ id: story.id, title: story.title })}
+          onComment={() => setCommentsFor({ id: story.id, title: story.title, author: entry.author })}
           onOpenStory={() => setReader({ id: story.id, title: story.title })}
           onShare={() =>
             setShareStory({
@@ -697,6 +699,17 @@ export default function FeedPage() {
         />
       }
     >
+      {commentsFor ? (
+        <CommentsPanel
+          storyId={commentsFor.id}
+          title={commentsFor.title}
+          author={commentsFor.author}
+          viewerName={character?.name}
+          viewerAvatarUrl={character?.avatarUrl}
+          onNotify={notify}
+          onClose={() => setCommentsFor(null)}
+        />
+      ) : null}
       <section className="screen home-screen">
         <div className="welcome-row">
           <h1>Hola, {name || 'invitado'}</h1>

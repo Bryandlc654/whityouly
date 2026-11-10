@@ -32,6 +32,9 @@ function formatDate(value: string): string {
   );
 }
 
+/** Lectores abiertos: evita que el «atrás» de un desmontaje cierre el siguiente. */
+let openReaders = 0;
+
 export default function StoryViewer({
   storyId,
   story: initial,
@@ -69,7 +72,10 @@ export default function StoryViewer({
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
-    window.history.pushState({ ...(previousState ?? {}), [marker]: true }, '');
+    openReaders += 1;
+    if (!previousState?.[marker]) {
+      window.history.pushState({ ...(previousState ?? {}), [marker]: true }, '');
+    }
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
@@ -83,7 +89,12 @@ export default function StoryViewer({
       window.removeEventListener('popstate', onPop);
       document.body.style.overflow = previousOverflow;
       document.body.style.paddingRight = previousPaddingRight;
-      if (window.history.state?.[marker]) window.history.back();
+      openReaders -= 1;
+      // En modo estricto React desmonta y vuelve a montar el efecto: se espera un
+      // ciclo para no cerrar el lector recién abierto con el «atrás» del primero.
+      window.setTimeout(() => {
+        if (openReaders === 0 && window.history.state?.[marker]) window.history.back();
+      }, 0);
     };
   }, [variant]);
 

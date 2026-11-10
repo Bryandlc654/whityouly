@@ -179,7 +179,7 @@ export default function CommentSection({
 
     setReportFor(null);
     if (result.status === 'ok') {
-      notify('Reporte enviado a revisi��n.');
+      notify('Reporte enviado a revisión.');
       return;
     }
     setError(result.message);
