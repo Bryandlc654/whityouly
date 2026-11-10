@@ -28,6 +28,7 @@ import {
   type DiaryEntry,
   type DiaryEntryType,
 } from '@/lib/diary';
+import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
 const DAYPART = 'Todo el día';
 const NOTE_MAX_LENGTH = 10_000;
@@ -633,9 +634,7 @@ export default function DiaryPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="form" />
     );
   }
 
@@ -757,7 +756,7 @@ export default function DiaryPage() {
             {nextCursor ? ' · Hay más para cargar' : ''}
           </p>
 
-          {listLoading ? <p className="muted small">Cargando tu diario…</p> : null}
+          {listLoading ? <SkeletonList count={2} /> : null}
 
           {!listLoading && error ? (
             <div className="auth-error" role="alert">

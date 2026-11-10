@@ -15,6 +15,7 @@ import { fetchPublicProfile } from '@/lib/characters';
 import { listFollowersOf, listFollowingOf } from '@/lib/follows';
 import { listMyStories } from '@/lib/stories';
 import { getTree, type TreeView } from '@/lib/tree';
+import PageSkeleton from '@/components/wy/PageSkeleton';
 
 interface ProfileStats {
   stories: number;
@@ -206,9 +207,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="detail" />
     );
   }
 

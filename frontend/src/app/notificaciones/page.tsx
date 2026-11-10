@@ -10,6 +10,7 @@ import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
+import PageSkeleton from '@/components/wy/PageSkeleton';
 
 interface DemoNotice {
   id: string;
@@ -211,9 +212,7 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

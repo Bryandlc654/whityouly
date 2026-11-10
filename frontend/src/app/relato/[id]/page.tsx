@@ -15,6 +15,7 @@ import StoryViewer from '@/components/wy/StoryViewer';
 import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { viewPublicStory, viewStory, type MyStory } from '@/lib/stories';
+import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -178,9 +179,7 @@ export default function StoryPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="detail" />
     );
   }
 
@@ -228,7 +227,7 @@ export default function StoryPage() {
           <Icon name="chevron" /> Volver a notificaciones
         </button>
 
-        {storyLoading ? <p className="muted small">Cargando el relato…</p> : null}
+        {storyLoading ? <SkeletonList kind="post" count={1} /> : null}
 
         {!storyLoading && error ? (
           <div className="auth-error" role="alert">

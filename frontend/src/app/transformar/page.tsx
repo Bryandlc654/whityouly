@@ -10,6 +10,7 @@ import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { listMyStories, type MyStoryListItem } from '@/lib/stories';
+import PageSkeleton from '@/components/wy/PageSkeleton';
 
 type CreativeFormat = 'Poema' | 'Canción' | 'Relato literario';
 type CreativeTone = 'Esperanzador' | 'Íntimo' | 'Sereno' | 'Nostálgico';
@@ -308,9 +309,7 @@ export default function TransformPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="form" />
     );
   }
 

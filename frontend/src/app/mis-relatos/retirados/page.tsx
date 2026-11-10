@@ -15,6 +15,7 @@ import {
   restoreStory,
   type MyStoryListItem,
 } from '@/lib/stories';
+import { SkeletonList } from '@/components/wy/PageSkeleton';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -251,7 +252,7 @@ export default function WithdrawnStoriesPage() {
           </div>
         </div>
 
-        {loading ? <p className="muted small">Cargando…</p> : null}
+        {loading ? <SkeletonList count={2} /> : null}
 
         {!loading && listError ? (
           <div className="auth-error" role="alert">

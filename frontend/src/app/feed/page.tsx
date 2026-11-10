@@ -33,6 +33,7 @@ import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/m
 import { unreadNotificationsCount } from '@/lib/notifications';
 import type { FeedStory } from '@/components/wy/feedData';
 import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '@/lib/emotionalMap';
+import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
 interface FeedEntry extends FeedStory {
   isOwn: boolean;
@@ -609,9 +610,7 @@ export default function FeedPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="feed" />
     );
   }
 
@@ -816,7 +815,7 @@ export default function FeedPage() {
           </div>
         ) : null}
 
-        {feedLoading ? <p className="muted small">Preparando tu feed…</p> : null}
+        {feedLoading ? <SkeletonList kind="post" count={2} /> : null}
 
         <div id="feedList">
           {visibleFeed.length > 0

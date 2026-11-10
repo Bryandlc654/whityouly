@@ -17,6 +17,7 @@ import {
   type SupportStatus,
   type SupportTicket,
 } from '@/lib/support';
+import { SkeletonList } from '@/components/wy/PageSkeleton';
 
 type Tab = 'new' | 'mine';
 type Filter = SupportStatus | 'ALL';
@@ -244,7 +245,7 @@ export default function SupportPage() {
               ))}
             </div>
 
-            {loading ? <p className="muted small">Cargando tus solicitudes…</p> : null}
+            {loading ? <SkeletonList count={2} /> : null}
 
             {listError ? (
               <div className="auth-error" role="alert">

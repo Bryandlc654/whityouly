@@ -17,6 +17,7 @@ import {
   type WhatIFollow,
 } from '@/lib/follows';
 import { unfollowStory } from '@/lib/interactions';
+import PageSkeleton from '@/components/wy/PageSkeleton';
 
 type FollowingTab = 'authors' | 'stories';
 
@@ -189,9 +190,7 @@ export default function FollowingPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

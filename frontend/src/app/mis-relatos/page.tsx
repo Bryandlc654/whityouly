@@ -35,6 +35,7 @@ import {
   listMyAppeals,
   type Appeal,
 } from '@/lib/moderation';
+import { SkeletonList } from '@/components/wy/PageSkeleton';
 
 type StatusFilter = 'DRAFT' | 'PUBLISHED';
 type StoryView = 'published' | 'drafts' | 'saved';
@@ -665,7 +666,7 @@ export default function MyStoriesPage() {
           </div>
         )}
 
-        {loading ? <p className="muted small">Verificando acceso…</p> : null}
+        {loading ? <SkeletonList count={3} /> : null}
 
         {!loading && view !== 'saved' && listError ? (
           <div className="auth-error" role="alert">
@@ -723,7 +724,7 @@ export default function MyStoriesPage() {
         ) : null}
 
         {!loading && view === 'saved' && savedLoading ? (
-          <p className="muted small">Cargando guardados…</p>
+          <SkeletonList count={2} />
         ) : null}
 
         {view === 'drafts' && stories.length > 0

@@ -9,6 +9,7 @@ import {
   type MyReport,
   type MyReportStatus,
 } from '@/lib/reports';
+import { SkeletonList } from '@/components/wy/PageSkeleton';
 
 type Filter = MyReportStatus | 'ALL';
 
@@ -145,7 +146,7 @@ export default function MyReportsPage() {
               ))}
             </div>
 
-            {loading ? <p className="muted small">Cargando tus reportes…</p> : null}
+            {loading ? <SkeletonList count={2} /> : null}
 
             {error ? (
               <div className="auth-error" role="alert">

@@ -30,6 +30,7 @@ import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { saveAuthorPreference } from '@/lib/contentPreferences';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
 import type { FeedStory } from '@/components/wy/feedData';
+import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
 type SearchTab = 'all' | 'stories' | 'people' | 'categories';
 type Scope = '' | 'peru' | 'global';
@@ -760,9 +761,7 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="grid" />
     );
   }
 
@@ -1042,7 +1041,7 @@ export default function ExplorePage() {
               {tab === 'stories' ? ` · ${stories.length} ${stories.length === 1 ? 'relato' : 'relatos'}` : ''}
             </p>
 
-            {busy ? <p className="muted small">Buscando…</p> : null}
+            {busy ? <SkeletonList kind="post" count={2} /> : null}
             {error ? (
               <div className="auth-error" role="alert">
                 {error}

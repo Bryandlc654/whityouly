@@ -48,3 +48,35 @@
 .wy .mood-choices-illustrated{grid-template-columns:repeat(3,minmax(0,1fr))}
 .wy .mood-choices-illustrated .mood-illustration{width:34px;height:34px}
 }
+
+/* ---------- Skeleton y animación de carga ---------- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wy .sk-bone{display:block;flex-shrink:0;max-width:100%;border-radius:8px;background:linear-gradient(90deg,#eeebf8 0%,#f7f5fd 42%,#eeebf8 84%);background-size:240% 100%;animation:wy-shimmer 1.35s ease-in-out infinite}
+@keyframes wy-shimmer{0%{background-position:120% 0}100%{background-position:-120% 0}}
+.wy .sk-card{border:1px solid #ece9f5;border-radius:18px;background:#fff;padding:18px}
+.wy .sk-stack{display:flex;flex-direction:column;gap:9px}
+.wy .sk-row{display:flex;align-items:center;gap:12px}
+.wy .sk-row>.sk-bone[style*="width: 100%"]{flex:1 1 0;min-width:0}
+.wy .sk-main{display:flex;flex-direction:column;gap:16px}
+.wy .sk-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:4px}
+.wy .sk-post{display:flex;flex-direction:column;gap:13px}
+.wy .sk-actions{display:flex;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid #f0edf7}
+.wy .sk-checkin{display:flex;flex-direction:column;gap:14px}
+.wy .sk-chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.wy .sk-pills{display:flex;flex-wrap:wrap}
+.wy .sk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wy .sk-tile{display:flex;flex-direction:column;gap:10px;min-height:118px}
+.wy .sk-list{display:flex;flex-direction:column;gap:12px}
+.wy .sk-list-row{display:flex;align-items:center;gap:16px}
+.wy .sk-form{gap:12px}
+.wy .sk-search{flex:1;max-width:460px}
+.wy .right-rail .sk-card{margin-bottom:14px}
+.wy .sk-nav-item{height:48px;padding:0 14px;border-radius:14px;display:flex;align-items:center;gap:14px;color:#a7a3b5}
+.wy .sk-nav-item svg{width:22px}
+.wy .sk-page .safety-note{border:1px solid #ece9f5}
+@media(max-width:520px){.wy .sk-chips{grid-template-columns:repeat(3,minmax(0,1fr))}.wy .sk-grid{grid-template-columns:1fr}}
+
+/* El contenido real entra con un fundido suave al terminar la carga. */
+.wy .main-content>.screen{animation:wy-reveal .32s ease-out both}
+@keyframes wy-reveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.wy .sk-bone{animation:none}.wy .main-content>.screen{animation:none}}

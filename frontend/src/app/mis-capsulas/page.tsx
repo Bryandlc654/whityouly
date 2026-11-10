@@ -13,6 +13,7 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { MOODS, MOOD_EMOJI } from '@/components/wy/MoodModal';
 import { createCapsule, deleteCapsule, listCapsules, updateCapsule, type Capsule } from '@/lib/capsules';
+import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
 const DATE_OPTIONS = [
   { value: '7', label: '7 días' },
@@ -304,9 +305,7 @@ export default function CapsulesPage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="form" />
     );
   }
 
@@ -491,7 +490,7 @@ export default function CapsulesPage() {
 
         {capsules.length > 0 ? <h2 className="discovery-section-title">Cápsulas guardadas</h2> : null}
 
-        {listLoading ? <p className="muted small">Cargando tus cápsulas…</p> : null}
+        {listLoading ? <SkeletonList count={2} /> : null}
 
         {!listLoading && error ? (
           <div className="auth-error" role="alert">

@@ -23,6 +23,7 @@ import {
   type CareActivityType,
   type CareOutcome,
 } from '@/lib/careActivities';
+import PageSkeleton from '@/components/wy/PageSkeleton';
 
 type View = 'library' | 'calm' | 'thoughts' | 'small' | 'vent' | 'company' | 'distract';
 type BreathStage = 'intro' | 'running' | 'done';
@@ -838,9 +839,7 @@ export default function CarePage() {
 
   if (loading) {
     return (
-      <div className="wy" style={{ display: 'grid', placeItems: 'center' }}>
-        <p className="muted">Verificando acceso…</p>
-      </div>
+      <PageSkeleton variant="grid" />
     );
   }
 
