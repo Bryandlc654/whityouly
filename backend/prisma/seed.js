@@ -62,6 +62,13 @@ const CATEGORIES = [
   'Salud',
   'Soledad',
   'Trabajo',
+  // Temas públicos de la entrega v58 (Explorar y Crear muestran solo estos).
+  'Mi día a día',
+  'Pareja',
+  'Amistad',
+  'Trabajo y estudios',
+  'Relación conmigo',
+  'Pérdidas y cambios',
 ];
 
 /**

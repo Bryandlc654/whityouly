@@ -5,7 +5,7 @@ import Icon from './Icon';
 import Guide58Modal from './Guide58Modal';
 import Avatar from './Avatar';
 import { Sheet, type SheetRow } from './Overlays';
-import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
+import { V58_EMOTIONS, V58_TOPIC_NAMES } from '@/lib/v58Taxonomy';
 import { uploadAudio } from '@/lib/files';
 import {
   addStoryStage,
@@ -92,7 +92,6 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
   const alias = characterName || 'tu seudónimo';
 
   const [mode, setMode] = useState<Mode>('classic');
-  const [catalog, setCatalog] = useState<TaxonomyCatalog | null>(null);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -142,12 +141,6 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
     setToast(message);
     window.setTimeout(() => setToast((current) => (current === message ? '' : current)), 2400);
   }
-
-  useEffect(() => {
-    void fetchTaxonomy().then((result) => {
-      if (result.status === 'ok') setCatalog(result.data);
-    });
-  }, []);
 
   // Borrador local: v58 lo guarda mientras se escribe.
   useEffect(() => {
@@ -471,9 +464,9 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
         </label>
         <select id={`${prefix}Category`} value={category} onChange={(event) => setCategory(event.target.value)}>
           <option value="">Sin elegir tema</option>
-          {(catalog?.categories ?? []).map((item) => (
-            <option key={item.id ?? item.name} value={item.name}>
-              {item.name}
+          {V58_TOPIC_NAMES.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </select>
@@ -484,9 +477,9 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
         </label>
         <select id={`${prefix}Emotion`} value={emotion} onChange={(event) => setEmotion(event.target.value)}>
           <option value="">Sin elegir emoción</option>
-          {(catalog?.emotions ?? []).map((item) => (
-            <option key={item.id ?? item.name} value={item.name}>
-              {item.name}
+          {V58_EMOTIONS.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </select>

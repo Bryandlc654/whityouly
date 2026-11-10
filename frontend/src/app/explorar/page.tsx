@@ -11,11 +11,10 @@ import Icon from '@/components/wy/Icon';
 import PostCard from '@/components/wy/PostCard';
 import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import StoryViewer from '@/components/wy/StoryViewer';
-import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import { fetchTaxonomy, type TaxonomyCatalog } from '@/lib/taxonomy';
+import { V58_EMOTIONS, V58_TOPICS } from '@/lib/v58Taxonomy';
 import { listPublicStories, reportStory, type FollowingStory } from '@/lib/stories';
 import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
 import { getFeaturedStories, type FeaturedStory } from '@/lib/discovery';
@@ -57,20 +56,6 @@ const KIND_LABELS: Record<Exclude<Kind, ''>, string> = {
   closure: 'Cierres compartidos',
 };
 
-const TOPIC_META: Record<string, { description: string; icon: IconName }> = {
-  Ansiedad: { description: 'Cuando la mente no se detiene', icon: 'pulse' },
-  Aprendizaje: { description: 'Lo que una experiencia te dejó', icon: 'book' },
-  Autoestima: { description: 'Cómo te miras y te tratas', icon: 'user' },
-  Cambio: { description: 'Nuevas etapas y decisiones', icon: 'trend' },
-  Esperanza: { description: 'Relatos que miran hacia delante', icon: 'sparkle' },
-  Familia: { description: 'Vínculos, crianza y convivencia', icon: 'home' },
-  Gratitud: { description: 'Momentos que quieres guardar', icon: 'heart' },
-  Pérdida: { description: 'Despedidas, duelos y nuevas etapas', icon: 'sparkle' },
-  Relaciones: { description: 'Amor, amistad y vínculos', icon: 'users' },
-  Salud: { description: 'Cuerpo, descanso y bienestar', icon: 'shield' },
-  Soledad: { description: 'Días silenciosos y compañía', icon: 'users' },
-  Trabajo: { description: 'Rutinas, esfuerzo y logros', icon: 'book' },
-};
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -146,8 +131,8 @@ export default function ExplorePage() {
 
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [taxo, setTaxo] = useState<TaxonomyCatalog | null>(null);
   const [featured, setFeatured] = useState<FeaturedStory[]>([]);
+  const [latest, setLatest] = useState<FollowingStory | null>(null);
   const [preferredLanguage, setPreferredLanguage] = useState('es');
 
   const [q, setQ] = useState('');
@@ -225,12 +210,13 @@ export default function ExplorePage() {
 
     void verify();
 
-    void fetchTaxonomy().then((result) => {
-      if (result.status === 'ok') setTaxo(result.data);
-    });
-
     void getFeaturedStories(6).then((result) => {
       if (result.status === 'ok') setFeatured(result.data.items);
+    });
+
+    // Si no hay destacados, se recomienda el relato público más reciente.
+    void listPublicStories({ limit: 1 }).then((result) => {
+      if (result.status === 'ok') setLatest(result.data.items[0] ?? null);
     });
 
     void fetchAccount().then((result) => {
@@ -614,9 +600,11 @@ export default function ExplorePage() {
     notify(result.status === 'ok' ? 'Reporte enviado a revisión.' : result.message);
   };
 
-  const categories = taxo?.categories ?? [];
-  const emotions = taxo?.emotions ?? [];
-  const quickTopics = categories.filter((item) => item.name === 'Esperanza' || item.name === 'Aprendizaje');
+  // v58 muestra siempre sus 7 temas y 8 emociones públicas, en este orden.
+  const categories = V58_TOPICS.map((topic) => ({ id: topic.name, name: topic.name }));
+  const emotions = V58_EMOTIONS.map((name) => ({ id: name, name }));
+  // v58 recomienda un solo relato bajo «Relatos que podrían acompañarte».
+  const recommended: FollowingStory | null = featured[0] ?? latest;
   const categoryMatches = term
     ? [
         ...categories
@@ -971,40 +959,38 @@ export default function ExplorePage() {
               >
                 Global
               </button>
-              {quickTopics.map((item) => (
-                <button
-                  key={item.id}
-                  className={`filter-pill${selCat === item.name ? ' active' : ''}`}
-                  type="button"
-                  onClick={() => setSelCat(item.name)}
-                >
-                  {item.name}
-                </button>
-              ))}
+              <button
+                className={`filter-pill${selEmo === 'Esperanza' ? ' active' : ''}`}
+                type="button"
+                onClick={() => setSelEmo('Esperanza')}
+              >
+                Esperanza
+              </button>
+              <button
+                className={`filter-pill${selCat === 'Relación conmigo' ? ' active' : ''}`}
+                type="button"
+                onClick={() => setSelCat('Relación conmigo')}
+              >
+                Relación conmigo
+              </button>
             </div>
 
             <h2 className="discovery-section-title">Explorar por tema</h2>
             <div className="category-grid">
-              {categories.map((item) => {
-                const meta = TOPIC_META[item.name] ?? {
-                  description: 'Relatos sobre este tema',
-                  icon: 'book' as IconName,
-                };
-                return (
-                  <button
-                    key={item.id}
-                    className="category-tile"
-                    type="button"
-                    onClick={() => setSelCat(item.name)}
-                  >
-                    <span>
-                      <Icon name={meta.icon} />
-                    </span>
-                    <b>{item.name}</b>
-                    <small>{meta.description}</small>
-                  </button>
-                );
-              })}
+              {V58_TOPICS.map((topic) => (
+                <button
+                  key={topic.name}
+                  className="category-tile"
+                  type="button"
+                  onClick={() => setSelCat(topic.name)}
+                >
+                  <span>
+                    <Icon name={topic.icon} />
+                  </span>
+                  <b>{topic.name}</b>
+                  <small>{topic.description}</small>
+                </button>
+              ))}
             </div>
 
             <section className="emotion-discovery">
@@ -1023,14 +1009,14 @@ export default function ExplorePage() {
               </div>
             </section>
 
-            {featured.length > 0 ? (
+            {recommended ? (
               <>
                 <div className="section-title">
                   <div>
                     <h2>Relatos que podrían acompañarte</h2>
                   </div>
                 </div>
-                <div className="story-list">{featured.slice(0, 3).map(renderStory)}</div>
+                {renderStory(recommended)}
               </>
             ) : null}
           </>
