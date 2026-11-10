@@ -77,6 +77,37 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
+/** Igual que v58: «Hace 4 días», «Hace 3 semanas». */
+function relativeTime(value: string): string {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return '';
+  const minutes = Math.max(0, Math.round((Date.now() - time) / 60_000));
+  const unit = (n: number, one: string, many: string) => `Hace ${n} ${n === 1 ? one : many}`;
+  if (minutes < 1) return 'Ahora';
+  if (minutes < 60) return unit(minutes, 'minuto', 'minutos');
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return unit(hours, 'hora', 'horas');
+  const days = Math.round(hours / 24);
+  if (days < 7) return unit(days, 'día', 'días');
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) return unit(weeks, 'semana', 'semanas');
+  const months = Math.round(days / 30);
+  if (months < 12) return unit(months, 'mes', 'meses');
+  return unit(Math.round(days / 365), 'año', 'años');
+}
+
+/** Fecha corta de los borradores de v58 (toLocaleDateString es-PE). */
+function draftDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('es-PE', { timeZone: 'America/Lima' });
+}
+
+const VIEW_HEADINGS: Record<Exclude<StoryView, 'published'>, { title: string; hint: string }> = {
+  drafts: { title: 'Borradores', hint: 'Solo tú puedes verlos hasta que decidas publicar.' },
+  saved: { title: 'Relatos guardados', hint: 'Esta lista es privada y solo está disponible para ti.' },
+};
+
 
 export default function MyStoriesPage() {
   const router = useRouter();
@@ -323,8 +354,8 @@ export default function MyStoriesPage() {
   };
 
   const openComposer = () => {
-    setComposerDraft(undefined);
-    setComposerOpen(true);
+    // v58 lleva a la pantalla «Comparte tu relato».
+    router.push('/crear');
   };
 
   const handleCreated = () => {
@@ -551,7 +582,8 @@ export default function MyStoriesPage() {
     <WyFrame
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
-      activeRoute="my-stories"
+      // En v58, Borradores y Guardados son rutas propias sin entrada activa en el menú.
+      activeRoute={view === 'published' ? 'my-stories' : 'character'}
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
@@ -587,37 +619,51 @@ export default function MyStoriesPage() {
       }
     >
       <section className="screen my-stories-page">
-        <div className="screen-heading">
-          <div>
-            <h1>Mis relatos</h1>
-            <p>Puedes volver, editar o continuar cuando lo necesites.</p>
-          </div>
-          <button className="secondary" type="button" onClick={openComposer}>
-            Nuevo relato
-          </button>
-        </div>
+        {view === 'published' ? (
+          <>
+            <div className="screen-heading">
+              <div>
+                <h1>Mis relatos</h1>
+                <p>Puedes volver, editar o continuar cuando lo necesites.</p>
+              </div>
+              <button className="secondary" type="button" onClick={openComposer}>
+                Nuevo relato
+              </button>
+            </div>
 
-        <button
-          className="text-link"
-          type="button"
-          onClick={() => router.push('/mis-relatos/retirados')}
-        >
-          Ver relatos retirados
-        </button>
-
-        <div className="segmented my-stories-tabs">
-          {VIEWS.map((item) => (
             <button
-              key={item.id}
+              className="text-link"
               type="button"
-              className={view === item.id ? 'active' : undefined}
-              aria-current={view === item.id ? 'page' : undefined}
-              onClick={() => setView(item.id)}
+              onClick={() => router.push('/mis-relatos/retirados')}
             >
-              {item.label}
+              Ver relatos retirados
             </button>
-          ))}
-        </div>
+
+            <div className="segmented my-stories-tabs">
+              {VIEWS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={view === item.id ? 'active' : undefined}
+                  aria-current={view === item.id ? 'page' : undefined}
+                  onClick={() => setView(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="screen-back">
+            <button className="ghost" type="button" onClick={() => setView('published')}>
+              ← Mis relatos
+            </button>
+            <div>
+              <h1>{VIEW_HEADINGS[view].title}</h1>
+              <p>{VIEW_HEADINGS[view].hint}</p>
+            </div>
+          </div>
+        )}
 
         {loading ? <p className="muted small">Verificando acceso…</p> : null}
 
@@ -654,7 +700,7 @@ export default function MyStoriesPage() {
             <h2>{view === 'drafts' ? 'No tienes borradores' : 'Todavía no has publicado relatos'}</h2>
             <p>
               {view === 'drafts'
-                ? 'Lo que escribas se conservará aquí hasta que decidas publicarlo.'
+                ? 'Lo que escribas se conservará aquí hasta que lo publiques.'
                 : 'Comparte lo que necesitas sacar de tu pecho. Puedes guardarlo en privado y decidir después.'}
             </p>
             <button className="secondary" type="button" onClick={openComposer}>
@@ -664,27 +710,57 @@ export default function MyStoriesPage() {
         ) : null}
 
         {!loading && view === 'saved' && !savedLoading && !savedError && saved.length === 0 ? (
-          <div className="empty-state">
+          <section className="empty-state card">
+            <span>
+              <Icon name="bookmark" />
+            </span>
             <h2>Aún no guardaste relatos</h2>
             <p>Usa “Guardar” en cualquier relato para volver a él después.</p>
             <button className="secondary" type="button" onClick={() => router.push('/feed')}>
               Explorar el feed
             </button>
-          </div>
+          </section>
         ) : null}
 
         {!loading && view === 'saved' && savedLoading ? (
           <p className="muted small">Cargando guardados…</p>
         ) : null}
 
-        {view !== 'saved' && stories.length > 0 ? (
+        {view === 'drafts' && stories.length > 0
+          ? stories.map((story) => (
+              <article key={story.id} className="draft-card card">
+                <div>
+                  <span className="status-pill">Borrador</span>
+                  <h2>{story.title || 'Relato sin título'}</h2>
+                  <p>
+                    {story.opening?.audioUrl ? 'Audio' : story.visualCardTheme ? 'Tarjeta visual' : 'Texto'} ·{' '}
+                    {draftDate(story.updatedAt)}
+                  </p>
+                </div>
+                <div>
+                  <button className="secondary" type="button" onClick={() => void openDetail(story)}>
+                    Continuar
+                  </button>
+                  <button
+                    className="ghost danger"
+                    type="button"
+                    disabled={busyId === story.id}
+                    onClick={() => confirmDelete(story)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </article>
+            ))
+          : null}
+
+        {view === 'published' && stories.length > 0 ? (
           <div className="story-list my-story-list">
             {stories.map((story) => (
               <article key={story.id} className="story-row card my-story-card">
                 <div className="my-story-line">
                   <div>
                     {story.categories[0] ? <span className="tag">{story.categories[0]}</span> : null}
-                    {story.visualCardTheme ? <span className="tag update">Tarjeta visual</span> : null}
                     <h3>
                       <button
                         className="story-title-button"
@@ -695,7 +771,7 @@ export default function MyStoriesPage() {
                       </button>
                     </h3>
                     <p>
-                      {formatDate(story.updatedAt)} · {story.commentCount}{' '}
+                      {relativeTime(story.createdAt)} · {story.commentCount}{' '}
                       {story.commentCount === 1 ? 'comentario' : 'comentarios'}
                     </p>
                     {isAppealable(story.status) ? (
