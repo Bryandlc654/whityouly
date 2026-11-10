@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { tokenStorage } from '@/lib/auth';
 import ProfileShell from '@/components/wy/ProfileShell';
-import Icon from '@/components/wy/Icon';
 import {
   listMyReports,
   type MyReport,
@@ -113,115 +112,105 @@ export default function MyReportsPage() {
   return (
     <ProfileShell>
       <section className="screen">
-        <div className="screen-heading">
-          <div>
-            <h1>Mis reportes</h1>
-            <p>Sigue el estado de lo que reportaste. Nunca mostramos notas internas de moderación.</p>
-          </div>
-          <button className="ghost" type="button" onClick={() => router.push('/cuenta')}>
-            Volver a configuración
+        <div className="screen-back">
+          <button className="ghost" type="button" onClick={() => router.push('/ayuda')}>
+            ← Ayuda
           </button>
-        </div>
-
-        <div className="filter-row" role="group" aria-label="Estado de mis reportes">
-          {FILTERS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`filter-pill ${filter === item.id ? 'active' : ''}`.trim()}
-              aria-pressed={filter === item.id}
-              onClick={() => setFilter(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {loading ? <p className="muted small">Cargando tus reportes…</p> : null}
-
-        {error ? (
-          <div className="auth-error" role="alert">
-            {error}
-            <button
-              className="text-link"
-              type="button"
-              style={{ marginLeft: 8 }}
-              onClick={() => void load(filter)}
-            >
-              Reintentar
-            </button>
+          <div>
+            <h1>Estado de mis reportes</h1>
+            <p>Seguimiento de los reportes guardados en tu cuenta.</p>
           </div>
-        ) : null}
+        </div>
 
         {empty ? (
-          <div className="empty card">
-            <div className="empty-icon">
-              <Icon name="flag" />
-            </div>
-            <h2>
-              {filter === 'ALL'
-                ? 'Todavía no has enviado reportes'
-                : 'No hay reportes en esta lista'}
-            </h2>
-            <p>
-              {filter === 'ALL'
-                ? 'Cuando reportes contenido, aquí podrás seguir su revisión.'
-                : 'Prueba con otro filtro para ver el resto de tus reportes.'}
-            </p>
-            <button className="secondary" type="button" onClick={() => router.push('/feed')}>
-              Volver al feed
+          <div className="empty-state">
+            <p>Aún no has enviado reportes.</p>
+            <button className="secondary" type="button" onClick={() => router.push('/ayuda')}>
+              Ver ayuda
             </button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="filter-row" role="group" aria-label="Estado de mis reportes">
+              {FILTERS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`filter-pill ${filter === item.id ? 'active' : ''}`.trim()}
+                  aria-pressed={filter === item.id}
+                  onClick={() => setFilter(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
 
-        <div className="stack">
-          {reports.map((report) => (
-            <article className="card pad moderation-case" key={report.id}>
-              <div>
-                <div className="moderation-case-tags">
-                  <span className={`status-pill ${statusClass(report.status)}`}>
-                    {statusLabel(report.status)}
-                  </span>
-                  <span className="tag">{typeLabel(report.reportedType)}</span>
-                </div>
-                <h2>{targetLabel(report)}</h2>
-                <p className="hint">
-                  {report.target?.authorName
-                    ? `Publicado por ${report.target.authorName} · `
-                    : ''}
-                  Enviado el {formatDate(report.createdAt)}
-                  {report.resolvedAt ? ` · Resuelto el ${formatDate(report.resolvedAt)}` : ''}
-                </p>
-                <p className="moderation-reason">
-                  <b>Tu motivo:</b> {report.reason}
-                </p>
-                {report.resolution ? (
-                  <p className="moderation-context">{report.resolution}</p>
-                ) : (
-                  <p className="moderation-context">
-                    {report.status === 'IN_REVIEW'
-                      ? 'Moderación está revisando este reporte.'
-                      : 'El reporte está pendiente de revisión.'}
-                  </p>
-                )}
+            {loading ? <p className="muted small">Cargando tus reportes…</p> : null}
+
+            {error ? (
+              <div className="auth-error" role="alert">
+                {error}
+                <button
+                  className="text-link"
+                  type="button"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => void load(filter)}
+                >
+                  Reintentar
+                </button>
               </div>
-            </article>
-          ))}
-        </div>
+            ) : null}
 
-        {nextCursor ? (
-          <button
-            className="btn-outline"
-            type="button"
-            disabled={loadingMore}
-            onClick={() => {
-              if (!nextCursor || loadingMore) return;
-              void load(filter, nextCursor);
-            }}
-          >
-            {loadingMore ? 'Cargando…' : 'Ver más reportes'}
-          </button>
-        ) : null}
+            <div className="stack">
+              {reports.map((report) => (
+                <article className="card pad moderation-case" key={report.id}>
+                  <div>
+                    <div className="moderation-case-tags">
+                      <span className={`status-pill ${statusClass(report.status)}`}>
+                        {statusLabel(report.status)}
+                      </span>
+                      <span className="tag">{typeLabel(report.reportedType)}</span>
+                    </div>
+                    <h2>{targetLabel(report)}</h2>
+                    <p className="hint">
+                      {report.target?.authorName
+                        ? `Publicado por ${report.target.authorName} · `
+                        : ''}
+                      Enviado el {formatDate(report.createdAt)}
+                      {report.resolvedAt ? ` · Resuelto el ${formatDate(report.resolvedAt)}` : ''}
+                    </p>
+                    <p className="moderation-reason">
+                      <b>Tu motivo:</b> {report.reason}
+                    </p>
+                    {report.resolution ? (
+                      <p className="moderation-context">{report.resolution}</p>
+                    ) : (
+                      <p className="moderation-context">
+                        {report.status === 'IN_REVIEW'
+                          ? 'Moderación está revisando este reporte.'
+                          : 'El reporte está pendiente de revisión.'}
+                      </p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {nextCursor ? (
+              <button
+                className="btn-outline"
+                type="button"
+                disabled={loadingMore}
+                onClick={() => {
+                  if (!nextCursor || loadingMore) return;
+                  void load(filter, nextCursor);
+                }}
+              >
+                {loadingMore ? 'Cargando…' : 'Ver más reportes'}
+              </button>
+            ) : null}
+          </>
+        )}
       </section>
     </ProfileShell>
   );

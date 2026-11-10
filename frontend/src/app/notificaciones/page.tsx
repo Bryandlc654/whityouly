@@ -6,20 +6,62 @@ import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
+import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import {
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-  type NotificationItem,
-} from '@/lib/notifications';
-import {
-  describeNotification,
-  IMPORTANT_NOTIFICATION_TYPES,
-  notificationTime,
-} from '@/components/wy/notificationText';
+
+interface DemoNotice {
+  id: string;
+  group: 'important' | 'activity';
+  icon: IconName;
+  text: string;
+  action: string;
+  href: string;
+}
+
+const NOTICES: DemoNotice[] = [
+  {
+    id: 'comment-demo',
+    group: 'important',
+    icon: 'message',
+    text: 'VolverAEmpezar dejó unas palabras en tu relato.',
+    action: 'Ver conversación',
+    href: '/feed',
+  },
+  {
+    id: 'update-demo',
+    group: 'important',
+    icon: 'trend',
+    text: 'LuzEnPausa añadió una continuación a su relato.',
+    action: 'Ver continuación',
+    href: '/feed',
+  },
+  {
+    id: 'summary-demo',
+    group: 'important',
+    icon: 'pulse',
+    text: 'Tu resumen emocional está disponible en Mi espacio.',
+    action: 'Ver resumen',
+    href: '/mi-estado',
+  },
+  {
+    id: 'author-demo',
+    group: 'activity',
+    icon: 'heart',
+    text: 'CalmaDeDomingo comenzó a seguir tu perfil.',
+    action: 'Ver perfil',
+    href: '/personaje/CalmaDeDomingo',
+  },
+  {
+    id: 'support-demo',
+    group: 'activity',
+    icon: 'heart',
+    text: 'Hay personas que están contigo en tu relato.',
+    action: 'Ver relato',
+    href: '/feed',
+  },
+];
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -30,12 +72,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [unread, setUnread] = useState(0);
-  const [listLoading, setListLoading] = useState(true);
-  const [error, setError] = useState('');
-
+  const [unread, setUnread] = useState(NOTICES.map((notice) => notice.id));
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
@@ -49,21 +86,6 @@ export default function NotificationsPage() {
 
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-  }, []);
-
-  const loadNotifications = useCallback(async () => {
-    setListLoading(true);
-    setError('');
-    const result = await listNotifications({ limit: 50 });
-    setListLoading(false);
-
-    if (result.status === 'ok') {
-      setItems(result.data.items);
-      setUnread(result.data.unreadCount);
-      return;
-    }
-
-    setError(result.message);
   }, []);
 
   useEffect(() => {
@@ -95,10 +117,6 @@ export default function NotificationsPage() {
     void verify();
   }, [router]);
 
-  useEffect(() => {
-    if (!loading) void loadNotifications();
-  }, [loading, loadNotifications]);
-
   const logout = useCallback(async () => {
     await endSession();
     router.push('/login');
@@ -113,7 +131,11 @@ export default function NotificationsPage() {
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
         { label: 'Ayuda y soporte', icon: 'mail', onClick: () => router.push('/soporte') },
-        { label: 'Configuración de la cuenta', icon: 'settings', onClick: () => router.push('/cuenta/configuracion') },
+        {
+          label: 'Configuración de la cuenta',
+          icon: 'settings',
+          onClick: () => router.push('/cuenta/configuracion'),
+        },
         { label: 'Cerrar sesión', icon: 'user', danger: true, onClick: () => void logout() },
       ],
     });
@@ -149,68 +171,37 @@ export default function NotificationsPage() {
         router.push('/ayuda');
         break;
       case 'notifications':
-        void loadNotifications();
         break;
       default:
         notify('Esta sección llega con los próximos módulos.');
     }
   };
 
-  const openItem = async (item: NotificationItem) => {
-    if (item.status === 'UNREAD') {
-      void markNotificationRead(item.id);
-      setItems((prev) =>
-        prev.map((row) => (row.id === item.id ? { ...row, status: 'READ' as const } : row)),
-      );
-      setUnread((current) => Math.max(0, current - 1));
-    }
-
-    if (item.entityType === 'STORY' && item.entityId) {
-      router.push(`/relato/${encodeURIComponent(item.entityId)}`);
-    } else if (item.actor && item.entityType === 'CHARACTER') {
-      router.push(`/personaje/${encodeURIComponent(item.actor.name)}`);
-    }
-  };
-
-  const markAllRead = async () => {
-    const result = await markAllNotificationsRead();
-    if (result.status !== 'ok') {
-      notify(result.message);
-      return;
-    }
-    setItems((prev) => prev.map((row) => ({ ...row, status: 'READ' as const })));
-    setUnread(0);
+  const markAllRead = () => {
+    setUnread([]);
     notify('Notificaciones marcadas como leídas.');
   };
 
-  const important = items.filter((item) => IMPORTANT_NOTIFICATION_TYPES.has(item.type));
-  const activity = items.filter((item) => !IMPORTANT_NOTIFICATION_TYPES.has(item.type));
-
-  const renderRows = (rows: NotificationItem[]) =>
-    rows.map((item) => {
-      const { icon, text } = describeNotification(item);
-      const unreadItem = item.status === 'UNREAD';
-      const action =
-        item.entityType === 'STORY'
-          ? 'Ver relato'
-          : item.entityType === 'CHARACTER'
-            ? 'Ver perfil'
-            : '';
+  const renderRows = (group: DemoNotice['group']) =>
+    NOTICES.filter((notice) => notice.group === group).map((notice) => {
+      const isUnread = unread.includes(notice.id);
       return (
         <button
-          key={item.id}
-          className={`notification card notification-link${unreadItem ? ' unread' : ''}`}
+          key={notice.id}
+          className={`notification card notification-link${isUnread ? ' unread' : ''}`}
           type="button"
-          onClick={() => void openItem(item)}
+          onClick={() => {
+            setUnread((prev) => prev.filter((id) => id !== notice.id));
+            router.push(notice.href);
+          }}
         >
           <span className="notification-icon">
-            <Icon name={icon} />
+            <Icon name={notice.icon} />
           </span>
           <span>
-            <b>{text}</b>
+            <b>{notice.text}</b>
             <small>
-              {unreadItem ? 'Nueva' : 'Leída'} · {notificationTime(item.createdAt)}
-              {action ? ` · ${action}` : ''}
+              {isUnread ? 'Nueva' : 'Leída'} · {notice.action}
             </small>
           </span>
           <Icon name="chevron" />
@@ -234,7 +225,7 @@ export default function NotificationsPage() {
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
-      unreadNotifications={unread}
+      unreadNotifications={unread.length}
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={
         <RightRail
@@ -244,59 +235,27 @@ export default function NotificationsPage() {
         />
       }
     >
-      <section className="screen notifications-screen">
+      <section className="screen">
         <div className="screen-heading">
           <div>
             <h1>Notificaciones</h1>
             <p>Primero tus conversaciones y las historias que continúan.</p>
           </div>
-          {unread > 0 ? (
-            <button className="text-link" type="button" onClick={() => void markAllRead()}>
-              Marcar todo como leído
-            </button>
-          ) : null}
+          <button className="text-link" type="button" onClick={markAllRead}>
+            Marcar todo como leído
+          </button>
         </div>
 
-        {listLoading ? <p className="muted small">Cargando notificaciones…</p> : null}
+        <h2 className="notice-section-title">Conversaciones y actualizaciones</h2>
+        {renderRows('important')}
 
-        {!listLoading && error ? (
-          <div className="auth-error" role="alert">
-            {error}
-            <button className="text-link" type="button" onClick={() => void loadNotifications()} style={{ marginLeft: 8 }}>
-              Reintentar
-            </button>
-          </div>
-        ) : null}
+        <h2 className="notice-section-title">Actividad agrupada</h2>
+        {renderRows('activity')}
 
-        {!listLoading && !error && items.length === 0 ? (
-          <div className="empty card">
-            <div className="empty-icon">
-              <Icon name="bell" />
-            </div>
-            <h2>Todo al día</h2>
-            <p>Te avisaremos aquí cuando alguien te siga, comente o te acompañe.</p>
-          </div>
-        ) : null}
-
-        {!listLoading && !error && important.length > 0 ? (
-          <>
-            <h2 className="notice-section-title">Conversaciones y actualizaciones</h2>
-            {renderRows(important)}
-          </>
-        ) : null}
-
-        {!listLoading && !error && activity.length > 0 ? (
-          <>
-            <h2 className="notice-section-title">Actividad agrupada</h2>
-            {renderRows(activity)}
-          </>
-        ) : null}
-
-        {!listLoading && !error && items.length > 0 ? (
-          <p className="private-line">
-            <Icon name="lock" /> Los avisos fuera de la aplicación no muestran el contenido de tus relatos o registros.
-          </p>
-        ) : null}
+        <p className="private-line">
+          <Icon name="lock" /> Los avisos fuera de la aplicación no muestran el contenido de tus
+          relatos o registros.
+        </p>
       </section>
     </WyFrame>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Icon from '@/components/wy/Icon';
 import {
   listAuthorPreferences,
@@ -14,7 +15,12 @@ const LABELS = {
   LESS: 'Ver menos',
 } as const;
 
-export default function ContentPreferencesSection() {
+export default function ContentPreferencesSection({
+  emptyVariant = 'inline',
+}: {
+  emptyVariant?: 'inline' | 'card';
+}) {
+  const router = useRouter();
   const [items, setItems] = useState<AuthorPreference[]>([]);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -32,6 +38,23 @@ export default function ContentPreferencesSection() {
   useEffect(() => {
     void load();
   }, []);
+
+  if (items.length === 0 && emptyVariant === 'card' && !error) {
+    return (
+      <section className="empty-state card">
+        <span>
+          <Icon name="users" />
+        </span>
+        <h2>No administras ningún perfil</h2>
+        <p>
+          Desde el menú ⋯ de un relato puedes silenciar o bloquear a una persona.
+        </p>
+        <button className="secondary" type="button" onClick={() => router.push('/feed')}>
+          Volver al feed
+        </button>
+      </section>
+    );
+  }
 
   return (
     <div>

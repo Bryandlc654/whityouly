@@ -86,6 +86,22 @@ export default function AccountSettingsPage() {
                 <Icon name="chevron" />
               </span>
             </button>
+            <button
+              className="settings-row"
+              type="button"
+              onClick={() => router.push('/cuenta/lectura')}
+            >
+              <span>
+                <Icon name="book" />
+              </span>
+              <span>
+                <b>Tamaño de lectura</b>
+                <small>Normal, grande o muy grande para relatos y comentarios</small>
+              </span>
+              <span>
+                <Icon name="chevron" />
+              </span>
+            </button>
           </section>
 
           <h2 className="settings-section-title">Privacidad y comunidad</h2>

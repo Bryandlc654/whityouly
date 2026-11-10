@@ -26,7 +26,7 @@ export default function MiEspacioNav({ active }: Props) {
   const router = useRouter();
 
   return (
-    <nav className="emotion-nav mi-space-nav card" aria-label="Mi espacio personal">
+    <nav className="emotion-nav diary-nav mi-space-nav" aria-label="Mi espacio personal">
       {ITEMS.map((item) => {
         const current = active === item.id;
         return (

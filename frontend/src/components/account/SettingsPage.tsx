@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,6 @@ import { authFetch, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
-import Icon from '@/components/wy/Icon';
 
 interface SettingsPageProps {
   title: string;
@@ -66,7 +65,7 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
         }
         if (res.ok) setCharacter(await res.json());
       } catch {
-        /* la página sigue disponible sin avatar */
+        /* la pÃ¡gina sigue disponible sin avatar */
       }
 
       setLoading(false);
@@ -114,7 +113,7 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
     <WyFrame
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
-      activeRoute="profile"
+      activeRoute="character"
       onNavigate={navigate}
       rightRail={
         <RightRail
@@ -128,7 +127,7 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
         {showBack ? (
           <div className="screen-back">
             <button className="ghost" type="button" onClick={() => router.push('/cuenta/configuracion')}>
-              <Icon name="chevron" /> Configuración
+              {'\u2190 Configuraci\u00f3n'}
             </button>
             <div>
               <h1>{title}</h1>
@@ -144,7 +143,7 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
           </div>
         )}
 
-        {loading ? <p className="muted small">Cargando tus ajustes…</p> : null}
+        {loading ? <p className="muted small">Cargando tus ajustesâ€¦</p> : null}
 
         {!loading && error && !account ? (
           <div className="auth-error" role="alert">
@@ -169,3 +168,4 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
     </WyFrame>
   );
 }
+

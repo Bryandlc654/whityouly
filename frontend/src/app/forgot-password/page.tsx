@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
-import AuthCard from '@/components/wy/AuthCard';
+import Icon from '@/components/wy/Icon';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -39,36 +39,54 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <AuthCard
-      title="Recuperar contraseña"
-      subtitle="Ingresa tu correo para recibir un enlace seguro de recuperación."
-    >
-      {error ? <div className="auth-error">{error}</div> : null}
-      {success ? <div className="auth-success">{success}</div> : null}
-
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="email">Correo electrónico</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="tu@correo.com"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <button className="primary" type="submit" disabled={loading}>
-          {loading ? 'Enviando…' : 'Enviar enlace seguro'}
+    <div className="wy">
+      <section className="onboarding-stage">
+        <button
+          className="auth-brand onboarding-brand"
+          type="button"
+          onClick={() => router.push('/')}
+          aria-label="Volver a la portada"
+        >
+          <span className="brand-crop" />
         </button>
-      </form>
 
-      <div className="auth-links" style={{ justifyContent: 'center' }}>
-        <button type="button" onClick={() => router.push('/login')}>
-          Volver al inicio de sesión
-        </button>
-      </div>
-    </AuthCard>
+        <form className="recovery-card card" onSubmit={handleSubmit}>
+          <span className="recovery-icon">
+            <Icon name="mail" />
+          </span>
+          <h1>Recupera tu acceso</h1>
+          <p>
+            Escribe el correo con el que te registraste. Te enviaremos un enlace seguro para crear
+            una nueva contraseña.
+          </p>
+
+          {error ? <div className="auth-error">{error}</div> : null}
+          {success ? <div className="auth-success">{success}</div> : null}
+
+          <label htmlFor="forgotEmail">Correo electrónico</label>
+          <div className="input-with-icon">
+            <Icon name="mail" />
+            <input
+              id="forgotEmail"
+              name="email"
+              type="email"
+              placeholder="tu@correo.com"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <button className="primary auth-submit" type="submit" disabled={loading}>
+            {loading ? 'Enviando…' : 'Enviar enlace de recuperación'}
+          </button>
+
+          <button className="ghost back-login" type="button" onClick={() => router.push('/login')}>
+            Volver a iniciar sesión
+          </button>
+        </form>
+      </section>
+    </div>
   );
 }

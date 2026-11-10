@@ -1,32 +1,38 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, logout, tokenStorage } from '@/lib/auth';
+import { authFetch, tokenStorage } from '@/lib/auth';
 import {
   checkNameAvailability,
   createCharacter,
   listInterests,
 } from '@/lib/characters';
 import { AVATAR_PRESETS } from '@/lib/avatar';
-import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
 
 const NAME_MIN = 3;
 const NAME_MAX = 30;
-const TAGLINE_MAX = 120;
-const BIO_MAX = 500;
 const MAX_INTERESTS = 8;
 const NAME_PATTERN = new RegExp('^[\\p{L}\\p{N}][\\p{L}\\p{N} _.-]*$', 'u');
+const AVATAR_NAMES = [
+  'Aurora',
+  'Océano',
+  'Hoja',
+  'Amanecer',
+  'Órbita',
+  'Onda',
+  'Destello',
+  'Luna',
+  'Horizonte',
+  'Sol',
+  'Brisa',
+  'Semilla',
+];
 
 function normalizeName(value: string) {
   return value.normalize('NFKC').replace(/\s+/g, ' ').trim();
-}
-
-function initialsOf(name: string) {
-  const normalized = normalizeName(name);
-  return normalized ? normalized.slice(0, 2).toUpperCase() : '?';
 }
 
 function validateName(value: string) {
@@ -48,8 +54,6 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
-  const [tagline, setTagline] = useState('');
-  const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
   const [catalog, setCatalog] = useState<string[]>([]);
@@ -176,7 +180,7 @@ export default function OnboardingPage() {
         return;
       }
     }
-    setStep((value) => Math.min(2, value + 1));
+    setStep((value) => Math.min(1, value + 1));
   };
 
   const submit = async () => {
@@ -198,8 +202,6 @@ export default function OnboardingPage() {
 
     const created = await createCharacter({
       name: normalizeName(name),
-      tagline: tagline.trim() || null,
-      bio: bio.trim() || null,
       interests,
       avatarUrl: avatarUrl ?? undefined,
       privacySettings: {
@@ -220,21 +222,33 @@ export default function OnboardingPage() {
     router.refresh();
   };
 
-  const endSession = async () => {
-    await logout();
-    router.replace('/login');
-  };
 
   return (
     <div className="wy">
-      <section className="onboarding-screen">
-        <div className="onboarding-card card onboarding-card-58">
-          <div className="auth-logo" role="img" aria-label="Withyouly" />
-          <div className="onboarding-step-line" aria-label={`Paso ${step + 1} de 3`}>
+      <section className="onboarding-stage">
+        <button
+          className="auth-brand onboarding-brand"
+          type="button"
+          onClick={() => router.push('/login')}
+          aria-label="Volver a la portada"
+        >
+          <span className="brand-crop" />
+        </button>
+        <div className="onboarding-card card">
+          <div className="step-line" aria-label={`Paso ${step + 2} de 3`}>
             {[0, 1, 2].map((index) => (
-              <span key={index} className={index <= step ? 'on' : undefined}>
-                {index + 1}
-              </span>
+              <Fragment key={index}>
+                {index > 0 ? (
+                  <i className={index <= step + 1 ? 'done' : undefined} />
+                ) : null}
+                <span
+                  className={
+                    index < step + 1 ? 'done' : index === step + 1 ? 'active' : undefined
+                  }
+                >
+                  {index < step + 1 ? <Icon name="check" /> : index + 1}
+                </span>
+              </Fragment>
             ))}
           </div>
 
@@ -247,13 +261,15 @@ export default function OnboardingPage() {
 
           {ready && step === 0 ? (
             <>
-              <span className="micro-label">PASO 1 DE 3 · TU IDENTIDAD</span>
-              <h1>Elige tu seudónimo</h1>
-              <p>Tu nombre real y tu correo nunca se muestran. Elige cómo te conocerá la comunidad.</p>
-              <label className="field-label">
-                Seudónimo único
+              <span className="auth-kicker">PASO 2 DE 3 · IDENTIDAD PÚBLICA</span>
+              <h1>¿Cómo quieres que te conozca la comunidad?</h1>
+              <p>Elige un seudónimo distinto a tu nombre real. Será único dentro de Withyouly.</p>
+
+              <label htmlFor="aliasName">Tu seudónimo único</label>
+              <div className="alias-field">
+                <span>@</span>
                 <input
-                  className="field"
+                  id="aliasName"
                   value={name}
                   maxLength={NAME_MAX}
                   placeholder="NubeVioleta"
@@ -261,68 +277,61 @@ export default function OnboardingPage() {
                   autoComplete="off"
                   spellCheck={false}
                 />
-              </label>
-              <p className={`profile-name-status ${nameStatus.state}`} role="status" aria-live="polite">
+              </div>
+              <p className={`availability ${nameStatus.state}`} role="status" aria-live="polite">
                 {nameStatus.message}
               </p>
-              <label className="field-label">
-                Descripción corta <span>(opcional)</span>
-                <input
-                  className="field"
-                  value={tagline}
-                  maxLength={TAGLINE_MAX}
-                  placeholder="Aprendiendo a escucharme con calma."
-                  onChange={(event) => setTagline(event.target.value)}
-                />
-              </label>
-              <div className="modal-actions">
-                <span />
-                <button className="primary" type="button" onClick={goNext}>
-                  Continuar <Icon name="chevron" />
-                </button>
+
+              <label>Elige un avatar ilustrado</label>
+              <p className="avatar-help">
+                Avatares ilustrados sin fotografías personales. Podrás cambiarlo después desde tu
+                perfil.
+              </p>
+              <div
+                className="avatar-picker avatar-gallery"
+                role="group"
+                aria-label="Avatares de personas"
+              >
+                {AVATAR_PRESETS.map((url, index) => (
+                  <button
+                    key={url}
+                    type="button"
+                    className={`alias-avatar${avatarUrl === url ? ' selected' : ''}`}
+                    aria-pressed={avatarUrl === url}
+                    onClick={() => setAvatarUrl((current) => (current === url ? null : url))}
+                  >
+                    <span className="avatar avatar-illustrated">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" width={96} height={96} />
+                    </span>
+                    <small>{AVATAR_NAMES[index] ?? `Avatar ${index + 1}`}</small>
+                  </button>
+                ))}
               </div>
+
+              <div className="privacy-explainer">
+                <Icon name="shield" />
+                <div>
+                  <b>La comunidad verá esto</b>
+                  <span>
+                    Tu seudónimo, miniatura, biografía y relatos públicos. Nunca tu correo ni tu
+                    nombre real.
+                  </span>
+                </div>
+              </div>
+
+              <button className="primary auth-submit" type="button" onClick={goNext}>
+                Continuar
+              </button>
             </>
           ) : null}
 
           {ready && step === 1 ? (
             <>
-              <span className="micro-label">PASO 2 DE 3 · TU AVATAR</span>
-              <h1>Elige cómo te verán</h1>
-              <p>Puedes escoger un avatar ilustrado. No necesitas subir una fotografía real.</p>
-              <div className="onboarding-avatar-preview">
-                <Avatar initials={initialsOf(name)} avatarUrl={avatarUrl} size="lg" />
-                <span>{avatarUrl ? 'Avatar seleccionado' : 'También puedes continuar sin avatar'}</span>
-              </div>
-              <div className="avatar-presets onboarding-avatar-presets" role="group" aria-label="Avatares de personas">
-                {AVATAR_PRESETS.map((url) => (
-                  <button
-                    key={url}
-                    type="button"
-                    className={`avatar-preset${avatarUrl === url ? ' active' : ''}`}
-                    aria-pressed={avatarUrl === url}
-                    onClick={() => setAvatarUrl((current) => (current === url ? null : url))}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" width={48} height={48} />
-                  </button>
-                ))}
-              </div>
-              <div className="modal-actions">
-                <button className="ghost" type="button" onClick={() => setStep(0)}>
-                  Volver
-                </button>
-                <button className="primary" type="button" onClick={goNext}>
-                  Continuar <Icon name="chevron" />
-                </button>
-              </div>
-            </>
-          ) : null}
-
-          {ready && step === 2 ? (
-            <>
-              <span className="micro-label">PASO 3 DE 3 · TU EXPERIENCIA</span>
-              <h1>¿Qué temas quieres ver?</h1>
-              <p>Elige hasta {MAX_INTERESTS} temas para empezar. Después podrás cambiarlos.</p>
+              <span className="auth-kicker">PASO 3 DE 3 · TU EXPERIENCIA</span>
+              <h1>Haz que Withyouly se sienta tuyo</h1>
+              <p>Elige algunos temas para comenzar. Después podrás cambiarlos desde tu perfil.</p>
+              <label>¿Qué relatos quieres encontrar primero?</label>
               {catalogError ? (
                 <p className="hint">
                   {catalogError}{' '}
@@ -331,7 +340,7 @@ export default function OnboardingPage() {
                   </button>
                 </p>
               ) : null}
-              <div className="profile-interests" role="group" aria-label="Temas de interés">
+              <div className="topic-picker" role="group" aria-label="Temas de interés">
                 {interestOptions.length === 0 ? (
                   <p className="hint">Cargando temas…</p>
                 ) : (
@@ -342,7 +351,7 @@ export default function OnboardingPage() {
                       <button
                         key={topic}
                         type="button"
-                        className={`filter-pill ${selected ? 'active' : ''}`.trim()}
+                        className={`topic-choice ${selected ? 'selected' : ''}`.trim()}
                         aria-pressed={selected}
                         disabled={blocked}
                         onClick={() => toggleInterest(topic)}
@@ -356,35 +365,46 @@ export default function OnboardingPage() {
               <span className="char-count">
                 {interests.length}/{MAX_INTERESTS} elegidos
               </span>
-              <label className="field-label">
-                Biografía <span>(opcional)</span>
-                <textarea
-                  className="field"
-                  value={bio}
-                  maxLength={BIO_MAX}
-                  placeholder="Cuéntanos qué te trae por aquí, si quieres."
-                  onChange={(event) => setBio(event.target.value)}
-                />
-              </label>
-              <p className="hint">
-                <Icon name="lock" /> Tu correo y nombre real quedan fuera de la comunidad.
-              </p>
-              <div className="modal-actions">
-                <button className="ghost" type="button" onClick={() => setStep(1)} disabled={busy}>
-                  Volver
-                </button>
-                <button className="primary" type="button" onClick={() => void submit()} disabled={busy}>
-                  {busy ? 'Creando tu personaje…' : 'Entrar a mi comunidad'}
-                </button>
+
+              <div className="onboarding-settings">
+                <label>
+                  <span>
+                    <b>Notificaciones de acompañamiento</b>
+                    <small>
+                      Avísame cuando alguien marque «Estoy contigo» o actualice un relato que sigo.
+                    </small>
+                  </span>
+                  <input type="checkbox" defaultChecked />
+                </label>
+                <label>
+                  <span>
+                    <b>Resumen emocional semanal</b>
+                    <small>Un recordatorio privado para revisar cómo me he sentido.</small>
+                  </span>
+                  <input type="checkbox" defaultChecked />
+                </label>
               </div>
+
+              <div className="community-promise">
+                <span>
+                  <Icon name="heart" />
+                </span>
+                <p>
+                  <b>Una última promesa</b> Comenta para acompañar, no para juzgar ni diagnosticar.
+                  Si algo te preocupa, repórtalo.
+                </p>
+              </div>
+
+              <button
+                className="primary auth-submit"
+                type="button"
+                onClick={() => void submit()}
+                disabled={busy}
+              >
+                {busy ? 'Creando tu personaje…' : 'Entrar a mi comunidad'}
+              </button>
             </>
           ) : null}
-
-          <div className="auth-links" style={{ justifyContent: 'center', marginTop: 18 }}>
-            <button type="button" onClick={() => void endSession()}>
-              Cerrar sesión
-            </button>
-          </div>
         </div>
       </section>
     </div>

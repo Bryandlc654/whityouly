@@ -144,7 +144,7 @@ export default function RightRail({
   const progress = Math.round((tree?.stage.progress ?? 0) * 100);
   const treeCopy =
     tree && nextDrops !== null
-      ? `${tree.cycle.drops} de ${nextDrops} gotas para ${tree.stage.nextLabel ?? 'seguir creciendo'} · ${tree.totalDrops} en total`
+      ? `${tree.totalDrops} gotas en total · ${nextDrops} gotas para ${tree.stage.nextLabel ?? 'seguir creciendo'}`
       : 'Crece con cada registro que haces.';
 
   return (
@@ -188,16 +188,24 @@ export default function RightRail({
               ))}
             </div>
             <div className="mini-summary">
-              <b>
-                Emoción frecuente: {topName} {EMOJI[topName] ?? '🌱'}
-              </b>
-              <br />
-              {summary
-                ? `${summary.totalEntries} ${summary.totalEntries === 1 ? 'registro' : 'registros'} esta semana.`
-                : 'Aún no hay registros esta semana.'}
+              {summary && summary.totalEntries > 0 ? (
+                <>
+                  <b>
+                    Emoción frecuente: {topName} {EMOJI[topName] ?? '🌱'}
+                  </b>
+                  <br />
+                  {summary.totalEntries} {summary.totalEntries === 1 ? 'registro' : 'registros'} esta
+                  semana.
+                </>
+              ) : (
+                'Aún no hay registros esta semana.'
+              )}
             </div>
+            <p className="private-line">
+              <Icon name="lock" /> Solo tú puedes verlo
+            </p>
             <button className="text-link" type="button" onClick={onMood}>
-              Ver todas mis gráficas
+              Ver mis emociones
             </button>
           </>
         )}
@@ -233,7 +241,10 @@ export default function RightRail({
       <section className="right-card card tree-mini">
         <div className="summary-title">
           <h3>Mi árbol</h3>
-          <span className="micro-label">Privado</span>
+          <Link className="guide-btn" href="/mi-arbol">
+            <Icon name="help" />
+            <span>Guía</span>
+          </Link>
         </div>
         <div className="tree-mini-row">
           <span className="mini-tree">

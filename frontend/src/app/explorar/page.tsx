@@ -946,7 +946,7 @@ export default function ExplorePage() {
           <>
             <div className="filter-row" role="group" aria-label="Descubrimiento">
               <button
-                className={`filter-pill${!selScope && !selCat && !selEmo ? ' active' : ''}`}
+                className="filter-pill"
                 type="button"
                 onClick={clearFilters}
               >

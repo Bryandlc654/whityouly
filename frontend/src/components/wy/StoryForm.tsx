@@ -46,6 +46,7 @@ interface Props {
   variant?: 'default' | 'minimal';
   heading?: string;
   headingHint?: string;
+  characterName?: string;
 }
 
 /**
@@ -59,6 +60,7 @@ export default function StoryForm({
   variant = 'default',
   heading,
   headingHint,
+  characterName,
 }: Props) {
   const minimal = variant === 'minimal';
 
@@ -454,33 +456,6 @@ export default function StoryForm({
       ) : null}
       {draftStatus ? <p className="hint compose-draft-status">{draftStatus}</p> : null}
 
-      <div className="compose-kind-selector">
-        <span>Tipo de publicación</span>
-        <div className="segmented" role="tablist" aria-label="Tipo de publicación">
-          <button
-            type="button"
-            role="tab"
-            className={!continuation ? 'active' : undefined}
-            aria-selected={!continuation}
-            onClick={() => setPublicationKind('new')}
-          >
-            Relato nuevo
-          </button>
-          <button
-            type="button"
-            role="tab"
-            className={continuation ? 'active' : undefined}
-            aria-selected={continuation}
-            onClick={() => {
-              setPublicationKind('continuation');
-              if (format === 'card') setFormat('text');
-            }}
-          >
-            Continuación
-          </button>
-        </div>
-      </div>
-
       {continuation ? (
         <label className="field-label">
           Relato que continúa
@@ -520,7 +495,21 @@ export default function StoryForm({
         </label>
       ) : null}
 
-      <div className="compose-tabs" role="tablist" aria-label="Formato del relato">
+      {!minimal ? (
+        <div className="compose-format-heading">
+          <div>
+            <span className="micro-label">FORMATO DEL RELATO</span>
+            <h2>¿Cómo quieres publicarlo?</h2>
+          </div>
+          <small>Elige cómo aparecerá en el feed.</small>
+        </div>
+      ) : null}
+
+      <div
+        className={minimal ? 'compose-tabs' : 'compose-tabs compose-tabs-three card'}
+        role="tablist"
+        aria-label="Formato del relato"
+      >
         <button
           type="button"
           role="tab"
@@ -563,6 +552,14 @@ export default function StoryForm({
           </span>
         </button>
       </div>
+
+      <div className={minimal ? undefined : 'editor card compose-editor'}>
+
+      {!minimal ? (
+        <div className="privacy-badge">
+          <Icon name="lock" /> Publicarás como {characterName || 'tu seudónimo'}
+        </div>
+      ) : null}
 
       {format !== 'audio' ? (minimal ? (
         <>
@@ -628,6 +625,40 @@ export default function StoryForm({
           />
         </label>
       )}
+
+      {!minimal ? (
+        <div className="editor-grid">
+          <label className="field-label">
+            Tema principal
+            <select
+              className="field"
+              value={category ?? ''}
+              onChange={(event) => setCategory(event.target.value || null)}
+            >
+              <option value="">Sin tema</option>
+              {(catalog?.categories ?? []).map((item) => (
+                <option key={item.id ?? item.name} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field-label">
+            Tipo de publicación
+            <select
+              className="field"
+              value={continuation ? 'continuation' : 'new'}
+              onChange={(event) => {
+                setPublicationKind(event.target.value === 'continuation' ? 'continuation' : 'new');
+                if (event.target.value === 'continuation' && format === 'card') setFormat('text');
+              }}
+            >
+              <option value="new">Relato nuevo</option>
+              <option value="continuation">Actualización de un relato anterior</option>
+            </select>
+          </label>
+        </div>
+      ) : null}
 
       {format === 'card' ? (
         <div className="story-card-picker">
@@ -777,66 +808,67 @@ export default function StoryForm({
           </div>
         </div>
       ) : (
-        <div className="row-between compose-tools-row" style={{ marginTop: 12 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {format !== 'audio' ? (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => fileInput.current?.click()}
-                disabled={uploading}
-              >
-                <Icon name="sparkle" /> {mediaName ? 'Cambiar imagen' : 'Imagen'}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setPreviewOpen(true)}
-              disabled={!titleReady}
-            >
-              <Icon name="eye" /> Vista previa
-            </button>
-            <button type="button" className="secondary" onClick={() => setShowOptions((value) => !value)}>
-              <Icon name="settings" /> {showOptions ? 'Menos opciones' : 'Categoría y más'}
-            </button>
+        <details className="compose-details">
+          <summary>
+            <span>
+              <b>Opciones avanzadas</b>
+              <small>Imagen, categoría, emoción y visibilidad</small>
+            </span>
+          </summary>
+          <div className="compose-details-body">
+            <div className="row-between compose-tools-row">
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {format !== 'audio' ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => fileInput.current?.click()}
+                    disabled={uploading}
+                  >
+                    <Icon name="sparkle" /> {mediaName ? 'Cambiar imagen' : 'Imagen'}
+                  </button>
+                ) : null}
+                <button type="button" className="secondary" onClick={() => setShowOptions((value) => !value)}>
+                  <Icon name="settings" /> {showOptions ? 'Menos opciones' : 'Categoría y más'}
+                </button>
+              </div>
+              <span className="hint" style={{ margin: 0 }}>
+                {visibility === 'PUBLIC' ? 'Público' : visibility === 'FOLLOWERS' ? 'Seguidores' : 'Privado'}
+              </span>
+            </div>
           </div>
-          <span className="hint" style={{ margin: 0 }}>
-            {visibility === 'PUBLIC' ? 'Público' : visibility === 'FOLLOWERS' ? 'Seguidores' : 'Privado'}
-          </span>
-        </div>
+        </details>
       )}
 
       {showOptions ? <div className="story-options">{options}</div> : null}
 
       {!minimal ? (
-        <div className="modal-actions">
-          <button className="ghost" type="button" onClick={onCancel} disabled={saving !== null || done}>
-            Cancelar
-          </button>
-          <button className="secondary" type="button" onClick={() => setPreviewOpen(true)} disabled={!titleReady}>
-            <Icon name="eye" /> Vista previa
-          </button>
-          <button className="secondary" type="button" onClick={() => void submit(false)} disabled={!canSubmit}>
+        <div className="editor-actions">
+          <button className="ghost" type="button" onClick={() => void submit(false)} disabled={!canSubmit}>
             {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
           </button>
-          <button
-            className="primary"
-            type="button"
-            style={{ padding: '11px 17px' }}
-            onClick={() => void submit(true)}
-            disabled={!canSubmit}
-          >
-            {saving === 'publish'
-              ? 'Publicando…'
-              : format === 'card'
-                ? 'Publicar tarjeta'
-                : format === 'audio'
-                  ? 'Publicar audio'
-                  : 'Publicar relato'}
-          </button>
+          <div>
+            <button className="secondary" type="button" onClick={() => setPreviewOpen(true)} disabled={!titleReady}>
+              <Icon name="eye" /> Vista previa
+            </button>
+            <button
+              className="primary"
+              type="button"
+              onClick={() => void submit(true)}
+              disabled={!canSubmit}
+            >
+              {saving === 'publish'
+                ? 'Publicando…'
+                : format === 'card'
+                  ? 'Publicar tarjeta'
+                  : format === 'audio'
+                    ? 'Publicar audio'
+                    : 'Publicar relato'}
+            </button>
+          </div>
         </div>
       ) : null}
+      </div>
 
       {previewOpen ? (
         <div

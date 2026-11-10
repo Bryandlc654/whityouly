@@ -9,7 +9,7 @@ export default function BlockedUsersPage() {
       title="Silenciados y bloqueados"
       copy="Estas acciones son privadas; la otra persona no recibe una notificación."
     >
-      {() => <ContentPreferencesSection />}
+      {() => <ContentPreferencesSection emptyVariant="card" />}
     </SettingsPage>
   );
 }
