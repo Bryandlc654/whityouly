@@ -16,7 +16,6 @@ import {
   type MyStoryListItem,
 } from '@/lib/stories';
 import { LANGUAGES } from '@/lib/locales';
-import type { VisualCardTheme } from '@/lib/visualCards';
 
 /**
  * Pantalla «Comparte tu relato» con el mismo marcado final que la entrega v58
@@ -44,15 +43,6 @@ const CARD_STYLES: Record<CardStyle, { label: string; from: string; to: string; 
 };
 const CARD_STYLE_ORDER: CardStyle[] = ['violet', 'hope', 'calm', 'dawn', 'night', 'minimal'];
 
-// El backend guarda los temas propios de la app; cada estilo v58 se asigna al más cercano.
-const CARD_STYLE_TO_THEME: Record<CardStyle, VisualCardTheme> = {
-  violet: 'lavender',
-  hope: 'forest',
-  calm: 'ocean',
-  dawn: 'sunset',
-  night: 'rose',
-  minimal: 'paper',
-};
 
 const ACCOMPANIMENT_CHOICES: { value: Accompaniment; title: string; hint?: string }[] = [
   { value: 'share', title: 'Solo quiero compartirlo', hint: 'Que me lean y me acompañen, sin buscar consejos.' },
@@ -370,7 +360,8 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
       content: body,
       language: language || undefined,
       publish,
-      visualCardTheme: mode === 'card' ? CARD_STYLE_TO_THEME[cardStyle] : null,
+      visualCardTheme: mode === 'card' ? cardStyle : null,
+      ...(accompaniment ? { accompaniment } : {}),
       contentWarning: sensitive || null,
       musicLabel: music || null,
       externalShare,

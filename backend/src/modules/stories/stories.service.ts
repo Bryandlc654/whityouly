@@ -101,6 +101,7 @@ const STORY_DETAIL_SELECT = {
   visualCardTheme: true,
   contentWarning: true,
   musicLabel: true,
+  accompaniment: true,
   externalShare: true,
   guestReadable: true,
   visibility: true,
@@ -127,6 +128,7 @@ const STORY_LIST_SELECT = {
   visualCardTheme: true,
   contentWarning: true,
   musicLabel: true,
+  accompaniment: true,
   externalShare: true,
   guestReadable: true,
   visibility: true,
@@ -200,6 +202,7 @@ export class StoriesService {
           ...(dto.visualCardTheme ? { visualCardTheme: dto.visualCardTheme } : {}),
           contentWarning: dto.contentWarning?.trim() || null,
           musicLabel: dto.musicLabel?.trim() || null,
+          accompaniment: dto.accompaniment || null,
           externalShare: dto.externalShare !== false,
           guestReadable: dto.guestReadable !== false,
           visibility: (dto.visibility ?? 'PUBLIC') as VisibilityValue,
@@ -264,6 +267,7 @@ export class StoriesService {
       dto.visualCardTheme === undefined &&
       dto.contentWarning === undefined &&
       dto.musicLabel === undefined &&
+      dto.accompaniment === undefined &&
       dto.externalShare === undefined &&
       dto.guestReadable === undefined &&
       categoryIds === undefined &&
@@ -319,6 +323,9 @@ export class StoriesService {
             : {}),
           ...(dto.musicLabel !== undefined
             ? { musicLabel: dto.musicLabel?.trim() || null }
+            : {}),
+          ...(dto.accompaniment !== undefined
+            ? { accompaniment: dto.accompaniment || null }
             : {}),
           ...(dto.externalShare !== undefined ? { externalShare: dto.externalShare } : {}),
           ...(dto.guestReadable !== undefined ? { guestReadable: dto.guestReadable } : {}),
@@ -1682,6 +1689,7 @@ export class StoriesService {
     visualCardTheme?: string | null;
     contentWarning?: string | null;
     musicLabel?: string | null;
+    accompaniment?: string | null;
     externalShare?: boolean;
     guestReadable?: boolean;
     visibility: string;
@@ -1707,6 +1715,7 @@ export class StoriesService {
       visualCardTheme: story.visualCardTheme ?? null,
       contentWarning: story.contentWarning ?? null,
       musicLabel: story.musicLabel ?? null,
+      accompaniment: story.accompaniment ?? null,
       externalShare: story.externalShare !== false,
       guestReadable: story.guestReadable !== false,
       visibility: story.visibility,
@@ -1741,6 +1750,7 @@ export class StoriesService {
     visualCardTheme?: string | null;
     contentWarning?: string | null;
     musicLabel?: string | null;
+    accompaniment?: string | null;
     externalShare?: boolean;
     guestReadable?: boolean;
     visibility: string;
@@ -1766,6 +1776,7 @@ export class StoriesService {
       visualCardTheme: story.visualCardTheme ?? null,
       contentWarning: story.contentWarning ?? null,
       musicLabel: story.musicLabel ?? null,
+      accompaniment: story.accompaniment ?? null,
       externalShare: story.externalShare !== false,
       guestReadable: story.guestReadable !== false,
       visibility: story.visibility,
@@ -1797,6 +1808,7 @@ export class StoriesService {
     visualCardTheme?: string | null;
     contentWarning?: string | null;
     musicLabel?: string | null;
+    accompaniment?: string | null;
     externalShare?: boolean;
     guestReadable?: boolean;
     visibility: string;
@@ -1825,6 +1837,7 @@ export class StoriesService {
     visualCardTheme?: string | null;
     contentWarning?: string | null;
     musicLabel?: string | null;
+    accompaniment?: string | null;
     externalShare?: boolean;
     guestReadable?: boolean;
     visibility: string;
@@ -1848,6 +1861,7 @@ export class StoriesService {
       visualCardTheme: story.visualCardTheme ?? null,
       contentWarning: story.contentWarning ?? null,
       musicLabel: story.musicLabel ?? null,
+      accompaniment: story.accompaniment ?? null,
       externalShare: story.externalShare !== false,
       guestReadable: story.guestReadable !== false,
       author: { name: story.character.name, avatarUrl: story.character.avatarUrl },

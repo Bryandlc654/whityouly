@@ -6,6 +6,16 @@ import type { LoadResult } from './account';
 import { parseVisualCardTheme, type VisualCardTheme } from './visualCards';
 
 export type StoryVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE';
+
+/** «¿Qué te gustaría recibir al compartir?» (v58). */
+export type StoryAccompaniment = 'share' | 'experiences' | 'suggestions';
+
+/** Texto que v58 muestra sobre los comentarios (ACCOMPANIMENT de v38.js). */
+export const ACCOMPANIMENT_LABELS: Record<StoryAccompaniment, string> = {
+  share: 'Solo quiero compartirlo.',
+  experiences: 'Me gustaría conocer experiencias similares.',
+  suggestions: 'Agradezco sugerencias con respeto.',
+};
 export type StoryStatus =
   | 'DRAFT'
   | 'PUBLISHED'
@@ -47,6 +57,7 @@ export interface MyStory {
   visualCardTheme: VisualCardTheme | null;
   contentWarning: string | null;
   musicLabel: string | null;
+  accompaniment: string | null;
   externalShare: boolean;
   guestReadable: boolean;
   visibility: StoryVisibility;
@@ -76,6 +87,7 @@ export interface MyStoryListItem {
   visualCardTheme: VisualCardTheme | null;
   contentWarning: string | null;
   musicLabel: string | null;
+  accompaniment: string | null;
   externalShare: boolean;
   guestReadable: boolean;
   visibility: StoryVisibility;
@@ -103,6 +115,7 @@ export interface CreateStoryInput {
   visualCardTheme?: VisualCardTheme | null;
   contentWarning?: string | null;
   musicLabel?: string | null;
+  accompaniment?: StoryAccompaniment | null;
   externalShare?: boolean;
   guestReadable?: boolean;
   publish?: boolean;
@@ -122,6 +135,7 @@ export interface UpdateStoryInput {
   visualCardTheme?: VisualCardTheme | null;
   contentWarning?: string | null;
   musicLabel?: string | null;
+  accompaniment?: StoryAccompaniment | null;
   externalShare?: boolean;
   guestReadable?: boolean;
   categories?: string[];
@@ -201,6 +215,7 @@ function parseStory(value: unknown): MyStory | null {
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
     musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    accompaniment: typeof record.accompaniment === 'string' ? record.accompaniment : null,
     externalShare: record.externalShare !== false,
     guestReadable: record.guestReadable !== false,
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
@@ -243,6 +258,7 @@ function parseStoryListItem(value: unknown): MyStoryListItem | null {
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
     musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    accompaniment: typeof record.accompaniment === 'string' ? record.accompaniment : null,
     externalShare: record.externalShare !== false,
     guestReadable: record.guestReadable !== false,
     visibility: (record.visibility as StoryVisibility) ?? 'PUBLIC',
@@ -579,6 +595,7 @@ export interface FollowingStory {
   visualCardTheme: VisualCardTheme | null;
   contentWarning: string | null;
   musicLabel: string | null;
+  accompaniment: string | null;
   externalShare: boolean;
   guestReadable: boolean;
   author: { name: string; avatarUrl: string | null };
@@ -627,6 +644,7 @@ function parseFollowingStory(value: unknown): FollowingStory | null {
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
     musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    accompaniment: typeof record.accompaniment === 'string' ? record.accompaniment : null,
     externalShare: record.externalShare !== false,
     guestReadable: record.guestReadable !== false,
     author: { name: authorRecord.name, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },

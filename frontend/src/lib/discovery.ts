@@ -95,6 +95,7 @@ function parseStoryItem(value: unknown, extra: Partial<FollowingStory> = {}): Fo
     visualCardTheme: parseVisualCardTheme(record.visualCardTheme),
     contentWarning: typeof record.contentWarning === 'string' ? record.contentWarning : null,
     musicLabel: typeof record.musicLabel === 'string' ? record.musicLabel : null,
+    accompaniment: typeof record.accompaniment === 'string' ? record.accompaniment : null,
     externalShare: record.externalShare !== false,
     guestReadable: record.guestReadable !== false,
     author: { name: authorName, avatarUrl: safeAvatarUrl(authorRecord.avatarUrl) },

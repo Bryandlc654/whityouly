@@ -420,6 +420,12 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .wy .story-card-theme.theme-ocean span{background:linear-gradient(135deg,#d4ecff,#1c5f9e)}
 .wy .story-card-theme.theme-rose span{background:linear-gradient(135deg,#ffe0ea,#b33d72)}
 .wy .story-card-theme.theme-paper span{background:linear-gradient(135deg,#fff9ed,#cbbda9)}
+.wy .story-card-theme.theme-violet span{background:linear-gradient(135deg,#6246F5,#7942CC)}
+.wy .story-card-theme.theme-hope span{background:linear-gradient(135deg,#23704F,#2D7D56)}
+.wy .story-card-theme.theme-calm span{background:linear-gradient(135deg,#146B78,#187A7B)}
+.wy .story-card-theme.theme-dawn span{background:linear-gradient(135deg,#fff0de,#efb2c4)}
+.wy .story-card-theme.theme-night span{background:linear-gradient(135deg,#171f46,#4d3d87)}
+.wy .story-card-theme.theme-minimal span{background:linear-gradient(135deg,#ffffff,#f3f0ff)}
 .wy .story-card-theme:hover{border-color:#c9bcff}
 .wy .story-card-theme.active{border-color:var(--purple);background:var(--purple-3);color:var(--purple);box-shadow:0 0 0 3px rgba(104,71,245,.1)}
 
@@ -430,6 +436,13 @@ html[data-reading-size="LARGER"] .wy.feed-reference .post .post-text{font-size:2
 .visual-story-card.theme-ocean{--card-a:#163c71;--card-b:#3c8fbd}
 .visual-story-card.theme-rose{--card-a:#7e2a58;--card-b:#e884aa}
 .visual-story-card.theme-paper{--card-a:#fffaf0;--card-b:#e6d7c3;color:#2b2342}
+.visual-story-card.theme-violet{--card-a:#6246F5;--card-b:#7942CC}
+.visual-story-card.theme-hope{--card-a:#23704F;--card-b:#2D7D56}
+.visual-story-card.theme-calm{--card-a:#146B78;--card-b:#187A7B}
+.visual-story-card.theme-dawn{--card-a:#fff0de;--card-b:#efb2c4;color:#38283f}
+.visual-story-card.theme-night{--card-a:#171f46;--card-b:#4d3d87}
+.visual-story-card.theme-minimal{--card-a:#ffffff;--card-b:#f3f0ff;color:#292432}
+.visual-story-card.theme-dawn .visual-story-card-scrim,.visual-story-card.theme-minimal .visual-story-card-scrim{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.3))}
 .visual-story-card.is-compact{min-height:250px}
 .visual-story-card.is-preview{min-height:205px;margin:10px 0 0;padding:18px;border-radius:17px;box-shadow:none;pointer-events:none}
 .visual-story-card-media{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover}

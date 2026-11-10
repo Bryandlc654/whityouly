@@ -5,6 +5,13 @@ export const VISUAL_CARD_THEMES = [
   { id: 'ocean', label: 'Océano', description: 'Azul y profundo' },
   { id: 'rose', label: 'Rosa', description: 'Cercano y delicado' },
   { id: 'paper', label: 'Papel', description: 'Claro y editorial' },
+  // Estilos de tarjeta de la entrega v58 (SHARE_CARD_TEMPLATES).
+  { id: 'violet', label: 'Violeta', description: 'Morado de la marca' },
+  { id: 'hope', label: 'Esperanza', description: 'Verde profundo' },
+  { id: 'calm', label: 'Calma', description: 'Azul verdoso' },
+  { id: 'dawn', label: 'Amanecer', description: 'Melocotón y rosa' },
+  { id: 'night', label: 'Noche', description: 'Azul noche' },
+  { id: 'minimal', label: 'Minimal', description: 'Blanco y lavanda' },
 ] as const;
 
 export type VisualCardTheme = (typeof VISUAL_CARD_THEMES)[number]['id'];

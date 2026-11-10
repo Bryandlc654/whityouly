@@ -126,7 +126,7 @@ export default function FeedPage() {
   const [followStories, setFollowStories] = useState<Set<string>>(new Set());
 
   const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
-  const [commentsFor, setCommentsFor] = useState<{ id: string; title: string; author: string } | null>(null);
+  const [commentsFor, setCommentsFor] = useState<{ id: string; title: string; author: string; accompaniment: string | null } | null>(null);
   const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodName, setMoodName] = useState('Esperanza');
@@ -579,7 +579,9 @@ export default function FeedPage() {
           onOpenMenu={() => openPostMenu(entry.id)}
           onPlay={() => notify('Reproduciendo vista previa')}
           onAuthor={() => router.push(`/personaje/${encodeURIComponent(entry.author)}`)}
-          onComment={() => setCommentsFor({ id: story.id, title: story.title, author: entry.author })}
+          onComment={() =>
+            setCommentsFor({ id: story.id, title: story.title, author: entry.author, accompaniment: story.accompaniment })
+          }
           onOpenStory={() => setReader({ id: story.id, title: story.title })}
           onShare={() =>
             setShareStory({
@@ -706,6 +708,7 @@ export default function FeedPage() {
           author={commentsFor.author}
           viewerName={character?.name}
           viewerAvatarUrl={character?.avatarUrl}
+          accompaniment={commentsFor.accompaniment}
           onNotify={notify}
           onClose={() => setCommentsFor(null)}
         />

@@ -34,8 +34,19 @@ export const VISUAL_CARD_THEMES = [
   'ocean',
   'rose',
   'paper',
+  // Estilos de tarjeta de la entrega v58.
+  'violet',
+  'hope',
+  'calm',
+  'dawn',
+  'night',
+  'minimal',
 ] as const;
 export type VisualCardThemeValue = (typeof VISUAL_CARD_THEMES)[number];
+
+/** Qué le gustaría recibir a quien publica (selector «¿Qué te gustaría recibir?» de v58). */
+export const ACCOMPANIMENTS = ['share', 'experiences', 'suggestions'] as const;
+export type AccompanimentValue = (typeof ACCOMPANIMENTS)[number];
 
 const MAX_CATEGORIES = 3;
 const MAX_EMOTIONS = 5;
@@ -126,6 +137,14 @@ export class CreateStoryDto {
   @IsString()
   @MaxLength(120, { message: 'La canción no puede superar los 120 caracteres' })
   musicLabel?: string;
+
+  @ApiPropertyOptional({
+    enum: ACCOMPANIMENTS,
+    description: 'Cómo prefiere que le acompañen. Si falta, no indica preferencia.',
+  })
+  @IsOptional()
+  @IsIn(ACCOMPANIMENTS, { message: 'La preferencia de acompañamiento no es válida' })
+  accompaniment?: AccompanimentValue;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
@@ -249,6 +268,11 @@ export class UpdateStoryDto {
   @IsString()
   @MaxLength(120, { message: 'La canción no puede superar los 120 caracteres' })
   musicLabel?: string | null;
+
+  @ApiPropertyOptional({ enum: ACCOMPANIMENTS, nullable: true })
+  @IsOptional()
+  @IsIn(ACCOMPANIMENTS, { message: 'La preferencia de acompañamiento no es válida' })
+  accompaniment?: AccompanimentValue | null;
 
   @ApiPropertyOptional()
   @IsOptional()

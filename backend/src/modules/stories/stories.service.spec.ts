@@ -188,6 +188,27 @@ describe('StoriesService', () => {
     expect(result.visualCardTheme).toBe('lavender');
   });
 
+  it('guarda la preferencia de acompañamiento y un estilo de tarjeta v58', async () => {
+    prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
+    prisma.story.create.mockResolvedValue(
+      detailRow({ visualCardTheme: 'night', accompaniment: 'experiences' }),
+    );
+
+    const result = await service.create('user-1', {
+      title: 'Una noche larga',
+      content: 'Quiero leer cómo lo vivieron otras personas.',
+      visualCardTheme: 'night',
+      accompaniment: 'experiences',
+    } as any);
+
+    expect(prisma.story.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ visualCardTheme: 'night', accompaniment: 'experiences' }),
+      }),
+    );
+    expect(result.accompaniment).toBe('experiences');
+  });
+
   it('rechaza una transcripción sin audio', async () => {
     prisma.character.findUnique.mockResolvedValue({ id: 'char-1' });
 

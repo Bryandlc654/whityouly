@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import Avatar from './Avatar';
+import { ACCOMPANIMENT_LABELS, type StoryAccompaniment } from '@/lib/stories';
 import {
   createComment,
   deleteComment,
@@ -32,6 +33,8 @@ interface Props {
   author: string;
   viewerName?: string;
   viewerAvatarUrl?: string | null;
+  /** Cómo prefiere que le acompañen quien publicó (v58). */
+  accompaniment?: string | null;
   onClose: () => void;
   onNotify?: (message: string) => void;
 }
@@ -57,7 +60,8 @@ function relativeTime(value: string): string {
  * Panel lateral de comentarios con el marcado de v58 (#commentsLayer):
  * fondo, encabezado, conversación con respuestas y redacción fija abajo.
  */
-export default function CommentsPanel({ storyId, title, author, viewerName, viewerAvatarUrl, onClose, onNotify }: Props) {
+export default function CommentsPanel({ storyId, title, author, viewerName, viewerAvatarUrl, accompaniment, onClose, onNotify }: Props) {
+  const preference = accompaniment ? ACCOMPANIMENT_LABELS[accompaniment as StoryAccompaniment] : undefined;
   const [comments, setComments] = useState<StoryComment[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -277,6 +281,15 @@ export default function CommentsPanel({ storyId, title, author, viewerName, view
           </button>
         </header>
         <div className="conversation-body" tabIndex={-1}>
+          {preference ? (
+            <p className="accompaniment-note">
+              <Icon name="message" />
+              <span>
+                <b>Cómo prefiere que le acompañen</b>
+                {preference}
+              </span>
+            </p>
+          ) : null}
           {loading ? <p>Cargando comentarios…</p> : null}
           {!loading && !error && topLevel.length === 0 ? <p>Todavía no hay comentarios. Puedes acompañar con tus palabras.</p> : null}
           {error ? (

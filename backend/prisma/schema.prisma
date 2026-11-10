@@ -338,6 +338,8 @@ model Story {
   contentWarning String?
   // Canción vinculada por el autor (texto libre, sin reproducir audio).
   musicLabel String?
+  // Cómo prefiere que le acompañen: share | experiences | suggestions. `null` = sin preferencia.
+  accompaniment String?
   // Permisos de distribución elegidos por el autor.
   externalShare Boolean @default(true)
   guestReadable Boolean @default(true)
