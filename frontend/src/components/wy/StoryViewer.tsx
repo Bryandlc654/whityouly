@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import Avatar from './Avatar';
 import CommentSection from './CommentSection';
+import JoinPrompt from './JoinPrompt';
 import VisualStoryCard from './VisualStoryCard';
 import { viewStory, type MyStory } from '@/lib/stories';
 
@@ -17,6 +18,8 @@ interface Props {
   onNotify?: (message: string) => void;
   /** 'modal' dibuja su propia caja (Feed, Explorar, Siguiendo); 'inline' va dentro de otro contenedor (buscador). */
   variant?: 'modal' | 'inline' | 'page';
+  /** Lectura sin sesión (enlace compartido): los comentarios se sustituyen por una invitación. */
+  guest?: { returnTo: string };
 }
 
 function initialsOf(name?: string | null) {
@@ -42,6 +45,7 @@ export default function StoryViewer({
   onClose,
   onNotify,
   variant = 'modal',
+  guest,
 }: Props) {
   const [story, setStory] = useState<MyStory | null>(initial ?? null);
   const [busy, setBusy] = useState(!initial);
@@ -241,6 +245,13 @@ export default function StoryViewer({
                 })}
               </div>
 
+              {guest ? (
+                <JoinPrompt
+                  variant="card"
+                  returnTo={guest.returnTo}
+                  reason="Inicia sesión para leer y escribir comentarios"
+                />
+              ) : (
               <div className="story-reader-comments">
                 <label className="comment-scope-select">
                   Comentarios de
@@ -264,6 +275,7 @@ export default function StoryViewer({
                   commentsPaused={story.commentsPaused}
                 />
               </div>
+              )}
             </>
           )}
         </>

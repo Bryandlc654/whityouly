@@ -84,3 +84,25 @@
 /* Título y tipo de cada continuación en «Ver historia completa». */
 .wy .story-stage-heading{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:6px 0 8px}
 .wy .story-stage-heading h3{margin:0;font-size:17px;line-height:1.3;color:#1f1b2d}
+
+/* ---------- Relato compartido sin sesión ---------- */
+.wy.guest-story{min-height:100vh;background:var(--bg,#f7f6fb)}
+.wy .guest-story-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.wy .guest-story-actions button{min-height:38px;padding:0 16px;border-radius:12px;font-weight:750}
+.wy .guest-story-main{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+.wy .guest-story-note{display:flex;align-items:center;gap:8px;margin:0 0 16px;padding:11px 14px;border:1px solid #e3ddfb;border-radius:14px;background:#f6f3ff;color:#4b3f8f;font-size:13px}
+.wy .guest-story-note svg{width:16px;flex-shrink:0}
+.wy .story-page-actions{margin:14px 0 4px}
+.wy .story-page-actions button.active{color:#6246F5}
+/* Invitación a unirse (tarjeta y modal) */
+.wy .join-prompt{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px 22px}
+.wy .join-prompt h2{margin:0;font-size:19px;line-height:1.3}
+.wy .join-prompt p{margin:0;max-width:44ch;color:#5f5a6e;font-size:14px;line-height:1.55}
+.wy .join-prompt-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:#f1edff;color:#6246F5}
+.wy .join-prompt-icon svg{width:22px}
+.wy .join-prompt-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:6px}
+.wy .join-prompt-actions button{min-width:150px}
+.wy .join-prompt-modal{max-width:440px}
+.wy .join-prompt-modal>.close{position:absolute;top:12px;right:12px}
+.wy .story-viewer-page .join-prompt{margin-top:18px}
+@media(max-width:520px){.wy .guest-story-actions .ghost{display:none}.wy .join-prompt-actions button{flex:1;min-width:0}}

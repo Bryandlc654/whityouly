@@ -16,6 +16,10 @@ import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStory
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { viewPublicStory, viewStory, type MyStory } from '@/lib/stories';
 import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
+import JoinPrompt from '@/components/wy/JoinPrompt';
+import { followStory, listSupportedStoryIds, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
+import { whatIFollow } from '@/lib/follows';
+import { rememberReturnTo } from '@/lib/returnTo';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -49,6 +53,13 @@ export default function StoryPage() {
   const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [toast, setToast] = useState('');
   const [summaryHidden, setSummaryHidden] = useState(false);
+  // Sin sesión se lee el relato compartido; para interactuar hay que unirse.
+  const [guest, setGuest] = useState(false);
+  const [joinReason, setJoinReason] = useState<string | null>(null);
+  const [supported, setSupported] = useState(false);
+  const [supportCount, setSupportCount] = useState(0);
+  const [followingStory, setFollowingStory] = useState(false);
+  const [busyAction, setBusyAction] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const notify = useCallback((message: string) => {
@@ -75,6 +86,7 @@ export default function StoryPage() {
 
     if (result.status === 'ok') {
       setStory(result.data);
+      setSupportCount(result.data.supportCount);
       return;
     }
 
@@ -85,6 +97,7 @@ export default function StoryPage() {
   useEffect(() => {
     const verify = async () => {
       if (!tokenStorage.getAccess()) {
+        setGuest(true);
         setLoading(false);
         return;
       }
@@ -102,6 +115,15 @@ export default function StoryPage() {
         }
         if (res.ok) setCharacter(await res.json());
 
+        void listSupportedStoryIds().then((supportResult) => {
+          if (supportResult.status === 'ok') setSupported(supportResult.data.storyIds.includes(storyId));
+        });
+        void whatIFollow().then((followResult) => {
+          if (followResult.status === 'ok') {
+            setFollowingStory(followResult.data.stories.some((item) => item.id === storyId));
+          }
+        });
+
         const accountResult = await fetchAccount();
         if (accountResult.status === 'ok') {
           setPreferredLanguage(accountResult.data.preferences.language || 'es');
@@ -114,7 +136,7 @@ export default function StoryPage() {
     };
 
     void verify();
-  }, [router]);
+  }, [router, storyId]);
 
   useEffect(() => {
     if (!loading) void loadStory();
@@ -177,6 +199,67 @@ export default function StoryPage() {
     }
   };
 
+  const returnTo = `/relato/${encodeURIComponent(storyId)}`;
+
+  const askToJoin = (reason: string) => setJoinReason(reason);
+
+  const toggleSupport = async () => {
+    if (guest) return askToJoin('Inicia sesión para decir «Estoy contigo»');
+    if (!story || busyAction) return;
+    setBusyAction(true);
+    const result = supported ? await unsupportStory(story.id) : await supportStory(story.id);
+    setBusyAction(false);
+    if (result.status === 'ok') {
+      setSupported(result.data.supporting);
+      setSupportCount(result.data.count);
+      return;
+    }
+    notify(result.message);
+  };
+
+  const toggleFollowStory = async () => {
+    if (guest) return askToJoin('Inicia sesión para seguir esta historia');
+    if (!story || busyAction) return;
+    setBusyAction(true);
+    const result = followingStory ? await unfollowStory(story.id) : await followStory(story.id);
+    setBusyAction(false);
+    if (result.status === 'ok') {
+      setFollowingStory(result.data.following);
+      notify(result.data.following ? 'Te avisaremos cuando continúe.' : 'Ya no sigues esta historia.');
+      return;
+    }
+    notify(result.message);
+  };
+
+  const scrollToComments = () => {
+    if (guest) return askToJoin('Inicia sesión para leer y escribir comentarios');
+    document.querySelector('.story-reader-comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const openShare = () => {
+    if (!story) return;
+    setShareStory({
+      id: story.id,
+      title: story.title,
+      text: story.updates[0]?.content ?? '',
+      author: story.author?.name ?? 'Withyouly',
+      initials: initialsOf(story.author?.name),
+      category: story.categories[0],
+      externalShare: story.externalShare,
+      guestReadable: story.guestReadable,
+      format: story.updates[0]?.audioUrl
+        ? 'Audio con transcripción'
+        : story.visualCardTheme
+          ? 'Tarjeta visual'
+          : 'Relato escrito',
+    });
+  };
+
+  const goAuth = (path: '/login' | '/register') => {
+    rememberReturnTo(returnTo);
+    router.push(path);
+  };
+
   if (loading) {
     return (
       <PageSkeleton variant="detail" />
@@ -196,19 +279,176 @@ export default function StoryPage() {
         }
       : story;
 
+
+  const overlay = shareStory ? (
+    <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
+  ) : joinReason ? (
+    <JoinPrompt returnTo={returnTo} reason={joinReason} onClose={() => setJoinReason(null)} />
+  ) : null;
+
+  const content = (
+      <section className="screen story-page">
+          {!guest ? (
+            <button
+              className="text-link story-back"
+              type="button"
+              onClick={() => (window.history.length > 1 ? router.back() : router.push('/feed'))}
+            >
+              <Icon name="chevron" /> Volver
+            </button>
+          ) : null}
+  
+          {storyLoading ? <SkeletonList kind="post" count={1} /> : null}
+  
+          {!storyLoading && error && guest ? (
+            <JoinPrompt
+              variant="card"
+              returnTo={returnTo}
+              reason="Este relato solo está disponible para la comunidad"
+            />
+          ) : null}
+  
+          {!storyLoading && error && !guest ? (
+            <div className="auth-error" role="alert">
+              {error}
+              <button className="text-link" type="button" onClick={() => void loadStory()} style={{ marginLeft: 8 }}>
+                Reintentar
+              </button>
+            </div>
+          ) : null}
+  
+          {!storyLoading && !error && story ? (
+            <article className="post card story-page-card">
+              <div className="post-head">
+                <Avatar
+                  initials={initialsOf(story.author?.name)}
+                  avatarUrl={story.author?.avatarUrl}
+                  size="sm"
+                />
+                <div>
+                  <div className="post-author">
+                    <span className="author-name">{story.author?.name ?? 'Autor desconocido'}</span>
+                  </div>
+                  <div className="post-time">
+                    {formatDate(story.createdAt)} · {story.updates.length}{' '}
+                    {story.updates.length === 1 ? 'etapa' : 'etapas'} · {languageLabel(story.language)}
+                    {story.countryCode ? ` · ${countryLabel(story.countryCode)}` : ''}
+                  </div>
+                </div>
+              </div>
+  
+              {tags.length > 0 || translation ? (
+                <div className="post-tags">
+                  {tags.map((tag) => (
+                    <span key={tag} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                  {translation ? (
+                    <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
+                      {translated ? 'Ver original' : `Ver traducción (${languageLabel(preferredLanguage)})`}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+  
+              <h1 className={displayStory?.visualCardTheme ? 'visually-hidden' : 'story-page-title'}>
+                {displayStory?.title ?? story.title}
+              </h1>
+  
+              <div className="story-page-meta">
+                <span>
+                  {supportCount} {supportCount === 1 ? 'persona está' : 'personas están'} contigo
+                </span>
+                <span>
+                  {story.commentCount} {story.commentCount === 1 ? 'comentario' : 'comentarios'}
+                </span>
+              </div>
+  
+              <div className="post-actions story-page-actions">
+                <button
+                  type="button"
+                  className={supported ? 'active' : ''}
+                  aria-pressed={supported}
+                  onClick={() => void toggleSupport()}
+                >
+                  <Icon name="heart" />
+                  <span className="action-label">Estoy contigo</span>
+                </button>
+                <button type="button" onClick={scrollToComments}>
+                  <Icon name="message" />
+                  <span className="action-label">Comentar</span>
+                </button>
+                <button
+                  type="button"
+                  className={followingStory ? 'active' : ''}
+                  aria-pressed={followingStory}
+                  onClick={() => void toggleFollowStory()}
+                >
+                  <Icon name="trend" />
+                  <span className="action-label">{followingStory ? 'Siguiendo' : 'Seguir relato'}</span>
+                </button>
+                <button type="button" onClick={openShare}>
+                  <Icon name="share" />
+                  <span className="action-label">Compartir</span>
+                </button>
+              </div>
+  
+              <StoryViewer
+                story={displayStory ?? story}
+                variant="page"
+                onNotify={notify}
+                onClose={() => router.push('/feed')}
+                guest={guest ? { returnTo } : undefined}
+              />
+            </article>
+          ) : null}
+        </section>
+  );
+
+  // Enlace compartido abierto sin sesión: lectura pública con un marco ligero,
+  // como una publicación pública de Facebook. Interactuar pide unirse.
+  if (guest) {
+    return (
+      <div className="wy feed-reference guest-story">
+        <header className="topbar">
+          <div className="topbar-inner">
+            <button className="brand" type="button" onClick={() => router.push('/')} aria-label="Ir a Withyouly">
+              <span className="brand-crop" role="img" aria-label="Withyouly" />
+            </button>
+            <div className="guest-story-actions">
+              <button className="ghost" type="button" onClick={() => goAuth('/login')}>
+                Iniciar sesión
+              </button>
+              <button className="primary" type="button" onClick={() => goAuth('/register')}>
+                Crear cuenta
+              </button>
+            </div>
+          </div>
+        </header>
+        <main className="guest-story-main" id="main">
+          <p className="guest-story-note">
+            <Icon name="lock" /> Estás leyendo un relato compartido. Únete para acompañar, comentar o seguir historias.
+          </p>
+          {content}
+        </main>
+        {overlay ? <div className="modal-layer">{overlay}</div> : null}
+        <div className={`toast ${toast ? 'show' : ''}`} role="status">
+          {toast}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <WyFrame
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
-      activeRoute="notifications"
+      activeRoute="character"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
-      overlay={
-        shareStory ? (
-          <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />
-        ) : null
-      }
+      overlay={overlay}
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
       rightRail={
         <RightRail
@@ -218,109 +458,7 @@ export default function StoryPage() {
         />
       }
     >
-      <section className="screen story-page">
-        <button
-          className="text-link story-back"
-          type="button"
-          onClick={() => router.push('/notificaciones')}
-        >
-          <Icon name="chevron" /> Volver a notificaciones
-        </button>
-
-        {storyLoading ? <SkeletonList kind="post" count={1} /> : null}
-
-        {!storyLoading && error ? (
-          <div className="auth-error" role="alert">
-            {error}
-            <button className="text-link" type="button" onClick={() => void loadStory()} style={{ marginLeft: 8 }}>
-              Reintentar
-            </button>
-          </div>
-        ) : null}
-
-        {!storyLoading && !error && story ? (
-          <article className="post card story-page-card">
-            <div className="post-head">
-              <Avatar
-                initials={initialsOf(story.author?.name)}
-                avatarUrl={story.author?.avatarUrl}
-                size="sm"
-              />
-              <div>
-                <div className="post-author">
-                  <span className="author-name">{story.author?.name ?? 'Autor desconocido'}</span>
-                </div>
-                <div className="post-time">
-                  {formatDate(story.createdAt)} · {story.updates.length}{' '}
-                  {story.updates.length === 1 ? 'etapa' : 'etapas'} · {languageLabel(story.language)}
-                  {story.countryCode ? ` · ${countryLabel(story.countryCode)}` : ''}
-                </div>
-              </div>
-            </div>
-
-            {tags.length > 0 || translation ? (
-              <div className="post-tags">
-                {tags.map((tag) => (
-                  <span key={tag} className="tag">
-                    {tag}
-                  </span>
-                ))}
-                {translation ? (
-                  <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
-                    {translated ? 'Ver original' : `Ver traducción (${languageLabel(preferredLanguage)})`}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-
-            <h1 className={displayStory?.visualCardTheme ? 'visually-hidden' : 'story-page-title'}>
-              {displayStory?.title ?? story.title}
-            </h1>
-
-            <div className="story-page-meta">
-              <span>
-                {story.supportCount} {story.supportCount === 1 ? 'persona está' : 'personas están'} contigo
-              </span>
-              <span>
-                {story.commentCount} {story.commentCount === 1 ? 'comentario' : 'comentarios'}
-              </span>
-            </div>
-
-            <div className="story-share-row">
-              <button
-                className="secondary"
-                type="button"
-                onClick={() =>
-                  setShareStory({
-                    id: story.id,
-                    title: story.title,
-                    text: story.updates[0]?.content ?? '',
-                    author: story.author?.name ?? 'Withyouly',
-                    initials: initialsOf(story.author?.name),
-                    category: story.categories[0],
-                    externalShare: story.externalShare,
-                    guestReadable: story.guestReadable,
-                    format: story.updates[0]?.audioUrl
-                      ? 'Audio con transcripción'
-                      : story.visualCardTheme
-                        ? 'Tarjeta visual'
-                        : 'Relato escrito',
-                  })
-                }
-              >
-                <Icon name="share" /> Compartir
-              </button>
-            </div>
-
-            <StoryViewer
-              story={displayStory ?? story}
-              variant="page"
-              onNotify={notify}
-              onClose={() => router.push('/notificaciones')}
-            />
-          </article>
-        ) : null}
-      </section>
+      {content}
     </WyFrame>
   );
 }

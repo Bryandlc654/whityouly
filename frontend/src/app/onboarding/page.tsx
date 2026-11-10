@@ -11,6 +11,7 @@ import {
 } from '@/lib/characters';
 import { AVATAR_PRESETS } from '@/lib/avatar';
 import Icon from '@/components/wy/Icon';
+import { consumeReturnTo } from '@/lib/returnTo';
 
 const NAME_MIN = 3;
 const NAME_MAX = 30;
@@ -80,7 +81,7 @@ export default function OnboardingPage() {
           return;
         }
         if (response.ok) {
-          router.replace('/feed');
+          router.replace(consumeReturnTo('/feed'));
           return;
         }
         if (response.status === 404) {
@@ -218,7 +219,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    router.replace('/feed');
+    router.replace(consumeReturnTo('/feed'));
     router.refresh();
   };
 

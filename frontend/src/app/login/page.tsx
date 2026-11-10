@@ -6,6 +6,7 @@ import { API_URL, extractErrorMessage } from '@/lib/api';
 import { authFetch, tokenStorage } from '@/lib/auth';
 import AuthCard from '@/components/wy/AuthCard';
 import Icon from '@/components/wy/Icon';
+import { consumeReturnTo } from '@/lib/returnTo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -44,10 +45,13 @@ export default function LoginPage() {
 
       // Una cuenta recién verificada aún no tiene personaje: primero elige su
       // seudónimo. Si la comprobación falla, el feed vuelve a intentarlo.
+      // Quien venía de un relato compartido vuelve a él (ver lib/returnTo).
       let destination = '/feed';
       try {
         const character = await authFetch(`${API_URL}/characters/me`);
+        // Sin personaje primero se elige seudónimo; el onboarding recupera el destino guardado.
         if (character.status === 404) destination = '/onboarding';
+        else destination = consumeReturnTo('/feed');
       } catch {
         /* el feed decide cuando termine de cargar */
       }
