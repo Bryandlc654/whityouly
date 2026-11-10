@@ -68,6 +68,7 @@ interface StoryScope {
 
 const STAGE_SELECT = {
   id: true,
+  title: true,
   content: true,
   mediaAssetId: true,
   audioAssetId: true,
@@ -81,6 +82,7 @@ const STAGE_SELECT = {
 
 type StageRow = {
   id: string;
+  title?: string | null;
   content: string;
   mediaAssetId: string | null;
   audioAssetId: string | null;
@@ -372,6 +374,7 @@ export class StoriesService {
       const created = await tx.storyUpdate.create({
         data: {
           storyId,
+          ...(dto.title && sanitizeStoryTitle(dto.title) ? { title: sanitizeStoryTitle(dto.title) } : {}),
           content,
           mediaAssetId,
           audioAssetId,
@@ -516,6 +519,7 @@ export class StoriesService {
       const result = await tx.storyUpdate.update({
         where: { id: updateId },
         data: {
+          ...(dto.title !== undefined ? { title: sanitizeStoryTitle(dto.title) || null } : {}),
           ...(content !== undefined ? { content } : {}),
           ...(nextMediaId !== undefined ? { mediaAssetId: nextMediaId } : {}),
           ...(nextAudioId !== undefined ? { audioAssetId: nextAudioId } : {}),
@@ -1670,6 +1674,7 @@ export class StoriesService {
   private toStageView(stage: StageRow) {
     return {
       id: stage.id,
+      title: stage.title ?? null,
       content: stage.content,
       mediaUrl: stage.mediaAsset?.fileUrl ?? null,
       audioUrl: stage.audioAsset?.fileUrl ?? null,

@@ -338,6 +338,15 @@ export class CreateStoryUpdateDto {
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string;
 
+  @ApiPropertyOptional({ description: 'Título opcional de esta parte de la historia.' })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(STORY_TITLE_MAX_LENGTH, {
+    message: `El título no puede superar los ${STORY_TITLE_MAX_LENGTH} caracteres`,
+  })
+  title?: string;
+
   @ApiPropertyOptional({ enum: ['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'] })
   @IsOptional()
   @IsIn(['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'], { message: 'El tipo de continuación no es válido' })
@@ -379,6 +388,15 @@ export class UpdateStoryUpdateDto {
   @IsOptional()
   @IsUUID('4', { message: 'El archivo indicado no es válido' })
   audioAssetId?: string | null;
+
+  @ApiPropertyOptional({ description: 'Título opcional de esta parte de la historia.' })
+  @Transform(trim)
+  @IsOptional()
+  @IsString()
+  @MaxLength(STORY_TITLE_MAX_LENGTH, {
+    message: `El título no puede superar los ${STORY_TITLE_MAX_LENGTH} caracteres`,
+  })
+  title?: string;
 
   @ApiPropertyOptional({ enum: ['Hubo una conversación','Tomé una decisión o algo cambió','Nueva reflexión','Cierre que deseo compartir','Sin clasificación'] })
   @IsOptional()

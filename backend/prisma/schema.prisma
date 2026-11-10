@@ -390,6 +390,8 @@ model Story {
 model StoryUpdate {
   id           String   @id @default(uuid())
   storyId      String
+  // Título propio de una continuación (v58). La primera etapa usa el del relato.
+  title        String?
   content      String
   // Imagen que ilustra la etapa.
   mediaAssetId String?

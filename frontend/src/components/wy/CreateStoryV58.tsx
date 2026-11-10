@@ -364,6 +364,7 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
 
     if (continuation) {
       const stage = await addStoryStage(originId, {
+        title: finalTitle || undefined,
         content: body,
         audioAssetId: audio ? audioId ?? undefined : undefined,
         transcript: audio && showTranscript ? transcript.trim() || undefined : undefined,

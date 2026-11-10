@@ -336,6 +336,42 @@ describe('StoriesService', () => {
     expect(stage.stageOrder).toBe(4);
   });
 
+  it('guarda el título de una continuación y su tipo', async () => {
+    prisma.story.findFirst.mockResolvedValue({
+      id: 'story-1',
+      characterId: 'char-1',
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+    });
+    prisma.storyUpdate.aggregate.mockResolvedValue({ _max: { stageOrder: 1 } });
+    prisma.storyUpdate.create.mockResolvedValue({
+      id: 'upd-2',
+      title: 'Lo que pasó después',
+      content: 'Hablé con mi hermana.',
+      mediaAssetId: null,
+      updateKind: 'Hubo una conversación',
+      stageOrder: 2,
+      createdAt: new Date(),
+      mediaAsset: null,
+    });
+
+    const stage = await service.addUpdate('user-1', 'story-1', {
+      title: '  Lo que pasó   después ',
+      content: 'Hablé con mi hermana.',
+      updateKind: 'Hubo una conversación',
+    } as any);
+
+    expect(prisma.storyUpdate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: 'Lo que pasó después',
+          updateKind: 'Hubo una conversación',
+        }),
+      }),
+    );
+    expect(stage.title).toBe('Lo que pasó después');
+  });
+
   it('impone un tope de etapas por relato', async () => {
     prisma.story.findFirst.mockResolvedValue({
       id: 'story-1',
