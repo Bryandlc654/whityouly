@@ -142,3 +142,13 @@
 @media(max-width:520px){.wy .compose-card-patterns{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .wy .compose-card-styles .compose-card-custom label span{font-size:12px;font-weight:750}
 .wy .compose-card-styles .compose-card-custom label{min-height:0;height:auto;padding:6px 9px}
+
+/* Selector de idioma */
+.wy .lang-switch{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:#FFF;color:#50535D;cursor:pointer}
+.wy .lang-switch svg{width:18px;height:18px;color:#6246F5;flex:0 0 18px}
+.wy .lang-switch select{border:0;background:transparent;color:#111;font:inherit;font-size:13px;font-weight:700;outline:0;cursor:pointer;padding:0}
+.wy .lang-switch:focus-within{outline:2px solid #6246F5;outline-offset:2px}
+.wy .lang-switch.compact{height:36px;padding:0 8px}
+.wy .auth-lang{position:fixed;top:16px;right:16px;z-index:80}
+.wy .auth-lang-inline{position:absolute;top:14px;right:14px}
+.wy .auth-card{position:relative}

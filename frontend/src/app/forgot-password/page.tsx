@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
 import Icon from '@/components/wy/Icon';
+import { useI18n } from '@/components/providers/I18nProvider';
+import LanguageSwitcher from '@/components/wy/LanguageSwitcher';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -11,6 +13,7 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +30,12 @@ export default function ForgotPasswordPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(extractErrorMessage(data, 'Error al solicitar el restablecimiento'));
+        throw new Error(extractErrorMessage(data, t('auth.error')));
       }
 
       setSuccess(data.message);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al solicitar el restablecimiento');
+      setError(err instanceof Error ? err.message : t('auth.error'));
     } finally {
       setLoading(false);
     }
@@ -40,12 +43,13 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="wy">
+      <div className="auth-lang"><LanguageSwitcher compact /></div>
       <section className="onboarding-stage">
         <button
           className="auth-brand onboarding-brand"
           type="button"
           onClick={() => router.push('/')}
-          aria-label="Volver a la portada"
+          aria-label={t('nav.goHome')}
         >
           <span className="brand-crop" />
         </button>
@@ -54,16 +58,13 @@ export default function ForgotPasswordPage() {
           <span className="recovery-icon">
             <Icon name="mail" />
           </span>
-          <h1>Recupera tu acceso</h1>
-          <p>
-            Escribe el correo con el que te registraste. Te enviaremos un enlace seguro para crear
-            una nueva contraseña.
-          </p>
+          <h1>{t('auth.forgot.title')}</h1>
+          <p>{t('auth.forgot.subtitle')}</p>
 
           {error ? <div className="auth-error">{error}</div> : null}
           {success ? <div className="auth-success">{success}</div> : null}
 
-          <label htmlFor="forgotEmail">Correo electrónico</label>
+          <label htmlFor="forgotEmail">{t('auth.email')}</label>
           <div className="input-with-icon">
             <Icon name="mail" />
             <input
@@ -79,11 +80,11 @@ export default function ForgotPasswordPage() {
           </div>
 
           <button className="primary auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Enviando…' : 'Enviar enlace de recuperación'}
+            {loading ? t('auth.login.submitting') : t('auth.forgot.submit')}
           </button>
 
           <button className="ghost back-login" type="button" onClick={() => router.push('/login')}>
-            Volver a iniciar sesión
+            {t('auth.forgot.back')}
           </button>
         </form>
       </section>

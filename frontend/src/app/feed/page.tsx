@@ -33,6 +33,7 @@ import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/m
 import { unreadNotificationsCount } from '@/lib/notifications';
 import type { FeedStory } from '@/components/wy/feedData';
 import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '@/lib/emotionalMap';
+import { useI18n } from '@/components/providers/I18nProvider';
 import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
 interface FeedEntry extends FeedStory {
@@ -49,11 +50,10 @@ function initialsOf(name?: string | null) {
 
 // Accesos rápidos de «¿Cómo estás ahora?» con ilustraciones propias (public/assets/moods).
 const QUICK_MOODS = [
-  { name: 'Alegría', image: '/assets/moods/alegria.webp', color: '#F4B942' },
-  { name: 'Tristeza', image: '/assets/moods/tristeza.webp', color: '#5B84C4' },
-  { name: 'Enojo', image: '/assets/moods/enojo.webp', color: '#E06A5F' },
-  { name: 'Cansancio', image: '/assets/moods/cansancio.webp', color: '#B08B68' },
-  { name: 'Esperanza', image: '/assets/moods/esperanza.webp', color: '#62B878' },
+  { key: 'alegria', name: 'Alegría', emoji: '\u{1F604}', color: '#F4B942' },
+  { key: 'calma', name: 'Calma', emoji: '\u{1F60C}', color: '#42B8A8' },
+  { key: 'tristeza', name: 'Tristeza', emoji: '\u{1F614}', color: '#5B84C4' },
+  { key: 'ansiedad', name: 'Ansiedad', emoji: '\u{1F61F}', color: '#8B6CCF' },
 ] as const;
 
 function relativeTime(value: string): string {
@@ -114,6 +114,7 @@ function toEntry(story: FollowingStory, authorName: string, preferredLanguage: s
 
 export default function FeedPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
 
@@ -716,9 +717,9 @@ export default function FeedPage() {
       ) : null}
       <section className="screen home-screen">
         <div className="welcome-row">
-          <h1>Hola, {name || 'invitado'}</h1>
+          <h1>{t('feed.greeting', { name: name || t('feed.guest') })}</h1>
           <button className="text-link" type="button" onClick={openIntro}>
-            Cómo empezar
+            {t('feed.howToStart')}
           </button>
         </div>
 
@@ -726,16 +727,16 @@ export default function FeedPage() {
           <section className="quick-mood card compact-checkin">
             <div className="quick-title">
               <div>
-                <h2>¿Cómo estás ahora?</h2>
+                <h2>{t('feed.quickMood.title')}</h2>
                 <p>
-                  <Icon name="lock" /> Opcional · Solo para ti
+                  <Icon name="lock" /> {t('feed.quickMood.optional')}
                 </p>
               </div>
               <button className="text-link" type="button" onClick={() => openMood()}>
-                Registrar
+                {t('feed.quickMood.register')}
               </button>
             </div>
-            <div className="mood-choices mood-choices-v2 mood-choices-illustrated">
+            <div className="mood-choices mood-choices-v2">
               {QUICK_MOODS.map((mood) => (
                 <button
                   key={mood.name}
@@ -744,14 +745,13 @@ export default function FeedPage() {
                   style={{ '--mood': mood.color } as CSSProperties}
                   onClick={() => openMood(mood.name)}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className="mood-illustration" src={mood.image} alt="" width={48} height={48} />
-                  <small>{mood.name}</small>
+                  <span>{mood.emoji}</span>
+                  <small>{t(`mood.${mood.key}`)}</small>
                 </button>
               ))}
               <button className="mood-choice more-emotions" type="button" onClick={() => openMood()}>
                 <span>＋</span>
-                <small>Ver todas</small>
+                <small>{t('feed.quickMood.more')}</small>
               </button>
             </div>
           </section>
@@ -759,13 +759,13 @@ export default function FeedPage() {
           <section className="quick-mood card compact-checkin checkin-done">
             <div className="quick-title">
               <div>
-                <h2>Emoción de hoy registrada</h2>
+                <h2>{t('feed.quickMood.doneTitle')}</h2>
                 <p>
-                  <Icon name="lock" /> Solo para ti · Puedes registrar otro momento del día
+                  <Icon name="lock" /> {t('feed.quickMood.doneCopy')}
                 </p>
               </div>
               <button className="text-link" type="button" onClick={() => openMood()}>
-                Registrar otra emoción
+                {t('feed.quickMood.registerAnother')}
               </button>
             </div>
           </section>
@@ -779,13 +779,13 @@ export default function FeedPage() {
               type="button"
               onClick={() => router.push('/crear')}
             >
-              <span>Comparte tu relato</span>
+              <span>{t('feed.composer')}</span>
               <Icon name="edit" />
             </button>
           </div>
         </section>
 
-        <div className="feed-tabs" role="tablist" aria-label="Vista del feed">
+        <div className="feed-tabs" role="tablist" aria-label={t('feed.tabs')}>
           <button
             type="button"
             role="tab"
@@ -793,7 +793,7 @@ export default function FeedPage() {
             className={feedTab === 'for-you' ? 'active' : undefined}
             onClick={() => setFeedTab('for-you')}
           >
-            Para ti
+            {t('feed.forYou')}
           </button>
           <button
             type="button"
@@ -802,7 +802,7 @@ export default function FeedPage() {
             className={feedTab === 'following' ? 'active' : undefined}
             onClick={() => setFeedTab('following')}
           >
-            Siguiendo
+            {t('feed.followingTab')}
           </button>
         </div>
 
@@ -810,7 +810,7 @@ export default function FeedPage() {
           <div className="auth-error" role="alert">
             {feedError}
             <button className="text-link" type="button" onClick={() => void loadFeed()} style={{ marginLeft: 8 }}>
-              Reintentar
+              {t('common.retry')}
             </button>
           </div>
         ) : null}
@@ -824,10 +824,10 @@ export default function FeedPage() {
 
           {!feedLoading && !feedError && visibleFeed.length === 0 ? (
             <section className="empty-state">
-              <h2>Aquí aparecerán sus relatos</h2>
-              <p>Sigue a los autores que quieras volver a leer.</p>
+              <h2>{t('feed.empty.title')}</h2>
+              <p>{t('feed.empty.copy')}</p>
               <button className="secondary" type="button" onClick={() => router.push('/explorar')}>
-                Explorar relatos
+                {t('feed.empty.cta')}
               </button>
             </section>
           ) : null}

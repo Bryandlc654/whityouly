@@ -7,6 +7,8 @@ import type { IconName } from './icons';
 import HeaderSearch from './HeaderSearch';
 import NotificationsMenu from './NotificationsMenu';
 import StoryViewer from './StoryViewer';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 export type WyRoute =
   | 'home'
@@ -21,13 +23,13 @@ export type WyRoute =
   | 'help'
   | 'notifications';
 
-const NAV: { label: string; icon: IconName; route: WyRoute }[] = [
-  { label: 'Inicio', icon: 'home', route: 'home' },
-  { label: 'Explorar', icon: 'search', route: 'explore' },
-  { label: 'Mis relatos', icon: 'book', route: 'my-stories' },
-  { label: 'Siguiendo', icon: 'users', route: 'following' },
-  { label: 'Mi espacio', icon: 'pulse', route: 'mood' },
-  { label: 'Perfil', icon: 'user', route: 'profile' },
+const NAV: { labelKey: string; icon: IconName; route: WyRoute }[] = [
+  { labelKey: 'nav.home', icon: 'home', route: 'home' },
+  { labelKey: 'nav.explore', icon: 'search', route: 'explore' },
+  { labelKey: 'nav.myStories', icon: 'book', route: 'my-stories' },
+  { labelKey: 'nav.following', icon: 'users', route: 'following' },
+  { labelKey: 'nav.mySpace', icon: 'pulse', route: 'mood' },
+  { labelKey: 'nav.profile', icon: 'user', route: 'profile' },
 ];
 
 interface FrameProps {
@@ -56,19 +58,21 @@ function TopBar({
   FrameProps,
   'characterInitials' | 'avatarUrl' | 'onNavigate' | 'unreadNotifications'
 > & { onOpenStory: (storyId: string, title: string) => void }) {
+  const { t } = useI18n();
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <button className="brand" type="button" onClick={() => onNavigate('home')} aria-label="Ir al inicio">
+        <button className="brand" type="button" onClick={() => onNavigate('home')} aria-label={t('nav.goHome')}>
           <span className="brand-crop" role="img" aria-label="Withyouly" />
         </button>
         <HeaderSearch onOpenStory={onOpenStory} />
         <div className="top-actions">
+          <LanguageSwitcher />
           <button
             className="icon-btn"
             type="button"
             onClick={() => onNavigate('help')}
-            aria-label="Ayuda y seguridad"
+            aria-label={t('nav.help')}
           >
             <span data-icon="help"><Icon name="help" /></span>
           </button>
@@ -77,7 +81,7 @@ function TopBar({
             className={avatarUrl ? 'avatar avatar-art avatar-sm avatar-illustrated' : 'avatar avatar-sm'}
             type="button"
             onClick={() => onNavigate('profile')}
-            aria-label="Mi perfil"
+            aria-label={t('nav.myProfile')}
           >
             {avatarUrl ? (
               <Image src={avatarUrl} alt="" width={96} height={96} unoptimized draggable={false} />
@@ -95,8 +99,9 @@ function LeftRail({
   activeRoute,
   onNavigate,
 }: Pick<FrameProps, 'activeRoute' | 'onNavigate'>) {
+  const { t } = useI18n();
   return (
-    <aside className="left-rail" aria-label="Navegación principal">
+    <aside className="left-rail" aria-label={t('nav.mainSection')}>
       <nav className="side-nav">
         {NAV.map((item) => (
           <button
@@ -107,7 +112,7 @@ function LeftRail({
             onClick={() => onNavigate(item.route)}
           >
             <span data-icon={item.icon}><Icon name={item.icon} /></span>
-            <b>{item.label}</b>
+            <b>{t(item.labelKey)}</b>
           </button>
         ))}
       </nav>
@@ -116,11 +121,11 @@ function LeftRail({
           <Icon name="shield" />
         </span>
         <div>
-          <b>Tu bienestar importa</b>
-          <small>Ayuda, privacidad y recursos de apoyo.</small>
+          <b>{t('safety.title')}</b>
+          <small>{t('safety.copy')}</small>
         </div>
         <button type="button" onClick={() => onNavigate('help')}>
-          Ver recursos
+          {t('safety.cta')}
         </button>
       </div>
     </aside>
@@ -131,15 +136,16 @@ function BottomNav({
   activeRoute,
   onNavigate,
 }: Pick<FrameProps, 'activeRoute' | 'onNavigate'>) {
+  const { t } = useI18n();
   return (
-    <nav className="bottom-nav" aria-label="Navegación móvil">
+    <nav className="bottom-nav" aria-label={t('nav.mobileSection')}>
       <button
         type="button"
         className={activeRoute === 'home' ? 'active' : undefined}
         onClick={() => onNavigate('home')}
       >
         <span data-icon="home"><Icon name="home" /></span>
-        <small>Inicio</small>
+        <small>{t('nav.home')}</small>
       </button>
       <button
         type="button"
@@ -147,9 +153,9 @@ function BottomNav({
         onClick={() => onNavigate('explore')}
       >
         <span data-icon="search"><Icon name="search" /></span>
-        <small>Explorar</small>
+        <small>{t('nav.explore')}</small>
       </button>
-      <button className="create-fab" type="button" onClick={() => onNavigate('my-stories')} aria-label="Compartir relato">
+      <button className="create-fab" type="button" onClick={() => onNavigate('my-stories')} aria-label={t('nav.create')}>
         <span data-icon="plus"><Icon name="plus" /></span>
       </button>
       <button
@@ -158,7 +164,7 @@ function BottomNav({
         onClick={() => onNavigate('mood')}
       >
         <span data-icon="pulse"><Icon name="pulse" /></span>
-        <small>Mi espacio</small>
+        <small>{t('nav.mySpace')}</small>
       </button>
       <button
         type="button"
@@ -166,7 +172,7 @@ function BottomNav({
         onClick={() => onNavigate('profile')}
       >
         <span data-icon="user"><Icon name="user" /></span>
-        <small>Perfil</small>
+        <small>{t('nav.profile')}</small>
       </button>
     </nav>
   );
@@ -185,6 +191,7 @@ export default function WyFrame({
   className,
   children,
 }: FrameProps) {
+  const { t } = useI18n();
   const [searchReader, setSearchReader] = useState<{ id: string; title: string } | null>(null);
 
   return (
@@ -201,7 +208,7 @@ export default function WyFrame({
         <main className="main-content" id="main">
           {children}
         </main>
-        <aside className="right-rail" aria-label="Información complementaria">
+        <aside className="right-rail" aria-label={t('nav.complementary')}>
           {rightRail}
         </aside>
       </div>

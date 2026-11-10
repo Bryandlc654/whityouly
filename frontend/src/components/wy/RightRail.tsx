@@ -11,6 +11,7 @@ import {
   type EmotionalSummary,
 } from '@/lib/emotionalMap';
 import { getTree, type TreeView } from '@/lib/tree';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface RightRailProps {
   summaryHidden: boolean;
@@ -77,6 +78,7 @@ export default function RightRail({
   showRecommendation = false,
 }: RightRailProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [summary, setSummary] = useState<EmotionalSummary | null>(null);
   const [lastMood, setLastMood] = useState<{ name: string; value: number } | null>(null);
   const [tree, setTree] = useState<TreeView | null>(null);
@@ -131,22 +133,25 @@ export default function RightRail({
   const recommendation = recommendationFor(lastMood?.name, lastMood?.value ?? 5);
   const recColors = EMOTION[lastMood?.name ?? ''] ?? EMOTION.Esperanza;
   const nextDrops = tree?.stage.nextDrops ?? null;
-  const drops = (n: number) => `${n} ${n === 1 ? 'gota' : 'gotas'}`;
   const treeCopy =
     tree && nextDrops !== null
-      ? `${drops(tree.totalDrops)} en total · ${drops(nextDrops)} para ${tree.stage.nextLabel ?? 'seguir creciendo'}`
-      : 'Crece con cada registro que haces.';
+      ? t('rail.treeCopy', {
+          total: tree.totalDrops,
+          next: nextDrops,
+          stage: tree.stage.nextLabel ?? 'seguir creciendo',
+        })
+      : t('rail.noRecords');
 
   return (
     <>
       <div className="right-card card">
         <div className="summary-title">
-          <h3>Resumen de tu semana</h3>
+          <h3>{t('rail.week')}</h3>
           <button
             className="summary-toggle"
             type="button"
             onClick={onToggleSummary}
-            aria-label={summaryHidden ? 'Mostrar resumen' : 'Ocultar resumen'}
+            aria-label={summaryHidden ? t('rail.showSummary') : t('rail.hideSummary')}
           >
             <Icon name={summaryHidden ? 'eye' : 'lock'} />
           </button>
@@ -157,9 +162,9 @@ export default function RightRail({
             <span>
               <Icon name="lock" />
             </span>
-            <p>Tu resumen está oculto.</p>
+            <p>{t('rail.hidden')}</p>
             <button className="text-link" type="button" onClick={onToggleSummary}>
-              Mostrar resumen
+              {t('rail.show')}
             </button>
           </div>
         ) : (
@@ -178,20 +183,20 @@ export default function RightRail({
               {summary && summary.totalEntries > 0 ? (
                 <>
                   <b>
-                    Emoción frecuente: {topName} {EMOTION[topName]?.emoji ?? '🌱'}
+                    {t('rail.topEmotion', { emotion: `${topName} ${EMOTION[topName]?.emoji ?? '🌱'}` })}
                   </b>
                   <br />
-                  {summary.totalEntries} registros esta semana
+                  {t('rail.recordsWeek', { count: summary.totalEntries })}
                 </>
               ) : (
-                'Aún no hay registros esta semana.'
+                t('rail.noRecords')
               )}
             </div>
             <div className="private-line">
-              <Icon name="lock" /> Solo tú puedes verlo
+              <Icon name="lock" /> {t('rail.onlyYou')}
             </div>
             <button className="text-link" type="button" onClick={onMood}>
-              Ver mis emociones
+              {t('rail.myEmotions')}
             </button>
           </>
         )}
@@ -207,7 +212,7 @@ export default function RightRail({
           </div>
           <div className="recommended-copy">
             <span className="micro-label">
-              {lastMood ? 'RECOMENDADO SEGÚN TU ÚLTIMO REGISTRO' : 'RECOMENDADO PARA HOY'}
+              {lastMood ? t('rail.recommendedLast') : t('rail.recommendedToday')}
             </span>
             <h3>{recommendation.title}</h3>
             <p>{recommendation.copy}</p>
@@ -229,10 +234,10 @@ export default function RightRail({
 
       <div className="right-card card tree-mini">
         <div className="summary-title">
-          <h3>Mi árbol</h3>
+          <h3>{t('rail.tree')}</h3>
           <button className="guide-btn" type="button" onClick={() => router.push('/mi-arbol')}>
             <Icon name="help" />
-            <span>Guía</span>
+            <span>{t('rail.guide')}</span>
           </button>
         </div>
         <div className="tree-mini-row">
@@ -245,16 +250,16 @@ export default function RightRail({
           </div>
         </div>
         <button className="secondary" type="button" onClick={() => router.push('/mi-arbol')}>
-          Ver mi crecimiento
+          {t('rail.grow')}
         </button>
       </div>
 
       <div className="right-card card prompt-card">
-        <span className="micro-label">TEMA PARA CONVERSAR</span>
-        <h3>Una conversación que suma</h3>
-        <p>¿Qué pequeño gesto te hizo sentir acompañado esta semana?</p>
+        <span className="micro-label">{t('rail.promptKicker')}</span>
+        <h3>{t('rail.promptTitle')}</h3>
+        <p>{t('rail.promptCopy')}</p>
         <button className="secondary" type="button" onClick={() => router.push('/mis-relatos?compose=1')}>
-          Responder en privado o publicar
+          {t('rail.promptCta')}
         </button>
       </div>
     </>

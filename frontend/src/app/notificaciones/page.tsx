@@ -11,55 +11,50 @@ import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import PageSkeleton from '@/components/wy/PageSkeleton';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface DemoNotice {
   id: string;
   group: 'important' | 'activity';
   icon: IconName;
-  text: string;
-  action: string;
+  key: string;
   href: string;
 }
 
 const NOTICES: DemoNotice[] = [
   {
     id: 'comment-demo',
+    key: 'n1',
     group: 'important',
     icon: 'message',
-    text: 'VolverAEmpezar dejó unas palabras en tu relato.',
-    action: 'Ver conversación',
     href: '/feed',
   },
   {
     id: 'update-demo',
+    key: 'n2',
     group: 'important',
     icon: 'trend',
-    text: 'LuzEnPausa añadió una continuación a su relato.',
-    action: 'Ver continuación',
     href: '/feed',
   },
   {
     id: 'summary-demo',
+    key: 'n3',
     group: 'important',
     icon: 'pulse',
-    text: 'Tu resumen emocional está disponible en Mi espacio.',
-    action: 'Ver resumen',
     href: '/mi-estado',
   },
   {
     id: 'author-demo',
+    key: 'n4',
     group: 'activity',
     icon: 'heart',
-    text: 'CalmaDeDomingo comenzó a seguir tu perfil.',
-    action: 'Ver perfil',
     href: '/personaje/CalmaDeDomingo',
   },
   {
     id: 'support-demo',
+    key: 'n5',
     group: 'activity',
     icon: 'heart',
-    text: 'Hay personas que están contigo en tu relato.',
-    action: 'Ver relato',
     href: '/feed',
   },
 ];
@@ -71,6 +66,7 @@ function initialsOf(name?: string | null) {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [unread, setUnread] = useState(NOTICES.map((notice) => notice.id));
@@ -180,7 +176,7 @@ export default function NotificationsPage() {
 
   const markAllRead = () => {
     setUnread([]);
-    notify('Notificaciones marcadas como leídas.');
+    notify(t('notif.markedAll'));
   };
 
   const renderRows = (group: DemoNotice['group']) =>
@@ -200,9 +196,9 @@ export default function NotificationsPage() {
             <Icon name={notice.icon} />
           </span>
           <span>
-            <b>{notice.text}</b>
+            <b>{t(`notif.${notice.key}.text`)}</b>
             <small>
-              {isUnread ? 'Nueva' : 'Leída'} · {notice.action}
+              {isUnread ? t('notif.new') : t('notif.read')} � {t(`notif.${notice.key}.action`)}
             </small>
           </span>
           <Icon name="chevron" />
@@ -237,23 +233,22 @@ export default function NotificationsPage() {
       <section className="screen">
         <div className="screen-heading">
           <div>
-            <h1>Notificaciones</h1>
-            <p>Primero tus conversaciones y las historias que continúan.</p>
+            <h1>{t('notif.title')}</h1>
+            <p>{t('notif.subtitle')}</p>
           </div>
           <button className="text-link" type="button" onClick={markAllRead}>
-            Marcar todo como leído
+            {t('notif.markAll')}
           </button>
         </div>
 
-        <h2 className="notice-section-title">Conversaciones y actualizaciones</h2>
+        <h2 className="notice-section-title">{t('notif.groupImportant')}</h2>
         {renderRows('important')}
 
-        <h2 className="notice-section-title">Actividad agrupada</h2>
+        <h2 className="notice-section-title">{t('notif.groupActivity')}</h2>
         {renderRows('activity')}
 
         <p className="private-line">
-          <Icon name="lock" /> Los avisos fuera de la aplicación no muestran el contenido de tus
-          relatos o registros.
+          <Icon name="lock" /> {t('notif.private')}
         </p>
       </section>
     </WyFrame>

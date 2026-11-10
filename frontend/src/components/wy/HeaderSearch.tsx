@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
+import { useI18n } from '@/components/providers/I18nProvider';
 import Avatar from './Avatar';
 import { listPublicStories, type FollowingStory } from '@/lib/stories';
 import { searchCharacters, type CharacterSearchItem } from '@/lib/characters';
@@ -26,6 +27,7 @@ function initialsOf(name?: string | null) {
  * resultados") lleva a Explorar con la consulta.
  */
 export default function HeaderSearch({ onOpenStory }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +63,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
       setPeople(charResult.status === 'ok' ? charResult.data.items.slice(0, MAX_PEOPLE) : []);
       setStories(storyResult.status === 'ok' ? storyResult.data.items.slice(0, MAX_STORIES) : []);
       if (charResult.status !== 'ok' && storyResult.status !== 'ok') {
-        setSearchError('No se pudo buscar. Revisa tu conexión e inténtalo de nuevo.');
+        setSearchError(t('search.error'));
       }
     }, 220);
 
@@ -112,8 +114,8 @@ export default function HeaderSearch({ onOpenStory }: Props) {
           ref={inputRef}
           type="search"
           value={q}
-          placeholder="Buscar relatos, emociones o seudónimos"
-          aria-label="Buscar"
+          placeholder={t('search.placeholder')}
+          aria-label={t('search.aria')}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={showPanel}
@@ -148,18 +150,18 @@ export default function HeaderSearch({ onOpenStory }: Props) {
       </div>
 
       {showPanel ? (
-        <div className="header-search-panel" role="listbox" id="header-search-suggestions" aria-label="Sugerencias">
-          {busy && !hasResults ? <p className="header-search-status">Buscando…</p> : null}
+        <div className="header-search-panel" role="listbox" id="header-search-suggestions" aria-label={t('search.suggestions')}>
+          {busy && !hasResults ? <p className="header-search-status">{t('search.loading')}</p> : null}
 
           {!busy && !hasResults ? (
             <p className="header-search-status">
-              {searchError || `Sin coincidencias para “${term}”.`}
+              {searchError || t('search.empty', { term })}
             </p>
           ) : null}
 
           {people.length > 0 ? (
             <div className="header-search-group">
-              <div className="header-search-group-title"><Icon name="users" /> Personajes</div>
+              <div className="header-search-group-title"><Icon name="users" /> {t('search.people')}</div>
               {people.map((person) => (
                 <button
                   key={person.name}
@@ -179,7 +181,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
 
           {stories.length > 0 ? (
             <div className="header-search-group">
-              <div className="header-search-group-title"><Icon name="book" /> Relatos</div>
+              <div className="header-search-group-title"><Icon name="book" /> {t('search.stories')}</div>
               {stories.map((story) => (
                 <button
                   key={story.id}
@@ -201,7 +203,7 @@ export default function HeaderSearch({ onOpenStory }: Props) {
           ) : null}
 
           <button type="button" className="header-search-all" onClick={searchAll}>
-            <Icon name="search" /> Ver todos los resultados
+            <Icon name="search" /> {t('search.viewAll')}
           </button>
         </div>
       ) : null}

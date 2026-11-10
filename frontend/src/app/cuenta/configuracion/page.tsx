@@ -5,9 +5,11 @@ import Icon from '@/components/wy/Icon';
 import SettingsPage from '@/components/account/SettingsPage';
 import NotificationToggle from '@/components/account/NotificationToggle';
 import { logout as endSession } from '@/lib/auth';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 export default function AccountSettingsPage() {
   const router = useRouter();
+  const { t } = useI18n();
 
   const logout = async () => {
     await endSession();
@@ -15,11 +17,7 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <SettingsPage
-      showBack={false}
-      title="Privacidad y configuración"
-      copy="Controla tu cuenta, tus datos y lo que deseas ver en Withyouly."
-    >
+    <SettingsPage showBack={false} title={t('settings.title')} copy={t('settings.copy')}>
       {(account, character, reload) => (
         <>
           <section className="settings-hero card">
@@ -27,76 +25,57 @@ export default function AccountSettingsPage() {
               <Icon name="shield" />
             </span>
             <div>
-              <b>Tu identidad pública sigue separada de tu cuenta</b>
-              <p>
-                La comunidad solo ve {character?.name ?? 'tu seudónimo'}. Tu correo y tus registros
-                emocionales permanecen privados.
-              </p>
+              <b>{t('settings.identity.title')}</b>
+              <p>{t('settings.identity.copy', { name: character?.name ?? t('feed.guest') })}</p>
             </div>
           </section>
 
-          <h2 className="settings-section-title">Cuenta</h2>
+          <h2 className="settings-section-title">{t('settings.accountSection')}</h2>
           <section className="settings-list card">
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/perfil/editar')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/perfil/editar')}>
               <span>
                 <Icon name="user" />
               </span>
               <span>
-                <b>Perfil seudónimo</b>
-                <small>Biografía, miniatura y temas de interés</small>
+                <b>{t('settings.profile')}</b>
+                <small>{t('settings.profileCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
               </span>
             </button>
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/cuenta/seguridad')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/cuenta/seguridad')}>
               <span>
                 <Icon name="lock" />
               </span>
               <span>
-                <b>Cuenta y seguridad</b>
-                <small>Correo, contraseña y dispositivos con sesión iniciada</small>
+                <b>{t('settings.security')}</b>
+                <small>{t('settings.securityCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
               </span>
             </button>
             <NotificationToggle account={account} onSaved={() => void reload()} />
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/cuenta/preferencias')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/cuenta/preferencias')}>
               <span>
                 <Icon name="settings" />
               </span>
               <span>
-                <b>Preferencias de la app</b>
-                <small>Apariencia, idioma, lectura y avisos</small>
+                <b>{t('settings.preferences')}</b>
+                <small>{t('settings.preferencesCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
               </span>
             </button>
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/cuenta/lectura')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/cuenta/lectura')}>
               <span>
                 <Icon name="book" />
               </span>
               <span>
-                <b>Tamaño de lectura</b>
-                <small>Normal, grande o muy grande para relatos y comentarios</small>
+                <b>{t('settings.reading')}</b>
+                <small>{t('settings.readingCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
@@ -104,67 +83,51 @@ export default function AccountSettingsPage() {
             </button>
           </section>
 
-          <h2 className="settings-section-title">Privacidad y comunidad</h2>
+          <h2 className="settings-section-title">{t('settings.privacySection')}</h2>
           <section className="settings-list card">
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/cuenta/privacidad-datos')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/cuenta/privacidad-datos')}>
               <span>
                 <Icon name="shield" />
               </span>
               <span>
-                <b>Privacidad y mis datos</b>
-                <small>Descarga, visibilidad y eliminación de la cuenta</small>
+                <b>{t('settings.privacyData')}</b>
+                <small>{t('settings.privacyDataCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
               </span>
             </button>
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/cuenta/contenido')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/cuenta/contenido')}>
               <span>
                 <Icon name="eye" />
               </span>
               <span>
-                <b>Control del contenido</b>
-                <small>Temas sensibles y preferencias del feed</small>
+                <b>{t('settings.content')}</b>
+                <small>{t('settings.contentCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
               </span>
             </button>
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/cuenta/bloqueados')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/cuenta/bloqueados')}>
               <span>
                 <Icon name="users" />
               </span>
               <span>
-                <b>Silenciados y bloqueados</b>
-                <small>Administra los perfiles que ocultaste</small>
+                <b>{t('settings.blocked')}</b>
+                <small>{t('settings.blockedCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
               </span>
             </button>
-            <button
-              className="settings-row"
-              type="button"
-              onClick={() => router.push('/mis-reportes')}
-            >
+            <button className="settings-row" type="button" onClick={() => router.push('/mis-reportes')}>
               <span>
                 <Icon name="flag" />
               </span>
               <span>
-                <b>Estado de mis reportes</b>
-                <small>Consulta el seguimiento de tus reportes</small>
+                <b>{t('settings.reports')}</b>
+                <small>{t('settings.reportsCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />
@@ -173,17 +136,13 @@ export default function AccountSettingsPage() {
           </section>
 
           <section className="settings-list card">
-            <button
-              className="settings-row logout-row"
-              type="button"
-              onClick={() => void logout()}
-            >
+            <button className="settings-row logout-row" type="button" onClick={() => void logout()}>
               <span>
                 <Icon name="user" />
               </span>
               <span>
-                <b>Cerrar sesión</b>
-                <small>Volver a la pantalla de acceso</small>
+                <b>{t('settings.logout')}</b>
+                <small>{t('settings.logoutCopy')}</small>
               </span>
               <span>
                 <Icon name="chevron" />

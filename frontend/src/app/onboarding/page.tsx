@@ -11,6 +11,7 @@ import {
 } from '@/lib/characters';
 import { ANIMAL_AVATARS, AVATAR_PRESETS } from '@/lib/avatar';
 import Icon from '@/components/wy/Icon';
+import LanguageSwitcher from '@/components/wy/LanguageSwitcher';
 import { consumeReturnTo } from '@/lib/returnTo';
 
 const NAME_MIN = 3;
@@ -226,6 +227,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="wy">
+      <div className="auth-lang"><LanguageSwitcher compact /></div>
       <section className="onboarding-stage">
         <button
           className="auth-brand onboarding-brand"

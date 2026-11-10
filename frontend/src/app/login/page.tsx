@@ -7,6 +7,7 @@ import { authFetch, tokenStorage } from '@/lib/auth';
 import AuthCard from '@/components/wy/AuthCard';
 import Icon from '@/components/wy/Icon';
 import { consumeReturnTo } from '@/lib/returnTo';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
 
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,23 +35,18 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(extractErrorMessage(errorData, 'Credenciales inválidas'));
+        throw new Error(extractErrorMessage(errorData, t('auth.login.invalid')));
       }
 
       const data = await res.json();
-      // El refresh token viaja en una cookie httpOnly; solo guardamos el access token.
       tokenStorage.setAccess(data.accessToken);
       window.dispatchEvent(new Event('withyouly:session-changed'));
 
       setSuccess(true);
 
-      // Una cuenta recién verificada aún no tiene personaje: primero elige su
-      // seudónimo. Si la comprobación falla, el feed vuelve a intentarlo.
-      // Quien venía de un relato compartido vuelve a él (ver lib/returnTo).
       let destination = '/feed';
       try {
         const character = await authFetch(`${API_URL}/characters/me`);
-        // Sin personaje primero se elige seudónimo; el onboarding recupera el destino guardado.
         if (character.status === 404) destination = '/onboarding';
         else destination = consumeReturnTo('/feed');
       } catch {
@@ -60,7 +57,7 @@ export default function LoginPage() {
         router.push(destination);
       }, 900);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Credenciales inválidas');
+      setError(err instanceof Error ? err.message : t('auth.login.invalid'));
       setLoading(false);
     }
   };
@@ -70,15 +67,15 @@ export default function LoginPage() {
       variant="reference"
       showTrust
       image="/withyouly-community.jpeg"
-      imageAlt="Jóvenes conversando. Aquí, lo que sientes importa."
+      imageAlt={t('auth.login.imageAlt')}
     >
       <form className="reference-form" onSubmit={handleLogin}>
-        <h1>Bienvenido a Withyouly</h1>
-        <p>Ingresa y comparte alegrías, días difíciles y momentos de tu día.</p>
+        <h1>{t('auth.login.title')}</h1>
+        <p>{t('auth.login.subtitle')}</p>
         {error ? <div className="auth-error">{error}</div> : null}
-        {success ? <div className="auth-success">Acceso correcto. Entrando…</div> : null}
+        {success ? <div className="auth-success">{t('auth.login.submitting')}</div> : null}
 
-        <label htmlFor="identifier">Correo electrónico</label>
+        <label htmlFor="identifier">{t('auth.email')}</label>
         <div className="input-with-icon">
           <Icon name="user" />
           <input
@@ -94,9 +91,9 @@ export default function LoginPage() {
         </div>
 
         <div className="label-row">
-          <label htmlFor="password">Contraseña</label>
+          <label htmlFor="password">{t('auth.password')}</label>
           <button type="button" onClick={() => router.push('/forgot-password')}>
-            ¿Olvidaste tu contraseña?
+            {t('auth.forgot')}
           </button>
         </div>
         <div className="input-with-icon">
@@ -105,7 +102,7 @@ export default function LoginPage() {
             id="password"
             name="password"
             type={showPassword ? 'text' : 'password'}
-            placeholder="Tu contraseña"
+            placeholder={t('auth.login.passwordPlaceholder')}
             autoComplete="current-password"
             required
             value={password}
@@ -115,38 +112,34 @@ export default function LoginPage() {
             type="button"
             className="password-eye"
             onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
             aria-pressed={showPassword}
           >
             <Icon name={showPassword ? 'lock' : 'eye'} />
           </button>
         </div>
 
-        <button
-          className="primary reference-submit"
-          type="submit"
-          disabled={loading || success}
-        >
+        <button className="primary reference-submit" type="submit" disabled={loading || success}>
           {loading && !success
-            ? 'Entrando…'
+            ? t('auth.login.submitting')
             : success
-              ? 'Bienvenido de vuelta'
-              : 'Iniciar sesión'}
+              ? t('auth.login.success')
+              : t('auth.login.submit')}
         </button>
 
         <div className="create-account-line">
-          <span>¿Aún no tienes una cuenta?</span>
+          <span>{t('auth.login.noAccount')}</span>
           <button type="button" onClick={() => router.push('/register')}>
-            Crear cuenta
+            {t('auth.login.create')}
           </button>
         </div>
         <div className="reference-legal">
           <button type="button" onClick={() => router.push('/ayuda/privacidad')}>
-            Privacidad
+            {t('auth.privacy')}
           </button>
-          <span>•</span>
+          <span>·</span>
           <button type="button" onClick={() => router.push('/ayuda')}>
-            Ayuda
+            {t('auth.help')}
           </button>
         </div>
       </form>

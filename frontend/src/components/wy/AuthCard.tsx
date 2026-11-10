@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import Icon from './Icon';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface AuthCardProps {
   title?: string;
@@ -56,6 +57,9 @@ export default function AuthCard({
   if (variant === 'reference' && image) {
     return (
       <div className="wy">
+        <div className="auth-lang">
+          <LanguageSwitcher compact />
+        </div>
         <section className="reference-entry">
           <div className="reference-login-panel">
             <div className="reference-panel-inner">
@@ -102,6 +106,9 @@ export default function AuthCard({
 
   const card = (
     <div className="auth-card card">
+      <div className="auth-lang auth-lang-inline">
+        <LanguageSwitcher compact />
+      </div>
       <div className="auth-logo" role="img" aria-label="Withyouly" />
       {title ? <h1>{title}</h1> : null}
       {subtitle ? <p>{subtitle}</p> : null}

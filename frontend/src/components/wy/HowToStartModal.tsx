@@ -1,6 +1,7 @@
 'use client';
 
 import Icon from './Icon';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface Props {
   onClose: () => void;
@@ -14,20 +15,20 @@ const CHOICES = [
   {
     id: 'read',
     icon: 'book' as const,
-    title: 'Leer y acompañar',
-    copy: 'Descubre experiencias y responde a tu ritmo.',
+    titleKey: 'feed.intro.read',
+    copyKey: 'feed.intro.readCopy',
   },
   {
     id: 'write',
     icon: 'edit' as const,
-    title: 'Compartir un relato',
-    copy: 'Una alegría, una experiencia o algo de tu día.',
+    titleKey: 'feed.intro.write',
+    copyKey: 'feed.intro.writeCopy',
   },
   {
     id: 'mood',
     icon: 'pulse' as const,
-    title: 'Un momento para mí',
-    copy: 'Registra cómo estás, en privado.',
+    titleKey: 'feed.intro.mood',
+    copyKey: 'feed.intro.moodCopy',
   },
 ];
 
@@ -38,6 +39,7 @@ export default function HowToStartModal({
   onMood,
   onShowGuide,
 }: Props) {
+  const { t } = useI18n();
   const actions = { read: onRead, write: onWrite, mood: onMood };
 
   return (
@@ -50,17 +52,15 @@ export default function HowToStartModal({
       <div className="modal-head">
         <div>
           <h2 id="welcomeGuideTitle" tabIndex={-1}>
-            ¿Qué necesitas hoy?
+            {t('feed.intro.title')}
           </h2>
         </div>
-        <button className="close" type="button" onClick={onClose} aria-label="Cerrar bienvenida">
+        <button className="close" type="button" onClick={onClose} aria-label={t('common.close')}>
           <Icon name="x" />
         </button>
       </div>
 
-      <p className="intro-options54">
-        Aquí caben alegrías, días difíciles y momentos cotidianos. Elige por dónde empezar.
-      </p>
+      <p className="intro-options54">{t('feed.intro.copy')}</p>
 
       <div className="welcome-choices">
         {CHOICES.map((choice) => (
@@ -71,8 +71,8 @@ export default function HowToStartModal({
           >
             <Icon name={choice.icon} />
             <span>
-              <b>{choice.title}</b>
-              <small>{choice.copy}</small>
+              <b>{t(choice.titleKey)}</b>
+              <small>{t(choice.copyKey)}</small>
             </span>
             <Icon name="chevron" />
           </button>
@@ -80,11 +80,11 @@ export default function HowToStartModal({
       </div>
 
       <button className="intro-optional54" type="button" onClick={onShowGuide}>
-        <Icon name="book" /> Ver cómo publicar un relato
+        <Icon name="book" /> {t('feed.intro.showGuide')}
       </button>
 
       <button className="intro-skip53" type="button" onClick={onClose}>
-        Omitir y explorar
+        {t('feed.intro.skip')}
       </button>
     </section>
   );

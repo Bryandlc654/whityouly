@@ -5,6 +5,7 @@ import Avatar from './Avatar';
 import Icon from './Icon';
 import VisualStoryCard from './VisualStoryCard';
 import type { FeedStory } from './feedData';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface PostCardProps {
   story: FeedStory;
@@ -54,13 +55,14 @@ export default function PostCard({
   audioUrl,
   supportCount,
 }: PostCardProps) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [translated, setTranslated] = useState(false);
   const [warningRevealed, setWarningRevealed] = useState(!story.contentWarning);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [textOverflows, setTextOverflows] = useState(false);
 
-  // "Leer relato completo" solo tiene sentido si el texto no cabe en la vista
+  // "Read full story" solo tiene sentido si el texto no cabe en la vista
   // previa. Se mide el recorte real (no una estimación por caracteres) y se
   // vuelve a comprobar al cambiar el ancho: el número de líneas depende de él.
   useEffect(() => {
@@ -124,10 +126,10 @@ export default function PostCard({
         <div className="content-warning-gate">
           <span className="content-warning-icon"><Icon name="shield" /></span>
           <div>
-            <b>Aviso de contenido</b>
+            <b>{t('post.warning')}</b>
             <p>{story.contentWarning}</p>
             <button className="secondary" type="button" onClick={() => setWarningRevealed(true)}>
-              Ver contenido
+              {t('post.viewContent')}
             </button>
           </div>
         </div>
@@ -138,7 +140,7 @@ export default function PostCard({
         <div className="content-warning">
           <Icon name="shield" />
           <span>
-            <b>Aviso de contenido</b>
+            <b>{t('post.warning')}</b>
             {story.contentWarning}
           </span>
         </div>
@@ -156,7 +158,7 @@ export default function PostCard({
             compact
           />
           <button className="post-more" type="button" onClick={onComment}>
-            Abrir relato completo
+            {t('post.openFull')}
           </button>
         </>
       ) : (
@@ -182,7 +184,7 @@ export default function PostCard({
       )}
       {story.stageCount && story.stageCount > 1 && !story.visualCardTheme ? (
         <button className="post-more" type="button" onClick={onOpenStory}>
-          Ver historia completa ({story.stageCount} partes)
+          {t('post.fullHistory', { count: story.stageCount })}
         </button>
       ) : null}
       {audioUrl ? (
@@ -198,7 +200,7 @@ export default function PostCard({
 
       {story.musicLabel || story.music ? (
         <div className="music-chip">
-          <button className="play" type="button" onClick={onPlay} aria-label="Reproducir fragmento">
+          <button className="play" type="button" onClick={onPlay} aria-label={t('post.play')}>
             <Icon name="play" />
           </button>
           <div>
@@ -217,10 +219,10 @@ export default function PostCard({
               <span className="support-heart" aria-hidden="true">
                 <Icon name="heart" />
               </span>
-              <span>{support} personas están contigo</span>
+              <span>{t('post.supportCount', { count: support })}</span>
             </span>
             <button type="button" onClick={onComment} hidden={!story.comments}>
-              {story.comments} comentarios
+              {t('post.commentCount', { count: story.comments })}
             </button>
           </div>
         );
@@ -232,19 +234,19 @@ export default function PostCard({
           type="button"
           onClick={onSupport}
           aria-pressed={supported}
-          aria-label="Estoy contigo"
+          aria-label={t('post.withYou')}
         >
           <Icon name="heart" />
-          <span className="action-label">Estoy contigo</span>
+          <span className="action-label">{t('post.withYou')}</span>
         </button>
-        <button type="button" onClick={onComment} aria-label="Comentar">
+        <button type="button" onClick={onComment} aria-label={t('post.comment')}>
           <Icon name="message" />
-          <span className="action-label">Comentar</span>
+          <span className="action-label">{t('post.comment')}</span>
         </button>
         {isOwn ? (
-          <button className={saved ? 'on' : undefined} type="button" onClick={onSave} aria-label="Guardar relato">
+          <button className={saved ? 'on' : undefined} type="button" onClick={onSave} aria-label={t('post.save')}>
             <Icon name="bookmark" />
-            <span className="action-label">Guardar</span>
+            <span className="action-label">{t('post.save')}</span>
           </button>
         ) : (
           <button
@@ -252,15 +254,15 @@ export default function PostCard({
             type="button"
             onClick={onFollowStory}
             aria-pressed={followingStory}
-            title="Recibir solo las continuaciones de esta historia"
+            title={t('post.followHint')}
           >
             <Icon name="trend" />
-            <span className="action-label">{followingStory ? 'Siguiendo' : 'Seguir relato'}</span>
+            <span className="action-label">{followingStory ? t('post.followingStory') : t('post.followStory')}</span>
           </button>
         )}
-        <button type="button" onClick={onShare} aria-label="Compartir relato">
+        <button type="button" onClick={onShare} aria-label={t('post.share')}>
           <Icon name="share" />
-          <span className="action-label">Compartir</span>
+          <span className="action-label">{t('post.share')}</span>
         </button>
       </div>
     </article>
