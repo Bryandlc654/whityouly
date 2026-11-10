@@ -35,11 +35,14 @@ export function I18nProvider({
   const [language, setLanguageState] = useState<Language>(initialLanguage);
 
   useEffect(() => {
+    // Solo se sincroniza una vez al montar. Si se ejecutara en cada cambio,
+    // leería el valor anterior de localStorage y volvería a alternar el idioma.
     const stored = normalize(window.localStorage.getItem(STORAGE_KEY));
-    if (stored && stored !== language) {
+    if (stored && stored !== initialLanguage) {
       setLanguageState(stored);
     }
-  }, [language]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = language;
