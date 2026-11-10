@@ -122,3 +122,23 @@
 .wy .share-card-canvas{display:block;width:100%;height:auto;max-height:560px;object-fit:contain;border-radius:16px;box-shadow:0 16px 35px rgba(20,14,50,.16)}
 @media(max-width:520px){.wy .share-pattern-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .wy .share-builder-section .share-custom-colors label span{font-size:12px;font-weight:750}
+
+/* Tarjeta visual con degradado propio y patrón (lib/visualCards). */
+.visual-story-card-pattern{position:absolute;inset:0;z-index:-1;background-repeat:repeat;pointer-events:none}
+.visual-story-card.is-light .visual-story-card-scrim{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.3))}
+.wy .feed-visual-card.has-pattern{background-image:var(--feed-card-pattern),linear-gradient(145deg,var(--feed-card-from),var(--feed-card-to))}
+.wy .feed-style-picker button.custom-swatch i{background:linear-gradient(135deg,var(--swatch-a),var(--swatch-b))}
+.wy .compose-card-custom{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
+.wy .compose-card-styles .compose-card-custom label{display:flex;align-items:center;gap:8px;margin:0;padding:6px 9px;border:1px solid #dcd7ea;border-radius:12px;background:#fff;font-size:12px;font-weight:750;color:#393341;cursor:pointer}
+.wy .compose-card-custom input[type="color"]{width:28px;height:28px;padding:0;border:0;border-radius:8px;background:none;cursor:pointer}
+.wy .compose-card-custom input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+.wy .compose-card-custom input[type="color"]::-webkit-color-swatch{border:1px solid rgba(0,0,0,.12);border-radius:8px}
+.wy .compose-card-section-title{margin:14px 0 8px;font-size:12px;font-weight:800;color:#50535d}
+.wy .compose-card-patterns{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.wy .compose-card-patterns button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:5px;border:1px solid #dcd7ea;border-radius:11px;background:#fff;color:#393341;cursor:pointer;font:inherit}
+.wy .compose-card-patterns button.selected{border-color:#6246f5;background:#f6f4ff}
+.wy .compose-card-patterns i{display:block;width:100%;aspect-ratio:1;border-radius:8px;background-size:auto,cover}
+.wy .compose-card-patterns span{font-size:10px;font-weight:750;text-align:center;line-height:1.2}
+@media(max-width:520px){.wy .compose-card-patterns{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.wy .compose-card-styles .compose-card-custom label span{font-size:12px;font-weight:750}
+.wy .compose-card-styles .compose-card-custom label{min-height:0;height:auto;padding:6px 9px}

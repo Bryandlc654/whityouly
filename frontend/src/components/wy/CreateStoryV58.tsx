@@ -6,6 +6,13 @@ import Guide58Modal from './Guide58Modal';
 import Avatar from './Avatar';
 import { Sheet, type SheetRow } from './Overlays';
 import { V58_EMOTIONS, V58_TOPIC_NAMES } from '@/lib/v58Taxonomy';
+import {
+  VISUAL_CARD_PATTERNS,
+  encodeVisualCard,
+  patternImage,
+  readableInk,
+  type VisualCardPattern,
+} from '@/lib/visualCards';
 import { uploadAudio } from '@/lib/files';
 import {
   addStoryStage,
@@ -112,7 +119,10 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
   const [externalShare, setExternalShare] = useState(true);
   const [guestRead, setGuestRead] = useState(true);
   const [language, setLanguage] = useState('');
-  const [cardStyle, setCardStyle] = useState<CardStyle>('violet');
+  const [cardStyle, setCardStyle] = useState<CardStyle | 'custom'>('violet');
+  const [customFrom, setCustomFrom] = useState('#ff8a5c');
+  const [customTo, setCustomTo] = useState('#7b4dff');
+  const [cardPattern, setCardPattern] = useState<VisualCardPattern>('none');
 
   const [showTranscript, setShowTranscript] = useState(true);
   const [transcript, setTranscript] = useState('');
@@ -393,7 +403,15 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
       content: body,
       language: language || undefined,
       publish,
-      visualCardTheme: mode === 'card' ? cardStyle : null,
+      visualCardTheme:
+        mode === 'card'
+          ? encodeVisualCard({
+              preset: cardStyle === 'custom' ? null : cardStyle,
+              from: customFrom,
+              to: customTo,
+              pattern: cardPattern,
+            })
+          : null,
       ...(accompaniment ? { accompaniment } : {}),
       contentWarning: sensitive || null,
       musicLabel: music || null,
@@ -590,7 +608,20 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
     </>
   );
 
-  const style = CARD_STYLES[cardStyle];
+  const style =
+    cardStyle === 'custom'
+      ? (() => {
+          const ink = readableInk(customFrom, customTo);
+          return {
+            label: 'Personalizado',
+            from: customFrom,
+            to: customTo,
+            ink,
+            soft: ink === '#ffffff' ? 'rgba(255,255,255,.17)' : 'rgba(42,34,56,.10)',
+          };
+        })()
+      : CARD_STYLES[cardStyle];
+  const cardPatternImage = patternImage(cardPattern, style.ink);
   const cardSource = content.trim() || 'El inicio de tu relato aparecerá aquí.';
   const cardExcerpt = cardSource.length > 260 ? `${cardSource.slice(0, 257).trim()}…` : cardSource;
   const cardTitle = title.trim() || 'Tu título aparecerá aquí';
@@ -657,13 +688,14 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
                 <span>Vista previa de tu tarjeta</span>
                 <div data-compose-card-preview="">
                   <div
-                    className="feed-visual-card compose-card-preview"
+                    className={`feed-visual-card compose-card-preview${cardPatternImage ? ' has-pattern' : ''}`}
                     style={
                       {
                         '--feed-card-from': style.from,
                         '--feed-card-to': style.to,
                         '--feed-card-ink': style.ink,
                         '--feed-card-soft': style.soft,
+                        ...(cardPatternImage ? { '--feed-card-pattern': cardPatternImage } : {}),
                       } as CSSProperties
                     }
                     role="group"
@@ -701,6 +733,58 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
                     >
                       <i style={{ '--swatch-a': CARD_STYLES[id].from, '--swatch-b': CARD_STYLES[id].to } as CSSProperties} />
                       <span>{CARD_STYLES[id].label}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={`custom-swatch${cardStyle === 'custom' ? ' selected' : ''}`}
+                    aria-pressed={cardStyle === 'custom'}
+                    onClick={() => setCardStyle('custom')}
+                  >
+                    <i style={{ '--swatch-a': customFrom, '--swatch-b': customTo } as CSSProperties} />
+                    <span>Personalizado</span>
+                  </button>
+                </div>
+                {cardStyle === 'custom' ? (
+                  <div className="compose-card-custom">
+                    <label>
+                      <input
+                        type="color"
+                        value={customFrom}
+                        onChange={(event) => setCustomFrom(event.target.value)}
+                        aria-label="Color inicial del degradado"
+                      />
+                      <span>Color inicial</span>
+                    </label>
+                    <label>
+                      <input
+                        type="color"
+                        value={customTo}
+                        onChange={(event) => setCustomTo(event.target.value)}
+                        aria-label="Color final del degradado"
+                      />
+                      <span>Color final</span>
+                    </label>
+                  </div>
+                ) : null}
+                <p className="compose-card-section-title">Patrón</p>
+                <div className="compose-card-patterns" role="group" aria-label="Patrón de la tarjeta">
+                  {VISUAL_CARD_PATTERNS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={cardPattern === item.id ? 'selected' : ''}
+                      aria-pressed={cardPattern === item.id}
+                      onClick={() => setCardPattern(item.id)}
+                    >
+                      <i
+                        style={{
+                          backgroundImage: [patternImage(item.id, style.ink), `linear-gradient(135deg, ${style.from}, ${style.to})`]
+                            .filter(Boolean)
+                            .join(', '),
+                        }}
+                      />
+                      <span>{item.label}</span>
                     </button>
                   ))}
                 </div>

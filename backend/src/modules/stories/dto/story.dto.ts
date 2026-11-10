@@ -9,6 +9,7 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  Matches,
   IsInt,
   IsOptional,
   IsString,
@@ -42,7 +43,17 @@ export const VISUAL_CARD_THEMES = [
   'night',
   'minimal',
 ] as const;
-export type VisualCardThemeValue = (typeof VISUAL_CARD_THEMES)[number];
+/** Patrones decorativos que puede llevar una tarjeta visual. */
+export const VISUAL_CARD_PATTERNS = ['dots', 'waves', 'grid', 'lines', 'hearts', 'sparkles'] as const;
+
+/**
+ * `visualCardTheme` admite un tema predefinido o un degradado propio, con un
+ * patrón opcional: `violet`, `violet~hearts`, `custom-ff8a5c-7b4dff~dots`.
+ */
+export const VISUAL_CARD_THEME_PATTERN = new RegExp(
+  `^(${VISUAL_CARD_THEMES.join('|')}|custom-[0-9a-f]{6}-[0-9a-f]{6})(~(${VISUAL_CARD_PATTERNS.join('|')}))?$`,
+);
+export type VisualCardThemeValue = string;
 
 /** Qué le gustaría recibir a quien publica (selector «¿Qué te gustaría recibir?» de v58). */
 export const ACCOMPANIMENTS = ['share', 'experiences', 'suggestions'] as const;
@@ -117,11 +128,12 @@ export class CreateStoryDto {
   visibility?: VisibilityValue;
 
   @ApiPropertyOptional({
-    enum: VISUAL_CARD_THEMES,
+    example: 'custom-ff8a5c-7b4dff~hearts',
     description: 'Tema de la tarjeta visual. Si falta, el relato usa el formato de lectura normal.',
   })
   @IsOptional()
-  @IsIn(VISUAL_CARD_THEMES, { message: 'El tema de la tarjeta visual no es válido' })
+  @IsString()
+  @Matches(VISUAL_CARD_THEME_PATTERN, { message: 'El tema de la tarjeta visual no es válido' })
   visualCardTheme?: VisualCardThemeValue;
 
   @ApiPropertyOptional({ description: 'Aviso de contenido opcional antes de leer.' })
@@ -247,12 +259,13 @@ export class UpdateStoryDto {
   countryCode?: (typeof COUNTRY_CODES)[number];
 
   @ApiPropertyOptional({
-    enum: VISUAL_CARD_THEMES,
+    example: 'custom-ff8a5c-7b4dff~hearts',
     nullable: true,
     description: 'Tema de la tarjeta visual; `null` vuelve al formato de lectura normal.',
   })
   @IsOptional()
-  @IsIn(VISUAL_CARD_THEMES, { message: 'El tema de la tarjeta visual no es válido' })
+  @IsString()
+  @Matches(VISUAL_CARD_THEME_PATTERN, { message: 'El tema de la tarjeta visual no es válido' })
   visualCardTheme?: VisualCardThemeValue | null;
 
   @ApiPropertyOptional({ nullable: true })
