@@ -89,3 +89,10 @@
 .wy .create-story-screen .editor-actions .primary:disabled{background:#6246F5;color:#FFF;opacity:1}
 .wy .control-card-head p{max-width:none}
 .wy .notification.card{background:#FFF}
+/* Modal ¿Qué necesitas hoy?: filas simples con separador, como V58. */
+.wy .welcome-choices>button{grid-template-columns:25px minmax(0,1fr) 18px;gap:13px;padding:18px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:#FFF}
+.wy .welcome-choices>button:hover{background:#FFF;border-color:var(--line)}
+.wy .welcome-choices>button>svg:first-child{width:22px;height:22px;padding:0;border-radius:0;background:transparent;color:#6246F5;box-sizing:border-box}
+.wy .welcome-choices>button>svg:last-child{width:18px;height:18px;color:#6246F5}
+.wy .welcome-choices b{font-size:16px;color:#191A20}
+.wy .welcome-choices small{margin-top:5px;font-size:13px;color:#50535D}

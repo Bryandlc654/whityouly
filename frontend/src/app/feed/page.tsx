@@ -15,9 +15,8 @@ import MoodModal, { MOODS } from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
-import GuideModal from '@/components/wy/GuideModal';
 import HowToStartModal from '@/components/wy/HowToStartModal';
-import { GUIDES } from '@/lib/guideContent';
+import StartGuideModal from '@/components/wy/StartGuideModal';
 import { followCharacter, listFollowing, unfollowCharacter, whatIFollow } from '@/lib/follows';
 import {
   followStory,
@@ -636,10 +635,19 @@ export default function FeedPage() {
             onShowGuide={() => setIntroMode('guide')}
           />
         ) : introOpen ? (
-          <GuideModal
-            guide={GUIDES.start}
+          <StartGuideModal
             onClose={closeIntro}
             onShowChoices={() => setIntroMode('choices')}
+            onLocate={(index) => {
+              closeIntro();
+              window.setTimeout(() => {
+                const target =
+                  index === 2
+                    ? document.querySelector('#feedList .post-actions')
+                    : document.querySelector('.composer-trigger');
+                target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              }, 80);
+            }}
           />
         ) : shareStory ? (
           <ShareStoryModal story={shareStory} onClose={() => setShareStory(null)} onNotify={notify} />

@@ -41,16 +41,26 @@ export default function HowToStartModal({
   const actions = { read: onRead, write: onWrite, mood: onMood };
 
   return (
-    <div className="modal welcome-guide how-to-start-modal" role="dialog" aria-modal="true" aria-labelledby="welcomeGuideTitle">
+    <section
+      className="modal welcome-guide onboarding53"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcomeGuideTitle"
+    >
       <div className="modal-head">
         <div>
-          <h2 id="welcomeGuideTitle">¿Qué necesitas hoy?</h2>
-          <p>Aquí caben alegrías, días difíciles y momentos cotidianos. Elige por dónde empezar.</p>
+          <h2 id="welcomeGuideTitle" tabIndex={-1}>
+            ¿Qué necesitas hoy?
+          </h2>
         </div>
         <button className="close" type="button" onClick={onClose} aria-label="Cerrar bienvenida">
           <Icon name="x" />
         </button>
       </div>
+
+      <p className="intro-options54">
+        Aquí caben alegrías, días difíciles y momentos cotidianos. Elige por dónde empezar.
+      </p>
 
       <div className="welcome-choices">
         {CHOICES.map((choice) => (
@@ -73,11 +83,9 @@ export default function HowToStartModal({
         <Icon name="book" /> Ver cómo publicar un relato
       </button>
 
-      <div className="how-to-start-footer">
-        <button className="text-link" type="button" onClick={onClose}>
-          Omitir y explorar
-        </button>
-      </div>
-    </div>
+      <button className="intro-skip53" type="button" onClick={onClose}>
+        Omitir y explorar
+      </button>
+    </section>
   );
 }
