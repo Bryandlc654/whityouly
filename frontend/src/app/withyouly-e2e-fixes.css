@@ -40,3 +40,11 @@
 .wy .story-row > .my-story-line{display:contents}
 .wy .story-row > .appeal-block{grid-column:1/-1}
 .wy a.reference-logo{color:inherit}
+
+/* «¿Cómo estás ahora?»: cinco ilustraciones + «Ver todas». */
+.wy .mood-choices-illustrated{grid-template-columns:repeat(6,minmax(0,1fr))}
+.wy .mood-choices-illustrated .mood-illustration{display:block;width:40px;height:40px;margin:0 auto 4px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(30,12,90,.22))}
+@media(max-width:520px){
+.wy .mood-choices-illustrated{grid-template-columns:repeat(3,minmax(0,1fr))}
+.wy .mood-choices-illustrated .mood-illustration{width:34px;height:34px}
+}

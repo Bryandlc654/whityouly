@@ -46,11 +46,13 @@ function initialsOf(name?: string | null) {
   return name.trim().slice(0, 2).toUpperCase();
 }
 
+// Accesos rápidos de «¿Cómo estás ahora?» con ilustraciones propias (public/assets/moods).
 const QUICK_MOODS = [
-  { name: 'Alegría', emoji: '\u{1F604}', color: '#F4B942' },
-  { name: 'Calma', emoji: '\u{1F60C}', color: '#42B8A8' },
-  { name: 'Tristeza', emoji: '\u{1F614}', color: '#5B84C4' },
-  { name: 'Ansiedad', emoji: '\u{1F61F}', color: '#8B6CCF' },
+  { name: 'Alegría', image: '/assets/moods/alegria.webp', color: '#F4B942' },
+  { name: 'Tristeza', image: '/assets/moods/tristeza.webp', color: '#5B84C4' },
+  { name: 'Enojo', image: '/assets/moods/enojo.webp', color: '#E06A5F' },
+  { name: 'Cansancio', image: '/assets/moods/cansancio.webp', color: '#B08B68' },
+  { name: 'Esperanza', image: '/assets/moods/esperanza.webp', color: '#62B878' },
 ] as const;
 
 function relativeTime(value: string): string {
@@ -734,7 +736,7 @@ export default function FeedPage() {
                 Registrar
               </button>
             </div>
-            <div className="mood-choices mood-choices-v2">
+            <div className="mood-choices mood-choices-v2 mood-choices-illustrated">
               {QUICK_MOODS.map((mood) => (
                 <button
                   key={mood.name}
@@ -743,7 +745,8 @@ export default function FeedPage() {
                   style={{ '--mood': mood.color } as CSSProperties}
                   onClick={() => openMood(mood.name)}
                 >
-                  <span>{mood.emoji}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="mood-illustration" src={mood.image} alt="" width={48} height={48} />
                   <small>{mood.name}</small>
                 </button>
               ))}
