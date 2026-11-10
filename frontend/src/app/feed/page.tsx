@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { fetchAccount } from '@/lib/account';
@@ -11,7 +11,7 @@ import Icon from '@/components/wy/Icon';
 import PostCard from '@/components/wy/PostCard';
 import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStoryModal';
 import RightRail from '@/components/wy/RightRail';
-import MoodModal, { MOODS } from '@/components/wy/MoodModal';
+import MoodModal from '@/components/wy/MoodModal';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import StoryViewer from '@/components/wy/StoryViewer';
@@ -44,6 +44,13 @@ function initialsOf(name?: string | null) {
   if (!name) return '?';
   return name.trim().slice(0, 2).toUpperCase();
 }
+
+const QUICK_MOODS = [
+  { name: 'Alegría', emoji: '\u{1F604}', color: '#F4B942' },
+  { name: 'Calma', emoji: '\u{1F60C}', color: '#42B8A8' },
+  { name: 'Tristeza', emoji: '\u{1F614}', color: '#5B84C4' },
+  { name: 'Ansiedad', emoji: '\u{1F61F}', color: '#8B6CCF' },
+] as const;
 
 function relativeTime(value: string): string {
   const time = new Date(value).getTime();
@@ -705,17 +712,22 @@ export default function FeedPage() {
               </button>
             </div>
             <div className="mood-choices mood-choices-v2">
-              {MOODS.map((mood) => (
+              {QUICK_MOODS.map((mood) => (
                 <button
                   key={mood.name}
                   className="mood-choice"
                   type="button"
+                  style={{ '--mood': mood.color } as CSSProperties}
                   onClick={() => openMood(mood.name)}
                 >
                   <span>{mood.emoji}</span>
                   <small>{mood.name}</small>
                 </button>
               ))}
+              <button className="mood-choice more-emotions" type="button" onClick={() => openMood()}>
+                <span>＋</span>
+                <small>Ver todas</small>
+              </button>
             </div>
           </section>
         ) : moodRegisteredToday === true ? (
