@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, tokenStorage } from '@/lib/auth';
-import StoryForm from '@/components/wy/StoryForm';
+import CreateStoryV58 from '@/components/wy/CreateStoryV58';
 import ProfileShell from '@/components/wy/ProfileShell';
 
 export default function CreateStoryPage() {
   const router = useRouter();
-  const [characterName, setCharacterName] = useState('');
+  const [character, setCharacter] = useState<{ name: string; avatarUrl: string | null }>({
+    name: '',
+    avatarUrl: null,
+  });
 
   useEffect(() => {
     if (!tokenStorage.getAccess()) {
@@ -21,8 +24,8 @@ export default function CreateStoryPage() {
       try {
         const res = await authFetch(`${API_URL}/characters/me`);
         if (res.ok) {
-          const data = (await res.json()) as { name?: string };
-          if (data.name) setCharacterName(data.name);
+          const data = (await res.json()) as { name?: string; avatarUrl?: string | null };
+          setCharacter({ name: data.name ?? '', avatarUrl: data.avatarUrl ?? null });
         }
       } catch {
         /* el compositor funciona sin el nombre */
@@ -31,23 +34,15 @@ export default function CreateStoryPage() {
   }, [router]);
 
   return (
-    <ProfileShell>
-      <section className="screen create-story-screen">
-        <div className="screen-heading">
-          <div>
-            <h1>Comparte tu relato</h1>
-            <p>Tus alegrías, tus días difíciles y lo cotidiano tienen un lugar aquí.</p>
-          </div>
-        </div>
-        <StoryForm
-          characterName={characterName}
-          onCreated={(_story, published) => {
-            router.push(published ? '/feed' : '/mis-relatos');
-            router.refresh();
-          }}
-          onCancel={() => router.push('/feed')}
-        />
-      </section>
+    <ProfileShell className="compose-mode">
+      <CreateStoryV58
+        characterName={character.name}
+        avatarUrl={character.avatarUrl}
+        onCreated={(_story, published) => {
+          router.push(published ? '/feed' : '/mis-relatos');
+          router.refresh();
+        }}
+      />
     </ProfileShell>
   );
 }

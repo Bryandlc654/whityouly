@@ -21,7 +21,7 @@ function initialsOf(name?: string | null) {
  * app: barra superior, navegación lateral, rail derecho y cuenta. El contenido
  * se renderiza en el servidor y se pasa como `children`.
  */
-export default function ProfileShell({ children }: { children: ReactNode }) {
+export default function ProfileShell({ children, className }: { children: ReactNode; className?: string }) {
   const router = useRouter();
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
@@ -118,6 +118,7 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
       activeRoute="character"
+      className={className}
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
