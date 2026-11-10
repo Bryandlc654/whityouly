@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Avatar zorro">
+<defs><linearGradient id="bg3" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#C4B5FD"/></linearGradient></defs>
+<rect width="96" height="96" rx="48" fill="url(#bg3)"/>
+<circle cx="48" cy="48" r="45" fill="#FFF" opacity=".08"/>
+<path d="M22 44 25 16l18 16zM74 44 71 16 53 32z" fill="#EA580C"/>
+<path d="M27 36 28 24l8 7zM69 36 68 24l-8 7z" fill="#1F2937"/>
+<path d="M22 44c0-14 12-22 26-22s26 8 26 22c0 10-10 24-26 30-16-6-26-20-26-30z" fill="#EA580C"/>
+<path d="M22 46c8 0 16 6 26 26-14-4-26-14-26-26zM74 46c-8 0-16 6-26 26 14-4 26-14 26-26z" fill="#FFF7ED"/>
+<circle cx="38" cy="48" r="2.6" fill="#241B18"/><circle cx="58" cy="48" r="2.6" fill="#241B18"/><circle cx="38.9" cy="47.1" r=".8" fill="#FFF"/><circle cx="58.9" cy="47.1" r=".8" fill="#FFF"/>
+<ellipse cx="48" cy="64" rx="3.6" ry="2.8" fill="#241B18"/>
+</svg>

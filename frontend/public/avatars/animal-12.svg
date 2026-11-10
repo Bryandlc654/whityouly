@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Avatar rana">
+<defs><linearGradient id="bg12" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#0D9488"/><stop offset="1" stop-color="#5EEAD4"/></linearGradient></defs>
+<rect width="96" height="96" rx="48" fill="url(#bg12)"/>
+<circle cx="48" cy="48" r="45" fill="#FFF" opacity=".08"/>
+<circle cx="34" cy="34" r="11" fill="#4ADE80"/><circle cx="62" cy="34" r="11" fill="#4ADE80"/>
+<ellipse cx="48" cy="56" rx="27" ry="20" fill="#4ADE80"/>
+<circle cx="34" cy="34" r="6.5" fill="#FFF"/><circle cx="62" cy="34" r="6.5" fill="#FFF"/>
+<circle cx="35" cy="35" r="3.4" fill="#241B18"/><circle cx="63" cy="35" r="3.4" fill="#241B18"/>
+<circle cx="36" cy="33.8" r="1" fill="#FFF"/><circle cx="64" cy="33.8" r="1" fill="#FFF"/>
+<path d="M34 58c6 6 22 6 28 0" fill="none" stroke="#166534" stroke-width="2.4" stroke-linecap="round"/>
+<circle cx="30" cy="54" r="3.4" fill="#F472B6" opacity=".45"/><circle cx="66" cy="54" r="3.4" fill="#F472B6" opacity=".45"/>
+<circle cx="43" cy="49" r="1" fill="#166534"/><circle cx="53" cy="49" r="1" fill="#166534"/>
+</svg>

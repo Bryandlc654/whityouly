@@ -4,12 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from '@/components/wy/Avatar';
 import AvatarCreator from '@/components/profile/AvatarCreator';
 import Icon from '@/components/wy/Icon';
-import {
-  AVATAR_ACCEPT,
-  AVATAR_PRESETS,
-  isAvatarCatalogUrl,
-  validateAvatarFile,
-} from '@/lib/avatar';
+import { ANIMAL_AVATARS, AVATAR_PRESETS, isAvatarCatalogUrl } from '@/lib/avatar';
 import {
   avatarConfigToUrl,
   DEFAULT_AVATAR_CONFIG,
@@ -217,29 +212,6 @@ export default function ProfileEditor({
     });
   };
 
-  const selectAvatar = (file: File | null) => {
-    if (!file) return;
-
-    const validationError = validateAvatarFile(file);
-    if (validationError) {
-      setLocalError(validationError);
-      return;
-    }
-
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
-    }
-
-    const url = URL.createObjectURL(file);
-    previewUrlRef.current = url;
-    setAvatarPreview(url);
-    setAvatarFile(file);
-    setSelectedAvatarUrl(null);
-    setRemoveAvatar(false);
-    setCreatorOpen(false);
-    setLocalError('');
-  };
-
   const choosePreset = (url: string) => {
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
@@ -383,16 +355,6 @@ export default function ProfileEditor({
       {avatarPanelOpen ? (
       <div className="avatar-change-panel">
         <div className="profile-avatar-actions">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={AVATAR_ACCEPT}
-            className="visually-hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              selectAvatar(file);
-            }}
-          />
           <button
             className="primary"
             type="button"
@@ -402,22 +364,14 @@ export default function ProfileEditor({
           >
             <Icon name="sparkle" /> Crear avatar
           </button>
-          <button
-            className="secondary"
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={busy}
-          >
-            <Icon name="user" /> Subir foto
-          </button>
           {avatarPreview ? (
             <button className="ghost" type="button" onClick={clearAvatar} disabled={busy}>
               Quitar
             </button>
           ) : null}
           <p className="hint" style={{ margin: '6px 0 0' }}>
-            Crea tu personaje con piel, pelo, ropa y fondo, o sube una foto JPEG, PNG o
-            WebP de máximo 2 MB.
+            Crea tu personaje con piel, pelo, ropa y fondo, o elige uno de los avatares de personas o
+            animales. No necesitas mostrar tu rostro.
           </p>
         </div>
 
@@ -446,6 +400,25 @@ export default function ProfileEditor({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt="" width={48} height={48} />
+          </button>
+        ))}
+      </div>
+
+      <label>Avatares de animales</label>
+      <div className="avatar-presets" role="group" aria-label="Avatares de animales">
+        {ANIMAL_AVATARS.map((item) => (
+          <button
+            key={item.url}
+            type="button"
+            className={`avatar-preset${selectedAvatarUrl === item.url ? ' active' : ''}`}
+            aria-pressed={selectedAvatarUrl === item.url}
+            aria-label={`Elegir avatar: ${item.label}`}
+            title={item.label}
+            onClick={() => choosePreset(item.url)}
+            disabled={busy}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={item.url} alt="" width={48} height={48} />
           </button>
         ))}
       </div>

@@ -15,7 +15,13 @@ export const AVATAR_PRESETS = Array.from({ length: 12 }, (_, index) =>
   `/avatars/${String(index + 25).padStart(2, '0')}.svg`,
 );
 
-const AVATAR_PRESET_PATTERN = /^\/avatars\/(?:2[5-9]|3[0-6])\.svg$/;
+/** Avatares de animales ilustrados (`/public/avatars/animal-NN.svg`). */
+export const ANIMAL_AVATARS = [
+  'Gato', 'Perro', 'Zorro', 'Oso', 'Conejo', 'Panda',
+  'Búho', 'Koala', 'León', 'Pingüino', 'Mapache', 'Rana',
+].map((label, index) => ({ url: `/avatars/animal-${String(index + 1).padStart(2, '0')}.svg`, label }));
+
+const AVATAR_PRESET_PATTERN = /^\/avatars\/(?:2[5-9]|3[0-6]|animal-(?:0[1-9]|1[0-2]))\.svg$/;
 
 export function isAvatarPresetUrl(value: unknown): value is string {
   return typeof value === 'string' && AVATAR_PRESET_PATTERN.test(value);

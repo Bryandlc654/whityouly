@@ -9,7 +9,7 @@ import {
   createCharacter,
   listInterests,
 } from '@/lib/characters';
-import { AVATAR_PRESETS } from '@/lib/avatar';
+import { ANIMAL_AVATARS, AVATAR_PRESETS } from '@/lib/avatar';
 import Icon from '@/components/wy/Icon';
 import { consumeReturnTo } from '@/lib/returnTo';
 
@@ -285,8 +285,8 @@ export default function OnboardingPage() {
 
               <label>Elige un avatar ilustrado</label>
               <p className="avatar-help">
-                Avatares ilustrados sin fotografías personales. Podrás cambiarlo después desde tu
-                perfil.
+                Personas o animales ilustrados, sin fotografías personales. Podrás cambiarlo después
+                desde tu perfil.
               </p>
               <div
                 className="avatar-picker avatar-gallery"
@@ -306,6 +306,25 @@ export default function OnboardingPage() {
                       <img src={url} alt="" width={96} height={96} />
                     </span>
                     <small>{AVATAR_NAMES[index] ?? `Avatar ${index + 1}`}</small>
+                  </button>
+                ))}
+              </div>
+
+              <label>O elige un animal</label>
+              <div className="avatar-picker avatar-gallery" role="group" aria-label="Avatares de animales">
+                {ANIMAL_AVATARS.map((item) => (
+                  <button
+                    key={item.url}
+                    type="button"
+                    className={`alias-avatar${avatarUrl === item.url ? ' selected' : ''}`}
+                    aria-pressed={avatarUrl === item.url}
+                    onClick={() => setAvatarUrl((current) => (current === item.url ? null : item.url))}
+                  >
+                    <span className="avatar avatar-illustrated">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.url} alt="" width={96} height={96} />
+                    </span>
+                    <small>{item.label}</small>
                   </button>
                 ))}
               </div>
