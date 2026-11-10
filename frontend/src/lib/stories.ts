@@ -34,6 +34,8 @@ export type StoryTranslations = Record<string, StoryTranslation>;
 
 export interface StoryStage {
   id: string;
+  /** Título propio de una continuación; `null` en la primera etapa. */
+  title: string | null;
   content: string;
   mediaUrl: string | null;
   audioUrl: string | null;
@@ -166,6 +168,7 @@ function parseStage(value: unknown): StoryStage | null {
   if (!id) return null;
   return {
     id,
+    title: typeof record.title === 'string' && record.title ? record.title : null,
     content: typeof record.content === 'string' ? record.content : '',
     mediaUrl: safeUrl(record.mediaUrl),
     audioUrl: safeUrl(record.audioUrl),
@@ -438,7 +441,14 @@ export function updateStory(id: string, patch: UpdateStoryInput): Promise<LoadRe
 
 export function addStoryStage(
   id: string,
-  input: { content: string; mediaAssetId?: string; audioAssetId?: string; transcript?: string; updateKind?: string },
+  input: {
+    title?: string;
+    content: string;
+    mediaAssetId?: string;
+    audioAssetId?: string;
+    transcript?: string;
+    updateKind?: string;
+  },
 ): Promise<LoadResult<StoryStage>> {
   return authedRequest(
     `/stories/me/${encodeURIComponent(id)}/updates`,

@@ -63,6 +63,7 @@ function parseStage(value: unknown): StoryStage | null {
   if (typeof record.id !== 'string') return null;
   return {
     id: record.id,
+    title: typeof record.title === 'string' && record.title ? record.title : null,
     content: typeof record.content === 'string' ? record.content : '',
     mediaUrl: safeUrl(record.mediaUrl),
     audioUrl: safeUrl(record.audioUrl),

@@ -67,6 +67,11 @@ const UPDATE_TYPES = [
   'Sin clasificación',
 ];
 
+// El backend guarda el cierre con su etiqueta histórica.
+const UPDATE_KIND_VALUE: Record<string, string> = {
+  'Quiero cerrar este capítulo': 'Cierre que deseo compartir',
+};
+
 const WAVE = Array.from({ length: 28 }, (_, i) => 8 + ((i * 7) % 24));
 
 function clock(seconds: number) {
@@ -126,6 +131,7 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
   const [modal, setModal] = useState<null | 'sensitive' | 'preview' | 'music' | 'guide'>(null);
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [musicQuery, setMusicQuery] = useState('');
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -168,14 +174,48 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
     return () => window.clearTimeout(timer);
   }, [title, content, transcript, music, sensitive]);
 
+  // «Continuar relato» (Mis relatos) llega con ?continuar=<id>: igual que v58,
+  // se abre una continuación de ese relato con «Nueva reflexión» y su tema.
   useEffect(() => {
-    if (!continuation || ownStories.length) return;
+    const id = new URLSearchParams(window.location.search).get('continuar');
+    if (!id) return;
+    setMode('classic');
+    setKind('continuation');
+    setOriginId(id);
+    setUpdateType('Nueva reflexión');
+    setDetailsOpen(true);
+    void getMyStory(id).then((result) => {
+      if (result.status !== 'ok') {
+        setError('No encontramos el relato que quieres continuar.');
+        return;
+      }
+      const story = result.data;
+      // legacyTopic() de v58: las categorías antiguas equivalentes pasan a su tema.
+      const legacy: Record<string, string> = { Relaciones: 'Pareja', Aprendizaje: 'Relación conmigo' };
+      const topic = story.categories
+        .map((name) => legacy[name] ?? name)
+        .find((name) => V58_TOPIC_NAMES.includes(name));
+      if (topic) setCategory(topic);
+      // El relato aparece en el selector aunque no esté en la primera página de la lista.
+      setOwnStories((current) =>
+        current.some((item) => item.id === story.id)
+          ? current
+          : [{ id: story.id, title: story.title } as MyStoryListItem, ...current],
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!continuation) return;
     void listMyStories({ status: 'PUBLISHED' }).then((result) => {
       if (result.status !== 'ok') return;
-      setOwnStories(result.data.items);
+      setOwnStories((current) => {
+        const extra = current.filter((item) => !result.data.items.some((story) => story.id === item.id));
+        return [...extra, ...result.data.items];
+      });
       if (result.data.items[0]) setOriginId((current) => current || result.data.items[0].id);
     });
-  }, [continuation, ownStories.length]);
+  }, [continuation]);
 
   useEffect(
     () => () => {
@@ -327,7 +367,7 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
         content: body,
         audioAssetId: audio ? audioId ?? undefined : undefined,
         transcript: audio && showTranscript ? transcript.trim() || undefined : undefined,
-        updateKind: updateType,
+        updateKind: UPDATE_KIND_VALUE[updateType] ?? updateType,
       });
       if (stage.status !== 'ok') {
         setSaving(false);
@@ -522,13 +562,18 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
     </div>
   );
 
+  // updateMetadataSummary() de v58: «Tema · Emoción · Continuación».
+  const detailsSummary =
+    [category, emotion, continuation ? 'Continuación' : ''].filter(Boolean).join(' · ') ||
+    'Tema, emoción, continuación y más';
+
   const summary = (
     <summary>
       <span>
         <b>
           Detalles del relato <small>(opcional)</small>
         </b>
-        <span data-compose-details-summary="">Tema, emoción, continuación y más</span>
+        <span data-compose-details-summary="">{detailsSummary}</span>
       </span>
       <Icon name="chevron" />
     </summary>
@@ -668,7 +713,11 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
 
           {accompanimentField}
 
-          <details className="compose-details">
+          <details
+            className="compose-details"
+            open={detailsOpen}
+            onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+          >
             {summary}
             <div className="compose-details-body">
               {metadataFields}
@@ -834,7 +883,11 @@ export default function CreateStoryV58({ characterName, avatarUrl, onCreated }: 
             Tu borrador se guarda mientras escribes.
           </p>
           {accompanimentField}
-          <details className="compose-details">
+          <details
+            className="compose-details"
+            open={detailsOpen}
+            onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+          >
             {summary}
             <div className="compose-details-body">
               {metadataFields}

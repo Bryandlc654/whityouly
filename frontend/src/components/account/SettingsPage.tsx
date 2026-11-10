@@ -87,7 +87,7 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
         router.push('/siguiendo');
         break;
       case 'mood':
-        router.push('/mi-espacio');
+        router.push('/mi-diario');
         break;
       case 'pulso':
         router.push('/pulso');

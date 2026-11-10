@@ -370,7 +370,7 @@ export default function ExplorePage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case 'mood':
-        router.push('/mi-espacio');
+        router.push('/mi-diario');
         break;
       case 'pulso':
         router.push('/pulso');

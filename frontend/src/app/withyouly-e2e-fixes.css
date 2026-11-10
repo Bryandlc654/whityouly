@@ -80,3 +80,7 @@
 .wy .main-content>.screen{animation:wy-reveal .32s ease-out both}
 @keyframes wy-reveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.wy .sk-bone{animation:none}.wy .main-content>.screen{animation:none}}
+
+/* Título y tipo de cada continuación en «Ver historia completa». */
+.wy .story-stage-heading{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:6px 0 8px}
+.wy .story-stage-heading h3{margin:0;font-size:17px;line-height:1.3;color:#1f1b2d}

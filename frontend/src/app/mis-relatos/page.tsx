@@ -338,7 +338,7 @@ export default function MyStoriesPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        router.push('/mi-espacio');
+        router.push('/mi-diario');
         break;
       case 'pulso':
         router.push('/pulso');
@@ -456,6 +456,11 @@ export default function MyStoriesPage() {
     notify(result.message);
   };
 
+  // Igual que v58: abre «Comparte tu relato» con la continuación ya preparada.
+  const continueStory = (story: MyStoryListItem) => {
+    router.push(`/crear?continuar=${encodeURIComponent(story.id)}`);
+  };
+
   const openDetail = async (story: MyStoryListItem) => {
     const result = await getMyStory(story.id);
 
@@ -474,8 +479,11 @@ export default function MyStoriesPage() {
 
   const openStoryMenu = (story: MyStoryListItem) => {
     const rows: SheetRow[] = [
+      ...(story.status === 'PUBLISHED'
+        ? [{ label: 'Continuar relato', icon: 'book' as const, onClick: () => continueStory(story) }]
+        : []),
       {
-        label: 'Continuar relato',
+        label: 'Ver historia completa',
         icon: 'book',
         onClick: () => void openDetail(story),
       },
@@ -784,7 +792,7 @@ export default function MyStoriesPage() {
                   </div>
 
                   <div className="story-row-actions">
-                    <button className="secondary" type="button" onClick={() => void openDetail(story)}>
+                    <button className="secondary" type="button" onClick={() => continueStory(story)}>
                       Continuar relato
                     </button>
                     <button

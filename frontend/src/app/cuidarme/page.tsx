@@ -573,7 +573,7 @@ export default function CarePage() {
         router.push('/feed');
         break;
       case 'mood':
-        router.push('/mi-espacio');
+        router.push('/mi-diario');
         break;
       case 'pulso':
         router.push('/pulso');

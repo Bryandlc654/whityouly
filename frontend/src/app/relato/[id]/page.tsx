@@ -158,7 +158,7 @@ export default function StoryPage() {
         router.push('/explorar');
         break;
       case 'mood':
-        router.push('/mi-espacio');
+        router.push('/mi-diario');
         break;
       case 'pulso':
         router.push('/pulso');

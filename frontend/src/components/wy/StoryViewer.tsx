@@ -202,6 +202,12 @@ export default function StoryViewer({
                         <span className="story-stage-tag">Etapa {stage.stageOrder}</span>
                         <span className="hint">{formatDate(stage.createdAt)}</span>
                       </div>
+                      {index > 0 && (stage.title || stage.updateKind) ? (
+                        <div className="story-stage-heading">
+                          {stage.updateKind ? <span className="tag update">{stage.updateKind}</span> : null}
+                          {stage.title ? <h3>{stage.title}</h3> : null}
+                        </div>
+                      ) : null}
                       {index === 0 && story.visualCardTheme ? (
                         <VisualStoryCard
                           theme={story.visualCardTheme}
