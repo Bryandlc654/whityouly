@@ -5293,150 +5293,150 @@
 :root[data-reading-size="large"]{--reading-story-size:1.25rem;--reading-comment-size:1.125rem;--reading-title-size:1.5rem}
 :root[data-reading-size="larger"]{--reading-story-size:1.375rem;--reading-comment-size:1.25rem;--reading-title-size:1.625rem}
 .wy{font-size:var(--text-body53);color:var(--ink);line-height:1.55}
-.wy :is(p,li,dd,dt,figcaption){line-height:1.65}
-.wy :is(p,label,li,dd,dt){font-size:1rem}
-.wy :is(small,time,.micro-label){font-size:var(--text-small53)!important;line-height:1.5}
-.wy :is(h1,h2,h3,h4,p,label,button,small,summary){overflow-wrap:anywhere}
-.wy h1{font-size:clamp(1.625rem,3vw,2rem);line-height:1.25;letter-spacing:-.02em}
-.wy h2{font-size:1.375rem;line-height:1.35}
-.wy h3{font-size:1.125rem;line-height:1.4}
-.wy :is(button,.button){font-size:1rem!important;line-height:1.4;min-height:44px;white-space:normal}
-.wy button:is(.primary,.secondary,.guide-btn){font-weight:650;min-height:48px}
-.wy :is(.primary,.secondary,.guide-btn,.ghost,.text-link){box-shadow:none}
-.wy .primary{background:#6246F5;color:#FFF}
-.wy .filter-pill.active{background:#6246F5;color:#FFF!important}
-.wy .step-line span.active{color:#FFF!important}
-.wy .info-callout{background:#FFF;border:1px solid #D6D6DE;color:#111111}
-.wy .info-callout :is(h1,h2,h3,b){color:#111111}
-.wy .info-callout p{color:#454851!important}
-.wy .growth-screen .drop-card em{color:#276449!important}
-.wy .primary:hover{background:#6246F5;filter:brightness(.94)}
-.wy :is(.secondary,.guide-btn){background:#FFF;border-color:#999DA8;color:#6246F5}
-.wy :is(.secondary,.guide-btn):hover{background:#F6F3FF;border-color:#6246F5}
-.wy :is(button,input,textarea,select):disabled{cursor:not-allowed}
-.wy button:disabled:not(.day):not(.diary-entry-open){color:#50535D!important;background:#F3F3F6;opacity:1;border-color:#D3D4DA}
-.wy button.avatar{min-width:44px;min-height:44px;aspect-ratio:1}
-.wy :is(button,a,input,textarea,select,summary):focus-visible{outline:2px solid #6246F5;outline-offset:3px}
-.wy :is(input,textarea,select){font-size:1rem!important;line-height:1.5;color:#111111}
-.wy :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select){min-height:48px;max-width:100%}
-.wy textarea{line-height:1.65;max-width:100%}
+body .wy :is(p,li,dd,dt,figcaption){line-height:1.65}
+body .wy :is(p,label,li,dd,dt){font-size:1rem}
+body .wy :is(small,time,.micro-label){font-size:var(--text-small53)!important;line-height:1.5}
+body .wy :is(h1,h2,h3,h4,p,label,button,small,summary){overflow-wrap:anywhere}
+body .wy h1{font-size:clamp(1.625rem,3vw,2rem);line-height:1.25;letter-spacing:-.02em}
+body .wy h2{font-size:1.375rem;line-height:1.35}
+body .wy h3{font-size:1.125rem;line-height:1.4}
+body .wy :is(button,.button){font-size:1rem!important;line-height:1.4;min-height:44px;white-space:normal}
+body .wy button:is(.primary,.secondary,.guide-btn){font-weight:650;min-height:48px}
+body .wy :is(.primary,.secondary,.guide-btn,.ghost,.text-link){box-shadow:none}
+body .wy .primary{background:#6246F5;color:#FFF}
+body .wy .filter-pill.active{background:#6246F5;color:#FFF!important}
+body .wy .step-line span.active{color:#FFF!important}
+body .wy .info-callout{background:#FFF;border:1px solid #D6D6DE;color:#111111}
+body .wy .info-callout :is(h1,h2,h3,b){color:#111111}
+body .wy .info-callout p{color:#454851!important}
+body .wy .growth-screen .drop-card em{color:#276449!important}
+body .wy .primary:hover{background:#6246F5;filter:brightness(.94)}
+body .wy :is(.secondary,.guide-btn){background:#FFF;border-color:#999DA8;color:#6246F5}
+body .wy :is(.secondary,.guide-btn):hover{background:#F6F3FF;border-color:#6246F5}
+body .wy :is(button,input,textarea,select):disabled{cursor:not-allowed}
+body .wy button:disabled:not(.day):not(.diary-entry-open){color:#50535D!important;background:#F3F3F6;opacity:1;border-color:#D3D4DA}
+body .wy button.avatar{min-width:44px;min-height:44px;aspect-ratio:1}
+body .wy :is(button,a,input,textarea,select,summary):focus-visible{outline:2px solid #6246F5;outline-offset:3px}
+body .wy :is(input,textarea,select){font-size:1rem!important;line-height:1.5;color:#111111}
+body .wy :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select){min-height:48px;max-width:100%}
+body .wy textarea{line-height:1.65;max-width:100%}
 .wy ::placeholder{color:#50535D;opacity:1}
-.wy :is(.icon-btn,.close,.more-btn){min-width:44px;min-height:44px;flex-shrink:0}
-.wy :is(.diary-editor,.diary-reader,.diary-confirm) .close{min-width:44px;min-height:44px;flex:0 0 44px}
-.wy .v38-audio .text-link{min-height:44px}
-.wy .recommended-icon{color:#50535D!important}
-.wy :is(.screen-heading,.diary-heading,.tree-hero,.support-hero,.capsule-hero,.settings-hero,.modal-head){gap:16px}
-.wy :is(.screen-heading,.diary-heading,.space-description) :is(h1,h2){font-size:clamp(1.625rem,3vw,2rem)!important}
-.wy :is(.screen-heading,.space-description,.tree-hero,.support-hero,.capsule-hero,.settings-hero,.help-hero,.moderation-intro,.reference-form,.auth-form,.onboarding-card,.recovery-card)>p,
-.wy :is(.screen-heading,.space-description)>div>p{font-size:1rem!important;color:#454851!important;line-height:1.65}
-.wy .welcome-row h1{font-size:clamp(1.375rem,3vw,1.75rem)}
-.wy .welcome-row .text-link{font-size:.9375rem!important;flex-shrink:0}
-.wy :is(.side-nav button,.side-nav button b){font-size:1rem!important}
-.wy .searchbox{font-size:1rem;min-height:48px}
-.wy .bottom-nav button{min-height:48px;padding:0;gap:3px}
-.wy .bottom-nav button{color:#454851!important}
-.wy .bottom-nav button.active,
-.wy .side-nav button.active{color:#6246F5!important}
-.wy .bottom-nav button.create-fab{background:#6246F5;color:#FFF!important}
-.wy .bottom-nav button.create-fab svg{color:#FFF!important;stroke:#FFF}
-.wy .bottom-nav button small{font-size:.875rem!important;white-space:nowrap}
-.wy .bottom-nav button svg{width:24px;height:24px}
-.wy :is(.safety-note small,.safety-note button,.right-card p,.right-card small,.tree-mini p,.tree-mini small){font-size:.875rem!important;line-height:1.6}
-.wy :is(.right-card h3,.tree-mini h3){font-size:1.125rem!important}
-.wy .post .post-text,
-.wy :is(.visual-full-text p,.history-focused .history-part>p,.reading-example .post-text,.detail-body){font-size:var(--reading-story-size)!important;line-height:1.7;color:#111111}
-.wy :is(.post h2,.history-focused .history-part h3,.visual-full-text h2){font-size:var(--reading-title-size)!important;line-height:1.4;color:#111111}
-.wy :is(.conversation-copy>p,.history-comment-reading>p,.reading-comment-example,.audio-transcript){font-size:var(--reading-comment-size)!important;line-height:1.65;color:#111111}
-.wy :is(.post-time,.post-stats,.history-part-meta,.history-heading p,.conversation-meta,.conversation-meta button,.conversation-author span,.music-chip small,.audio-example-label,.demo-audio-controls small,.conversation-header p){font-size:.875rem!important;line-height:1.55;color:#50535D}
-.wy :is(.post-author .author-name,.conversation-author b,.history-comment-reading>b){font-size:1rem!important;color:#111111}
-.wy .post-actions button{flex-direction:column;gap:6px;min-height:68px;color:#454851;padding:9px 2px}
-.wy .post-actions button .action-label{font-size:.875rem!important;line-height:1.35}
-.wy .post-actions button svg{width:24px;height:24px;flex-basis:24px}
-.wy .post-actions button.on,
-.wy .post-actions button[aria-pressed="true"]{color:#6246F5}
-.wy :is(.post-more,.history-link,.history-part>.text-link,.view-replies,.conversation-meta button){min-height:44px}
-.wy .post-author button{min-height:38px;font-size:.875rem!important}
-.wy .post-author .author-name{min-height:32px}
-.wy .conversation-panel{max-width:100vw}
-.wy .conversation-header{min-width:0}
-.wy .conversation-header h2{font-size:1.5rem!important}
-.wy .conversation-field textarea{font-size:1rem!important;line-height:1.5}
-.wy .conversation-field>button{padding:10px 8px;min-height:48px}
-.wy .conversation-meta{display:flex;flex-wrap:wrap;gap:3px 12px;align-items:center}
-.wy .conversation-author{flex-wrap:wrap}
-.wy :is(.conversation-comment,.conversation-reply){min-width:0}
-.wy .conversation-like{min-width:32px;min-height:44px}
-.wy .history-comment-group>small{font-size:.875rem!important}
-.wy .feed-card-copy p{font-size:1.0625rem!important;line-height:1.65}
-.wy :is(.feed-card-category,.visual-card-category,.feed-card-author>b,.visual-card-author b){font-size:.875rem!important}
-.wy .feed-card-brand{font-size:1rem}
-.wy .composer{background:#FFF!important;padding:16px 0}
-.wy .composer-top{align-items:center;gap:12px}
-.wy .composer-top>.avatar{width:46px;height:46px;flex:0 0 46px}
-.wy .composer-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;border:1.5px solid #B8ACFA;border-radius:28px;background:#F6F3FF;color:#25232E;padding:13px 18px;text-align:left;font-size:1.0625rem!important;font-weight:600;box-shadow:none}
-.wy .composer-trigger svg{color:#6246F5;width:22px;height:22px;flex:0 0 22px}
-.wy .composer-trigger:hover{border-color:#6246F5;background:#F1EDFF}
-.wy .composer-trigger:focus-visible{outline-offset:3px}
-.wy .compact-checkin .quick-title p{font-size:.875rem!important}
-.wy .compact-checkin .mood-choice small{font-size:.875rem!important;color:#454851;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
-.wy .compact-checkin .mood-choice{min-height:64px;min-width:0;flex-direction:column;gap:5px;padding:7px 2px}
-.wy .compact-checkin .mood-choice span{font-size:27px}
-.wy .quiet-checkin50>p{font-size:1rem!important}
-.wy .quiet-checkin50>span,
-.wy .quiet-checkin50 .quiet-register50{font-size:.875rem!important}
-.wy .diary-nav.emotion-nav{gap:6px;scroll-padding:12px;padding-block:8px}
-.wy .diary-nav.emotion-nav>button{font-size:.9375rem!important;min-height:52px;white-space:nowrap;flex:1 0 auto;padding:11px 13px}
-.wy :is(.diary-storage-note,.diary-history-help,.diary-date-filter,.diary-result-count,.diary-entry-meta,.diary-entry-actions>small,.diary-text-count,.diary-private){font-size:.875rem!important;line-height:1.65;color:#50535D}
-.wy :is(.diary-heading p,.diary-entry-excerpt,.diary-empty p,.diary-confirm p,.modal49>p,.garden49>p,.awards49>p){font-size:1rem!important;line-height:1.65}
-.wy .diary-entry-title{font-size:1.125rem;line-height:1.4}
-.wy .diary-entry-actions>.text-link{min-height:44px;font-size:.9375rem!important}
-.wy .diary-date{font-size:.875rem!important}
-.wy .diary-full-text{font-size:var(--reading-story-size)!important;line-height:1.75}
-.wy :is(.day small,.bar-col small,.calendar-legend,.legend,.trend-values,.trend-values b,.progress-ends,.stage-node b,.stage-node small){font-size:.875rem!important;line-height:1.5;color:#50535D}
-.wy :is(.line-chart,.emotion-line-card) svg text{font-size:14px;fill:#50535D}
-.wy .day{height:auto;min-height:62px;min-width:0;gap:3px;padding:6px 1px}
-.wy .day small{font-size:.875rem!important}
-.wy .bar-chart,
-.wy .emotion-bars{padding-bottom:8px}
-.wy :is(.chart-head,.calendar-head){flex-wrap:wrap;gap:12px}
-.wy :is(.chart-head h3,.calendar-head h3){margin:0}
-.wy :is(.growth-screen .tree-hero p,.growth-screen .tree-meaning p,.growth-screen .tree-progress p,.tree-care-choices>p,.awards49 p,.garden49 p){font-size:1rem!important;line-height:1.65;color:#454851}
-.wy :is(.growth-screen .growth-days,.growth-screen .no-streak,.growth-screen .drop-card small,.growth-screen .drop-card em,.tree-counter49,.tree-total49,.award-status49,.customize-choice49 small,.capsule-local49){font-size:.875rem!important;line-height:1.6}
-.wy :is(.tree-tabs49 button,.tree-care-links b){font-size:1rem!important;min-height:48px}
-.wy .tree-care-links small{font-size:.875rem!important}
-.wy :is(.support-hero p,.experience-card p,.selected-activity p,.breathing-coach p,.unravel-brand p,.unravel-question p,.small-step-heading p,.care-result50>p){font-size:1rem!important;line-height:1.65;color:#454851}
-.wy :is(.unravel-choices button b,.small-step-grid button b,.need-tile b,.experience-card b){font-size:1rem!important;line-height:1.5}
-.wy :is(.unravel-note,.breathing-note,.care-drop50,.activity-context-line,.capsule-note,.capsule-local49,.calendar-legend,.guide-modal .micro-label){font-size:.875rem!important;line-height:1.65;color:#50535D}
-.wy :is(.unravel-choices button,.small-step-grid button){min-height:76px;padding:14px;gap:12px}
-.wy :is(.capsule-hero p,.capsule-form p,.scheduled-capsule p,.capsule-ready49>p,.capsule-reader49>p){font-size:1rem!important;line-height:1.65}
-.wy .capsule-reader49 .capsule-reader-text{font-size:var(--reading-story-size)!important;line-height:1.75}
-.wy :is(.scheduled-capsule,.capsule-option,.capsule-option>span){min-width:0;overflow-wrap:anywhere}
-.wy .scheduled-capsule>div{min-width:0}
-.wy :is(.editor,.audio-editor,.diary-editor,.capsule-form,.settings-page,.profile-card,.help-grid,.guide-modal,.modal49) :is(label,p){font-size:1rem!important;line-height:1.65}
-.wy :is(.editor,.audio-editor,.capsule-form) label{margin-bottom:9px}
-.wy :is(.compose-details>summary b,.compose-publish-bar>button,.compose-tabs-three button b,.accompaniment-choice b){font-size:1rem!important}
-.wy :is(.compose-details>summary b small,.compose-details>summary [data-compose-details-summary],.compose-privacy-hint,.compose-draft-action>span,.draft-status,.compose-excerpt-note,.accompaniment-choice small){font-size:.875rem!important;line-height:1.6}
-.wy .compose-publish-bar{gap:12px}
-.wy .compose-publish-bar>button{min-height:50px}
-.wy :is(.settings-row b,.action-row b,.notification-link b,.control-card b,.category-tile b,.social-person .author-name){font-size:1rem!important;line-height:1.5}
-.wy :is(.settings-row small,.action-row small,.notification-link small,.control-card small,.profile-stat small,.search-person small,.social-person small,.resource-result p){font-size:.875rem!important;line-height:1.6;color:#50535D}
-.wy :is(.category-tile small,.profile-bio,.control-card p,.info-grid p,.help-grid p,.privacy-checklist small,.info-callout p){font-size:1rem!important;line-height:1.65;color:#454851}
-.wy .category-tile{height:auto;min-height:150px;padding:20px;align-items:flex-start}
-.wy .category-tile small{display:block;white-space:normal}
-.wy .filter-row .filter-pill{font-size:.9375rem!important;min-height:44px;white-space:nowrap}
-.wy :is(.filter-pill,.period-row button,.reading-choices button){min-height:44px}
-.wy :is(.auth-form,.reference-form,.onboarding-card,.recovery-card) :is(p,label){font-size:1rem!important;line-height:1.6}
-.wy :is(.reference-form,.auth-form) .demo-auth-note{font-size:.875rem!important}
-.wy :is(.label-row,.modal-actions,.resource-actions,.profile-actions){gap:12px;flex-wrap:wrap}
-.wy :is(.reference-form,.auth-form,.onboarding-card,.recovery-card) input{min-width:0;max-width:100%}
-.wy .onboarding-settings b{font-size:1rem!important}
-.wy :is(.onboarding-settings small,.community-promise p,.avatar-help,.availability,.privacy-explainer span){font-size:.875rem!important;line-height:1.65}
-.wy .guide-modal :is(p,.guide-actions button){font-size:1rem!important;line-height:1.65}
-.wy .guide-modal h3{font-size:1.25rem}
-.wy .guide-modal{max-height:calc(100dvh - 28px);overflow:auto}
-.wy .guide-actions{gap:12px}
-.wy .guide-actions button{min-height:48px}
-.wy .toast{white-space:normal;max-width:min(90vw,580px);font-size:.9375rem;line-height:1.5;text-align:center}
+body .wy :is(.icon-btn,.close,.more-btn){min-width:44px;min-height:44px;flex-shrink:0}
+body .wy :is(.diary-editor,.diary-reader,.diary-confirm) .close{min-width:44px;min-height:44px;flex:0 0 44px}
+body .wy .v38-audio .text-link{min-height:44px}
+body .wy .recommended-icon{color:#50535D!important}
+body .wy :is(.screen-heading,.diary-heading,.tree-hero,.support-hero,.capsule-hero,.settings-hero,.modal-head){gap:16px}
+body .wy :is(.screen-heading,.diary-heading,.space-description) :is(h1,h2){font-size:clamp(1.625rem,3vw,2rem)!important}
+body .wy :is(.screen-heading,.space-description,.tree-hero,.support-hero,.capsule-hero,.settings-hero,.help-hero,.moderation-intro,.reference-form,.auth-form,.onboarding-card,.recovery-card)>p,
+body .wy :is(.screen-heading,.space-description)>div>p{font-size:1rem!important;color:#454851!important;line-height:1.65}
+body .wy .welcome-row h1{font-size:clamp(1.375rem,3vw,1.75rem)}
+body .wy .welcome-row .text-link{font-size:.9375rem!important;flex-shrink:0}
+body .wy :is(.side-nav button,.side-nav button b){font-size:1rem!important}
+body .wy .searchbox{font-size:1rem;min-height:48px}
+body .wy .bottom-nav button{min-height:48px;padding:0;gap:3px}
+body .wy .bottom-nav button{color:#454851!important}
+body .wy .bottom-nav button.active,
+body .wy .side-nav button.active{color:#6246F5!important}
+body .wy .bottom-nav button.create-fab{background:#6246F5;color:#FFF!important}
+body .wy .bottom-nav button.create-fab svg{color:#FFF!important;stroke:#FFF}
+body .wy .bottom-nav button small{font-size:.875rem!important;white-space:nowrap}
+body .wy .bottom-nav button svg{width:24px;height:24px}
+body .wy :is(.safety-note small,.safety-note button,.right-card p,.right-card small,.tree-mini p,.tree-mini small){font-size:.875rem!important;line-height:1.6}
+body .wy :is(.right-card h3,.tree-mini h3){font-size:1.125rem!important}
+body .wy .post .post-text,
+body .wy :is(.visual-full-text p,.history-focused .history-part>p,.reading-example .post-text,.detail-body){font-size:var(--reading-story-size)!important;line-height:1.7;color:#111111}
+body .wy :is(.post h2,.history-focused .history-part h3,.visual-full-text h2){font-size:var(--reading-title-size)!important;line-height:1.4;color:#111111}
+body .wy :is(.conversation-copy>p,.history-comment-reading>p,.reading-comment-example,.audio-transcript){font-size:var(--reading-comment-size)!important;line-height:1.65;color:#111111}
+body .wy :is(.post-time,.post-stats,.history-part-meta,.history-heading p,.conversation-meta,.conversation-meta button,.conversation-author span,.music-chip small,.audio-example-label,.demo-audio-controls small,.conversation-header p){font-size:.875rem!important;line-height:1.55;color:#50535D}
+body .wy :is(.post-author .author-name,.conversation-author b,.history-comment-reading>b){font-size:1rem!important;color:#111111}
+body .wy .post-actions button{flex-direction:column;gap:6px;min-height:68px;color:#454851;padding:9px 2px}
+body .wy .post-actions button .action-label{font-size:.875rem!important;line-height:1.35}
+body .wy .post-actions button svg{width:24px;height:24px;flex-basis:24px}
+body .wy .post-actions button.on,
+body .wy .post-actions button[aria-pressed="true"]{color:#6246F5}
+body .wy :is(.post-more,.history-link,.history-part>.text-link,.view-replies,.conversation-meta button){min-height:44px}
+body .wy .post-author button{min-height:38px;font-size:.875rem!important}
+body .wy .post-author .author-name{min-height:32px}
+body .wy .conversation-panel{max-width:100vw}
+body .wy .conversation-header{min-width:0}
+body .wy .conversation-header h2{font-size:1.5rem!important}
+body .wy .conversation-field textarea{font-size:1rem!important;line-height:1.5}
+body .wy .conversation-field>button{padding:10px 8px;min-height:48px}
+body .wy .conversation-meta{display:flex;flex-wrap:wrap;gap:3px 12px;align-items:center}
+body .wy .conversation-author{flex-wrap:wrap}
+body .wy :is(.conversation-comment,.conversation-reply){min-width:0}
+body .wy .conversation-like{min-width:32px;min-height:44px}
+body .wy .history-comment-group>small{font-size:.875rem!important}
+body .wy .feed-card-copy p{font-size:1.0625rem!important;line-height:1.65}
+body .wy :is(.feed-card-category,.visual-card-category,.feed-card-author>b,.visual-card-author b){font-size:.875rem!important}
+body .wy .feed-card-brand{font-size:1rem}
+body .wy .composer{background:#FFF!important;padding:16px 0}
+body .wy .composer-top{align-items:center;gap:12px}
+body .wy .composer-top>.avatar{width:46px;height:46px;flex:0 0 46px}
+body .wy .composer-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;border:1.5px solid #B8ACFA;border-radius:28px;background:#F6F3FF;color:#25232E;padding:13px 18px;text-align:left;font-size:1.0625rem!important;font-weight:600;box-shadow:none}
+body .wy .composer-trigger svg{color:#6246F5;width:22px;height:22px;flex:0 0 22px}
+body .wy .composer-trigger:hover{border-color:#6246F5;background:#F1EDFF}
+body .wy .composer-trigger:focus-visible{outline-offset:3px}
+body .wy .compact-checkin .quick-title p{font-size:.875rem!important}
+body .wy .compact-checkin .mood-choice small{font-size:.875rem!important;color:#454851;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
+body .wy .compact-checkin .mood-choice{min-height:64px;min-width:0;flex-direction:column;gap:5px;padding:7px 2px}
+body .wy .compact-checkin .mood-choice span{font-size:27px}
+body .wy .quiet-checkin50>p{font-size:1rem!important}
+body .wy .quiet-checkin50>span,
+body .wy .quiet-checkin50 .quiet-register50{font-size:.875rem!important}
+body .wy .diary-nav.emotion-nav{gap:6px;scroll-padding:12px;padding-block:8px}
+body .wy .diary-nav.emotion-nav>button{font-size:.9375rem!important;min-height:52px;white-space:nowrap;flex:1 0 auto;padding:11px 13px}
+body .wy :is(.diary-storage-note,.diary-history-help,.diary-date-filter,.diary-result-count,.diary-entry-meta,.diary-entry-actions>small,.diary-text-count,.diary-private){font-size:.875rem!important;line-height:1.65;color:#50535D}
+body .wy :is(.diary-heading p,.diary-entry-excerpt,.diary-empty p,.diary-confirm p,.modal49>p,.garden49>p,.awards49>p){font-size:1rem!important;line-height:1.65}
+body .wy .diary-entry-title{font-size:1.125rem;line-height:1.4}
+body .wy .diary-entry-actions>.text-link{min-height:44px;font-size:.9375rem!important}
+body .wy .diary-date{font-size:.875rem!important}
+body .wy .diary-full-text{font-size:var(--reading-story-size)!important;line-height:1.75}
+body .wy :is(.day small,.bar-col small,.calendar-legend,.legend,.trend-values,.trend-values b,.progress-ends,.stage-node b,.stage-node small){font-size:.875rem!important;line-height:1.5;color:#50535D}
+body .wy :is(.line-chart,.emotion-line-card) svg text{font-size:14px;fill:#50535D}
+body .wy .day{height:auto;min-height:62px;min-width:0;gap:3px;padding:6px 1px}
+body .wy .day small{font-size:.875rem!important}
+body .wy .bar-chart,
+body .wy .emotion-bars{padding-bottom:8px}
+body .wy :is(.chart-head,.calendar-head){flex-wrap:wrap;gap:12px}
+body .wy :is(.chart-head h3,.calendar-head h3){margin:0}
+body .wy :is(.growth-screen .tree-hero p,.growth-screen .tree-meaning p,.growth-screen .tree-progress p,.tree-care-choices>p,.awards49 p,.garden49 p){font-size:1rem!important;line-height:1.65;color:#454851}
+body .wy :is(.growth-screen .growth-days,.growth-screen .no-streak,.growth-screen .drop-card small,.growth-screen .drop-card em,.tree-counter49,.tree-total49,.award-status49,.customize-choice49 small,.capsule-local49){font-size:.875rem!important;line-height:1.6}
+body .wy :is(.tree-tabs49 button,.tree-care-links b){font-size:1rem!important;min-height:48px}
+body .wy .tree-care-links small{font-size:.875rem!important}
+body .wy :is(.support-hero p,.experience-card p,.selected-activity p,.breathing-coach p,.unravel-brand p,.unravel-question p,.small-step-heading p,.care-result50>p){font-size:1rem!important;line-height:1.65;color:#454851}
+body .wy :is(.unravel-choices button b,.small-step-grid button b,.need-tile b,.experience-card b){font-size:1rem!important;line-height:1.5}
+body .wy :is(.unravel-note,.breathing-note,.care-drop50,.activity-context-line,.capsule-note,.capsule-local49,.calendar-legend,.guide-modal .micro-label){font-size:.875rem!important;line-height:1.65;color:#50535D}
+body .wy :is(.unravel-choices button,.small-step-grid button){min-height:76px;padding:14px;gap:12px}
+body .wy :is(.capsule-hero p,.capsule-form p,.scheduled-capsule p,.capsule-ready49>p,.capsule-reader49>p){font-size:1rem!important;line-height:1.65}
+body .wy .capsule-reader49 .capsule-reader-text{font-size:var(--reading-story-size)!important;line-height:1.75}
+body .wy :is(.scheduled-capsule,.capsule-option,.capsule-option>span){min-width:0;overflow-wrap:anywhere}
+body .wy .scheduled-capsule>div{min-width:0}
+body .wy :is(.editor,.audio-editor,.diary-editor,.capsule-form,.settings-page,.profile-card,.help-grid,.guide-modal,.modal49) :is(label,p){font-size:1rem!important;line-height:1.65}
+body .wy :is(.editor,.audio-editor,.capsule-form) label{margin-bottom:9px}
+body .wy :is(.compose-details>summary b,.compose-publish-bar>button,.compose-tabs-three button b,.accompaniment-choice b){font-size:1rem!important}
+body .wy :is(.compose-details>summary b small,.compose-details>summary [data-compose-details-summary],.compose-privacy-hint,.compose-draft-action>span,.draft-status,.compose-excerpt-note,.accompaniment-choice small){font-size:.875rem!important;line-height:1.6}
+body .wy .compose-publish-bar{gap:12px}
+body .wy .compose-publish-bar>button{min-height:50px}
+body .wy :is(.settings-row b,.action-row b,.notification-link b,.control-card b,.category-tile b,.social-person .author-name){font-size:1rem!important;line-height:1.5}
+body .wy :is(.settings-row small,.action-row small,.notification-link small,.control-card small,.profile-stat small,.search-person small,.social-person small,.resource-result p){font-size:.875rem!important;line-height:1.6;color:#50535D}
+body .wy :is(.category-tile small,.profile-bio,.control-card p,.info-grid p,.help-grid p,.privacy-checklist small,.info-callout p){font-size:1rem!important;line-height:1.65;color:#454851}
+body .wy .category-tile{height:auto;min-height:150px;padding:20px;align-items:flex-start}
+body .wy .category-tile small{display:block;white-space:normal}
+body .wy .filter-row .filter-pill{font-size:.9375rem!important;min-height:44px;white-space:nowrap}
+body .wy :is(.filter-pill,.period-row button,.reading-choices button){min-height:44px}
+body .wy :is(.auth-form,.reference-form,.onboarding-card,.recovery-card) :is(p,label){font-size:1rem!important;line-height:1.6}
+body .wy :is(.reference-form,.auth-form) .demo-auth-note{font-size:.875rem!important}
+body .wy :is(.label-row,.modal-actions,.resource-actions,.profile-actions){gap:12px;flex-wrap:wrap}
+body .wy :is(.reference-form,.auth-form,.onboarding-card,.recovery-card) input{min-width:0;max-width:100%}
+body .wy .onboarding-settings b{font-size:1rem!important}
+body .wy :is(.onboarding-settings small,.community-promise p,.avatar-help,.availability,.privacy-explainer span){font-size:.875rem!important;line-height:1.65}
+body .wy .guide-modal :is(p,.guide-actions button){font-size:1rem!important;line-height:1.65}
+body .wy .guide-modal h3{font-size:1.25rem}
+body .wy .guide-modal{max-height:calc(100dvh - 28px);overflow:auto}
+body .wy .guide-actions{gap:12px}
+body .wy .guide-actions button{min-height:48px}
+body .wy .toast{white-space:normal;max-width:min(90vw,580px);font-size:.9375rem;line-height:1.5;text-align:center}
 .wy .onboarding53.modal{width:min(570px,calc(100vw - 32px));padding:28px;max-height:calc(100dvh - 32px);overflow:auto;background:#FFF}
 .wy .onboarding53 .modal-head{align-items:flex-start;margin:0 0 24px}
 .wy .onboarding53 .modal-head h2{margin:8px 0 0;font-size:1.625rem!important;line-height:1.25;color:#111111}
@@ -5479,50 +5479,50 @@
 
 @media(max-width:1100px){
 .wy .app-shell{grid-template-columns:180px minmax(0,1fr);gap:24px}
-.wy .right-rail{display:none}
-.wy .diary-nav.emotion-nav>button{flex:0 0 auto}
+body .wy .right-rail{display:none}
+body .wy .diary-nav.emotion-nav>button{flex:0 0 auto}
 }
 @media(max-width:820px){
-.wy .app-shell{display:block;padding-bottom:106px}
-.wy .bottom-nav{height:82px;padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
-.wy .diary-nav.emotion-nav>button{flex-direction:column;min-height:72px;min-width:108px;gap:7px;padding:10px 14px}
-.wy .diary-nav.emotion-nav{margin-inline:0}
-.wy :is(.space-description,.diary-heading,.screen-heading,.capsule-hero,.tree-hero,.support-hero){flex-wrap:wrap}
-.wy .diary-heading h1{font-size:1.75rem!important}
-.wy .space-description>.guide-btn{margin-top:0}
-.wy .post-actions button .action-label{font-size:.875rem!important}
-.wy .conversation-meta{gap:2px 12px}
-.wy .conversation-field{gap:7px}
-.wy .conversation-field textarea{padding:12px}
-.wy .conversation-field>button{padding-inline:3px;font-size:.9375rem!important}
-.wy .conversation-comment{grid-template-columns:36px minmax(0,1fr) 30px;gap:10px}
-.wy .conversation-reply{grid-template-columns:28px minmax(0,1fr) 28px;gap:8px}
-.wy .conversation-reply>.avatar{width:28px;height:28px;display:block}
-.wy .category-tile{padding:16px;min-height:160px}
-.wy .unravel-choices.feeling-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
-.wy .unravel-choices button{grid-template-columns:32px minmax(0,1fr);padding:12px;gap:9px}
-.wy .small-step-grid{grid-template-columns:minmax(0,1fr)}
-.wy .compose-publish-bar{bottom:calc(82px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom))}
-.wy :is(.care-note-actions50,.mood-saved50 .saved-actions50){gap:12px}
-.wy :is(.calendar,.weekdays){gap:3px}
-.wy .calendar .day{padding:5px 0}
-.wy :is(.modal-actions,.guide-actions){flex-wrap:wrap}
-.wy .modal-actions>button{flex:1 1 125px;min-width:0}
-.wy .onboarding53 .intro-actions53>button{flex:0 0 auto}
-.wy .onboarding53 .intro-actions53>.primary{flex:1 1 0;min-width:0}
+body .wy .app-shell{display:block;padding-bottom:106px}
+body .wy .bottom-nav{height:82px;padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+body .wy .diary-nav.emotion-nav>button{flex-direction:column;min-height:72px;min-width:108px;gap:7px;padding:10px 14px}
+body .wy .diary-nav.emotion-nav{margin-inline:0}
+body .wy :is(.space-description,.diary-heading,.screen-heading,.capsule-hero,.tree-hero,.support-hero){flex-wrap:wrap}
+body .wy .diary-heading h1{font-size:1.75rem!important}
+body .wy .space-description>.guide-btn{margin-top:0}
+body .wy .post-actions button .action-label{font-size:.875rem!important}
+body .wy .conversation-meta{gap:2px 12px}
+body .wy .conversation-field{gap:7px}
+body .wy .conversation-field textarea{padding:12px}
+body .wy .conversation-field>button{padding-inline:3px;font-size:.9375rem!important}
+body .wy .conversation-comment{grid-template-columns:36px minmax(0,1fr) 30px;gap:10px}
+body .wy .conversation-reply{grid-template-columns:28px minmax(0,1fr) 28px;gap:8px}
+body .wy .conversation-reply>.avatar{width:28px;height:28px;display:block}
+body .wy .category-tile{padding:16px;min-height:160px}
+body .wy .unravel-choices.feeling-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
+body .wy .unravel-choices button{grid-template-columns:32px minmax(0,1fr);padding:12px;gap:9px}
+body .wy .small-step-grid{grid-template-columns:minmax(0,1fr)}
+body .wy .compose-publish-bar{bottom:calc(82px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom))}
+body .wy :is(.care-note-actions50,.mood-saved50 .saved-actions50){gap:12px}
+body .wy :is(.calendar,.weekdays){gap:3px}
+body .wy .calendar .day{padding:5px 0}
+body .wy :is(.modal-actions,.guide-actions){flex-wrap:wrap}
+body .wy .modal-actions>button{flex:1 1 125px;min-width:0}
+body .wy .onboarding53 .intro-actions53>button{flex:0 0 auto}
+body .wy .onboarding53 .intro-actions53>.primary{flex:1 1 0;min-width:0}
 .wy .onboarding53.modal{padding:22px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}
 .wy .intro-art53{min-height:148px;margin-bottom:20px}
 .wy .intro-example53{padding:16px;max-width:calc(100% - 72px)}
 .wy .intro-actions53>button{padding:12px}
 }
 @media(max-width:360px){
-.wy .compact-checkin .mood-choices{grid-template-columns:repeat(3,minmax(0,1fr))}
-.wy .post-actions button .action-label{font-size:.875rem!important}
-.wy .post-actions{gap:2px}
-.wy .post-actions button{padding-inline:1px}
-.wy .conversation-body{padding-inline:12px}
-.wy .category-grid{gap:12px}
-.wy .category-tile{padding:14px}
+body .wy .compact-checkin .mood-choices{grid-template-columns:repeat(3,minmax(0,1fr))}
+body .wy .post-actions button .action-label{font-size:.875rem!important}
+body .wy .post-actions{gap:2px}
+body .wy .post-actions button{padding-inline:1px}
+body .wy .conversation-body{padding-inline:12px}
+body .wy .category-grid{gap:12px}
+body .wy .category-tile{padding:14px}
 .wy .intro-art53>.intro-symbol53{flex-basis:58px;width:58px;height:58px}
 .wy .intro-example53{max-width:calc(100% - 58px);padding:14px}
 }
@@ -5554,18 +5554,18 @@
   grid-column:3;top:calc(var(--top) + 24px);
   max-height:calc(100dvh - var(--top) - 48px);overflow-y:auto;scrollbar-width:thin;
  }
-.wy .side-nav button{width:100%;height:52px;padding:0 14px;gap:14px;justify-content:flex-start}
-.wy .side-nav b{display:block;font-size:1rem!important;line-height:1.4;white-space:nowrap}
-.wy .side-nav button svg{width:24px;height:24px;flex:0 0 24px}
-.wy .side-nav button:active{transform:none}
-.wy .main-content>.screen{margin-top:0}
-.wy .post>.post-stats{margin:0;padding:22px 0 16px;min-height:0}
-.wy .post>.post-actions{margin-top:20px;padding-top:10px;padding-bottom:0;gap:4px}
-.wy .post>.post-stats:not([hidden])+.post-actions{margin-top:0}
-.wy .post-actions button{min-height:68px;padding:10px 4px;gap:6px}
-.wy .screen .post,
-.wy #feedList>.post,
-.wy .screen .post.featured-post{padding-bottom:24px!important}
+body .wy .side-nav button{width:100%;height:52px;padding:0 14px;gap:14px;justify-content:flex-start}
+body .wy .side-nav b{display:block;font-size:1rem!important;line-height:1.4;white-space:nowrap}
+body .wy .side-nav button svg{width:24px;height:24px;flex:0 0 24px}
+body .wy .side-nav button:active{transform:none}
+body .wy .main-content>.screen{margin-top:0}
+body .wy .post>.post-stats{margin:0;padding:22px 0 16px;min-height:0}
+body .wy .post>.post-actions{margin-top:20px;padding-top:10px;padding-bottom:0;gap:4px}
+body .wy .post>.post-stats:not([hidden])+.post-actions{margin-top:0}
+body .wy .post-actions button{min-height:68px;padding:10px 4px;gap:6px}
+body .wy .screen .post,
+body .wy #feedList>.post,
+body .wy .screen .post.featured-post{padding-bottom:24px!important}
 }
 @media(min-width:821px) and (max-width:1100px){
 .wy:not(.gateway-mode) .app-shell{grid-template-columns:180px minmax(0,1fr);padding:24px;gap:24px}
@@ -5582,7 +5582,7 @@
 .wy .intro-progress53 button[aria-current="step"]:after{width:26px;border-radius:5px;background:#6246F5}
 .wy .onboarding53 .intro-progress53{gap:0;margin:0 0 8px}
 .wy .onboarding53 .intro-start54{display:block;width:100%;text-align:center;margin-top:8px;min-height:44px;padding:8px;background:transparent;color:#6246F5;border:0;font-size:.9375rem!important}
-.wy [data-v49-view-awards]{min-height:44px;padding:10px 0}
+body .wy [data-v49-view-awards]{min-height:44px;padding:10px 0}
 @media(max-width:820px){
 .wy .onboarding53 .intro-art54{padding:12px}
 .wy .intro-art54 img{max-height:176px}}
@@ -5590,16 +5590,16 @@
 
 /* ===== v56.css ===== */
 
-.wy .space-description>p,
-.wy .space-description>div>p,
-.wy .space-description .purpose-copy>span{
+body .wy .space-description>p,
+body .wy .space-description>div>p,
+body .wy .space-description .purpose-copy>span{
  color:#111111!important;
 }
 
 
 /* ===== v57.css ===== */
 
-.wy .diary-summary .summary-heading57{
+body .wy .diary-summary .summary-heading57{
  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;row-gap:0;
  align-items:start;padding:8px 0 0;margin-bottom:28px;
 }
@@ -5608,29 +5608,29 @@
 .wy .summary-heading57>.guide-btn{grid-column:2;grid-row:1;justify-self:end;align-self:center;margin:0}
 .wy .summary-heading57 h1{grid-column:1/-1;grid-row:2;margin:18px 0 12px}
 .wy .summary-heading57 p{grid-column:1/-1;grid-row:3;margin:0;max-width:65ch}
-.wy .summary-actions57{
+body .wy .summary-actions57{
  grid-column:1/-1;grid-row:4;display:flex;align-items:center;justify-content:flex-start;
  flex-wrap:wrap;gap:12px 20px;margin-top:20px;min-width:0;
 }
-.wy .summary-actions57>.emotion-register50{
+body .wy .summary-actions57>.emotion-register50{
  flex:0 1 auto;width:auto;min-height:48px;margin:0;padding:12px 18px;
  display:inline-flex;align-items:center;justify-content:center;gap:9px;
 }
-.wy .summary-actions57>.summary-diary-link57{
+body .wy .summary-actions57>.summary-diary-link57{
  display:inline-flex;align-items:center;justify-content:center;min-height:48px;
  padding:10px 4px;border:0;background:transparent;border-radius:8px;font-weight:600;
 }
-.wy .side-nav b,
-.wy .diary-nav.emotion-nav>button,
-.wy .diary-summary .segmented>button{
+body .wy .side-nav b,
+body .wy .diary-nav.emotion-nav>button,
+body .wy .diary-summary .segmented>button{
  font-weight:600;font-synthesis:none;text-shadow:none;-webkit-text-stroke:0;
 }
 @media(max-width:600px){
-.wy .diary-summary .summary-heading57{column-gap:12px;margin-bottom:24px}
+body .wy .diary-summary .summary-heading57{column-gap:12px;margin-bottom:24px}
 .wy .summary-heading57 h1{margin-top:16px}
-.wy .summary-actions57{flex-direction:column;align-items:stretch;gap:8px;margin-top:20px}
-.wy .summary-actions57>.emotion-register50{width:100%;min-height:48px}
-.wy .summary-actions57>.summary-diary-link57{align-self:center;padding-inline:12px;min-height:44px}
+body .wy .summary-actions57{flex-direction:column;align-items:stretch;gap:8px;margin-top:20px}
+body .wy .summary-actions57>.emotion-register50{width:100%;min-height:48px}
+body .wy .summary-actions57>.summary-diary-link57{align-self:center;padding-inline:12px;min-height:44px}
 .wy .summary-heading57>.guide-btn{padding:10px 12px}
 }
 

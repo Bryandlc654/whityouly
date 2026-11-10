@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
@@ -9,11 +9,12 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
-import GuideModal from '@/components/wy/GuideModal';
-import { GUIDES } from '@/lib/guideContent';
+import Guide58Modal from '@/components/wy/Guide58Modal';
 import type { IconName } from '@/components/wy/icons';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
-import TreeArt, { type TreePot, type TreeSpecies } from '@/components/wy/TreeArt';
+import { type TreePot, type TreeSpecies } from '@/components/wy/TreeArt';
+import StageGlyph from '@/components/wy/StageGlyph';
+import BonsaiArt from '@/components/wy/BonsaiArt';
 import {
   getTree,
   updateTreeCustomization,
@@ -23,15 +24,6 @@ import {
 } from '@/lib/tree';
 
 type TreeTab = 'tree' | 'garden' | 'awards';
-
-const PARTS: { key: keyof TreeView['parts']; label: string; hint: string; icon: IconName }[] = [
-  { key: 'roots', label: 'Raíces', hint: 'Registros emocionales', icon: 'pulse' },
-  { key: 'rings', label: 'Anillos', hint: 'Semanas en las que regresaste', icon: 'calendar' },
-  { key: 'branches', label: 'Ramas', hint: 'Relatos, reflexiones y cápsulas', icon: 'book' },
-  { key: 'leaves', label: 'Hojas', hint: 'Acompañamiento ofrecido', icon: 'heart' },
-  { key: 'flowers', label: 'Flores', hint: 'Comentarios marcados “Me ayudó”', icon: 'sparkle' },
-  { key: 'fruits', label: 'Frutos', hint: 'Ciclos y cápsulas completados', icon: 'check' },
-];
 
 const PATH_META: Record<TreePathKey, { icon: IconName; color: string; href: string }> = {
   SELF_KNOWLEDGE: { icon: 'pulse', color: 'blue', href: '/mi-estado' },
@@ -64,33 +56,6 @@ function initialsOf(name?: string | null) {
   return name.trim().slice(0, 2).toUpperCase();
 }
 
-function SectionHead({
-  icon,
-  title,
-  sub,
-  right,
-}: {
-  icon: IconName;
-  title: string;
-  sub: string;
-  right?: ReactNode;
-}) {
-  return (
-    <div className="chart-head">
-      <div className="tree-section-title">
-        <span className="tree-section-icon">
-          <Icon name={icon} />
-        </span>
-        <div>
-          <h2>{title}</h2>
-          <p>{sub}</p>
-        </div>
-      </div>
-      {right}
-    </div>
-  );
-}
-
 function speciesLabel(value: TreeSpecies) {
   return SPECIES.find((item) => item.value === value)?.label ?? 'Bonsái';
 }
@@ -107,6 +72,7 @@ export default function MiArbolPage() {
   const [tree, setTree] = useState<TreeView | null>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<TreeTab>('tree');
+  const [previewStage, setPreviewStage] = useState<number | null>(null);
   const [gardenPage, setGardenPage] = useState(0);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [customizing, setCustomizing] = useState(false);
@@ -340,10 +306,10 @@ export default function MiArbolPage() {
         />
       }
     >
-      <section className="screen tree-page">
+      <section className="screen growth-screen tree-page">
         <MiEspacioNav active="tree" />
-        <header className="card tree-hero">
-          <div className="tree-hero-copy">
+        <header className="tree-hero card space-description">
+          <div>
             <span className="micro-label">SOLO PARA TI · OPCIONAL</span>
             <h1>Mi árbol</h1>
             <p>
@@ -351,8 +317,9 @@ export default function MiArbolPage() {
               opcional y no pierde progreso por ausencias.
             </p>
           </div>
-          <button className="secondary tree-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
-            <Icon name="help" /> Cómo usarlo
+          <button className="guide-btn" type="button" onClick={() => setGuideOpen(true)} aria-label="Cómo usar Mi árbol">
+            <Icon name="help" />
+            <span>Cómo usarlo</span>
           </button>
         </header>
 
@@ -391,50 +358,42 @@ export default function MiArbolPage() {
 
         {tree && tab === 'tree' ? (
           <>
-            <div className="card tree-stage">
-              <div className="tree-stage-visual">
-                <TreeArt
-                  stage={stageIndex}
+            <section className="tree-dashboard card">
+              <div className="tree-visual-wrap">
+                <BonsaiArt
+                  stage={previewStage ?? stageIndex}
                   species={tree.customization.species}
                   pot={tree.customization.pot}
-                  className="tree-art"
                 />
-                <span className="tree-stage-chip">
-                  <span>Etapa actual</span> · <b>{stageLabel}</b>
+                <span className="tree-stage-badge">
+                  {previewStage !== null && previewStage !== stageIndex ? 'Vista previa · ' : 'Etapa actual · '}
+                  <b>{previewStage !== null ? tree.stages[previewStage]?.label ?? stageLabel : stageLabel}</b>
                 </span>
               </div>
-              <div className="tree-stage-detail">
+              <div className="tree-progress">
                 <p className="tree-counter49">
                   Árbol {tree.cycle.number} · {tree.cycle.completed} completado
                   {tree.cycle.completed === 1 ? '' : 's'} · {speciesLabel(tree.customization.species)}
                 </p>
-                <span className="tree-eyebrow">
-                  {tree.stage.nextLabel ? 'PRÓXIMA ETAPA' : 'ETAPA ALCANZADA'}
-                </span>
+                <span className="micro-label">{tree.stage.nextLabel ? 'PRÓXIMA ETAPA' : 'ETAPA ALCANZADA'}</span>
                 <h2>{tree.stage.nextLabel ?? 'Frutos'}</h2>
-                <p className="tree-stage-copy">
+                <p>
                   {cycleDrops > 0
-                    ? 'Has reunido ' +
-                      cycleDrops +
-                      (cycleDrops === 1 ? ' gota' : ' gotas') +
-                      ' en este árbol.'
+                    ? `Has reunido ${cycleDrops} ${cycleDrops === 1 ? 'gota' : 'gotas'} en este árbol.`
                     : 'Tu árbol empieza como una semilla. Puedes cuidarlo cuando quieras.'}{' '}
-                  {tree.stage.nextLabel
-                    ? 'Faltan ' +
-                      remaining +
-                      (remaining === 1 ? ' gota' : ' gotas') +
-                      ' para ' +
-                      tree.stage.nextLabel +
-                      '.'
-                    : 'Tu árbol sigue contigo; puedes continuar a tu ritmo.'}
+                  {tree.stage.nextLabel ? (
+                    <>
+                      Faltan <b>{remaining} {remaining === 1 ? 'gota' : 'gotas'}</b> para {tree.stage.nextLabel}.
+                    </>
+                  ) : (
+                    'Tu árbol sigue contigo; puedes continuar a tu ritmo.'
+                  )}
                 </p>
                 <div
                   className="big-progress"
                   role="progressbar"
                   aria-label={
-                    tree.stage.nextLabel
-                      ? 'Camino de ' + stageLabel + ' a ' + tree.stage.nextLabel
-                      : 'Etapa Frutos alcanzada'
+                    tree.stage.nextLabel ? `Camino de ${stageLabel} a ${tree.stage.nextLabel}` : 'Etapa Frutos alcanzada'
                   }
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -445,16 +404,17 @@ export default function MiArbolPage() {
                 <div className="progress-ends">
                   <span>{stageLabel}</span>
                   <span>
-                    {tree.stage.nextLabel ? remaining + ' restantes' : 'Tu cuidado continúa'}
+                    {tree.stage.nextLabel
+                      ? `${remaining} ${remaining === 1 ? 'gota restante' : 'gotas restantes'}`
+                      : 'Tu cuidado continúa'}
                   </span>
                   <span>{tree.stage.nextLabel ?? 'Frutos'}</span>
                 </div>
                 <p className="growth-days">
                   {tree.history.length > 0
-                    ? tree.history.length +
-                      (tree.history.length === 1
-                        ? ' día con acciones registradas'
-                        : ' días con acciones registradas')
+                    ? `${tree.history.length} ${
+                        tree.history.length === 1 ? 'día con acciones registradas' : 'días con acciones registradas'
+                      }`
                     : 'Todavía no has registrado acciones de cuidado.'}
                 </p>
                 <div className="no-streak">
@@ -467,7 +427,7 @@ export default function MiArbolPage() {
                   Personalizar mi árbol
                 </button>
               </div>
-            </div>
+            </section>
 
             <section className="daily-growth" aria-labelledby="dailyGrowthTitle">
               <div className="section-title">
@@ -478,9 +438,6 @@ export default function MiArbolPage() {
                     los tres.
                   </p>
                 </div>
-                <span className="tree-count-pill">
-                  {tree.today.earned}/{tree.today.max} gotas hoy
-                </span>
               </div>
               <div className="drop-grid">
                 {tree.today.paths.map((path) => {
@@ -504,57 +461,51 @@ export default function MiArbolPage() {
               </div>
             </section>
 
-            <div className="card tree-panel stage-card">
-              <SectionHead
-                icon="trend"
-                title="Explora las etapas"
-                sub="Puedes verlas sin cambiar tu progreso."
-              />
-              <ol className="tree-ladder">
+            <section className="card stage-card">
+              <div className="section-title">
+                <div>
+                  <h2>Explora las etapas</h2>
+                  <p>Puedes verlas sin cambiar tu progreso.</p>
+                </div>
+              </div>
+              <div className="stage-track">
                 {tree.stages.map((stage, index) => (
-                  <li
+                  <button
                     key={stage.key}
-                    className={`tree-ladder-step${stage.reached ? ' reached' : ''}${
-                      stageIndex === index && tree.stage.reached ? ' current' : ''
+                    type="button"
+                    className={`stage-node ${index <= stageIndex ? 'done' : ''} ${index === stageIndex ? 'current' : ''} ${
+                      previewStage === index ? 'previewing' : ''
                     }`}
+                    aria-label={`Ver etapa ${stage.label}`}
+                    onClick={() => setPreviewStage((value) => (value === index ? null : index))}
                   >
-                    <span className="tree-ladder-dot">
-                      {stage.reached ? <Icon name="check" /> : index + 1}
+                    <span>
+                      <StageGlyph stage={index} />
                     </span>
                     <b>{stage.label}</b>
                     <small>
-                      {stage.drops} {stage.drops === 1 ? 'gota' : 'gotas'}
+                      {index === 0 ? 0 : stage.drops} {index !== 0 && stage.drops === 1 ? 'gota' : 'gotas'}
                     </small>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="card tree-panel stage-card">
-              <SectionHead
-                icon="sparkle"
-                title="Lo que representa tu árbol"
-                sub="Raíces, ramas, hojas, flores y frutos simbolizan tu recorrido."
-              />
-              <p className="tree-meaning-copy">
-                Las etapas cambian con las gotas que acumulas; no dependen de que otras personas reaccionen a
-                tus publicaciones. Tu árbol no compara tu bienestar con el de nadie ni mide qué tan feliz estás.
-              </p>
-              <div className="tree-parts">
-                {PARTS.map((part) => (
-                  <div key={part.key} className="tree-part">
-                    <span className="tree-part-icon">
-                      <Icon name={part.icon} />
-                    </span>
-                    <div className="tree-part-body">
-                      <b>{tree.parts[part.key]}</b>
-                      <span>{part.label}</span>
-                      <small>{part.hint}</small>
-                    </div>
-                  </div>
+                  </button>
                 ))}
               </div>
-            </div>
+            </section>
+
+            <section className="tree-meaning card">
+              <h2>Lo que representa tu árbol</h2>
+              <p>
+                Raíces, ramas, hojas, flores y frutos simbolizan tu recorrido. Las etapas cambian con las gotas que
+                acumulas; no dependen de que otras personas reaccionen a tus publicaciones.
+              </p>
+              <p>Tu árbol es privado. No compara tu bienestar con el de nadie y no mide qué tan feliz estás.</p>
+              <button className="secondary tree-capsule-cta" type="button" onClick={() => router.push('/mis-capsulas')}>
+                Crear una cápsula para mi futuro
+              </button>
+              <p>
+                Al reunir {tree.cycle.goal} gotas, el árbol pasa a tu jardín y comienza el siguiente. Conservas todas las
+                gotas. Puedes elegir nuevas especies y seguir completando tu jardín.
+              </p>
+            </section>
           </>
         ) : null}
 
@@ -582,12 +533,7 @@ export default function MiArbolPage() {
               {visibleGardenTrees.length ? (
                 visibleGardenTrees.map((item) => (
                   <article className="garden-tree49" key={item.index}>
-                    <TreeArt
-                      stage={7}
-                      species={item.species}
-                      pot={item.pot}
-                      className="garden-tree-art"
-                    />
+                    <BonsaiArt stage={7} species={item.species} pot={item.pot} />
                     <b>{item.label}</b>
                     <span>Completado · 300 gotas</span>
                   </article>
@@ -670,7 +616,7 @@ export default function MiArbolPage() {
 
         {guideOpen ? (
           <div className="modal-layer">
-            <GuideModal guide={GUIDES.tree} onClose={() => setGuideOpen(false)} />
+            <Guide58Modal type="tree" onClose={() => setGuideOpen(false)} />
           </div>
         ) : null}
       </section>

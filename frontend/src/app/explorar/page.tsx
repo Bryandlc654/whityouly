@@ -78,17 +78,22 @@ function initialsOf(name?: string | null) {
 }
 
 function relativeTime(value: string): string {
+  // Mismo estilo que los relatos de ejemplo de v58: «Hace 18 minutos», «Hace 4 días».
   const time = new Date(value).getTime();
   if (Number.isNaN(time)) return '';
-  const diff = Date.now() - time;
-  const minutes = Math.round(diff / 60_000);
+  const unit = (n: number, one: string, many: string) => `Hace ${n} ${n === 1 ? one : many}`;
+  const minutes = Math.max(0, Math.round((Date.now() - time) / 60_000));
   if (minutes < 1) return 'Ahora mismo';
-  if (minutes < 60) return `Hace ${minutes} min`;
+  if (minutes < 60) return unit(minutes, 'minuto', 'minutos');
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `Hace ${hours} h`;
+  if (hours < 24) return unit(hours, 'hora', 'horas');
   const days = Math.round(hours / 24);
-  if (days < 30) return `Hace ${days} d`;
-  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(new Date(time));
+  if (days < 7) return unit(days, 'día', 'días');
+  const weeks = Math.round(days / 7);
+  if (days < 30) return unit(weeks, 'semana', 'semanas');
+  const months = Math.round(days / 30);
+  if (months < 12) return unit(months, 'mes', 'meses');
+  return unit(Math.round(days / 365), 'año', 'años');
 }
 
 function normalizeSearch(value: string) {
@@ -910,7 +915,7 @@ export default function ExplorePage() {
           <input
             type="search"
             value={q}
-            placeholder="Relatos, emociones o seudónimos"
+            placeholder="Buscar en Withyouly"
             aria-label="Buscar en Withyouly"
             onChange={(event) => setQ(event.target.value)}
             onKeyDown={(event) => {
@@ -1012,11 +1017,6 @@ export default function ExplorePage() {
                     type="button"
                     onClick={() => setSelEmo(item.name)}
                   >
-                    <span
-                      className="discovery-emotion-dot"
-                      style={{ background: item.colorHex ?? '#9ba1b2' }}
-                      aria-hidden
-                    />
                     {item.name}
                   </button>
                 ))}
@@ -1025,7 +1025,11 @@ export default function ExplorePage() {
 
             {featured.length > 0 ? (
               <>
-                <h2 className="discovery-section-title">Relatos que podrían acompañarte</h2>
+                <div className="section-title">
+                  <div>
+                    <h2>Relatos que podrían acompañarte</h2>
+                  </div>
+                </div>
                 <div className="story-list">{featured.slice(0, 3).map(renderStory)}</div>
               </>
             ) : null}

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import Icon from './Icon';
@@ -60,15 +59,12 @@ export default function AuthCard({
         <section className="reference-entry">
           <div className="reference-login-panel">
             <div className="reference-panel-inner">
-              <Link href="/" className="reference-logo" aria-label="Ir a la portada de Withyouly">
-                <Image src="/withyouly-logo.png" alt="Withyouly" width={380} height={95} priority />
+              <Link href="/" className="reference-logo" aria-label="Inicio de Withyouly">
+                <span className="brand-crop" />
               </Link>
 
-              <div className="reference-form">
-                {title ? <h1>{title}</h1> : null}
-                {subtitle ? <p>{subtitle}</p> : null}
-                {children}
-              </div>
+              {/* El formulario de la página es el propio .reference-form, como en v58. */}
+              {children}
             </div>
           </div>
 

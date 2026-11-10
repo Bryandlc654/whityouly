@@ -69,16 +69,19 @@ const CATEGORIES = [
  * el estado emocional; se guarda aquí para no duplicarlo en el frontend.
  */
 const EMOTIONS = [
-  { name: 'Alegría', colorHex: '#f1a83b' },
-  { name: 'Ansiedad', colorHex: '#f1a83b' },
-  { name: 'Calma', colorHex: '#43c8d9' },
-  { name: 'Esperanza', colorHex: '#37a978' },
+  // Paleta de emociones de la entrega v58 (emotionConfig).
+  { name: 'Alegría', colorHex: '#F4B942' },
+  { name: 'Ansiedad', colorHex: '#8B6CCF' },
+  { name: 'Calma', colorHex: '#42B8A8' },
+  { name: 'Cansancio', colorHex: '#B08B68' },
+  { name: 'Enojo', colorHex: '#E06A5F' },
+  { name: 'Esperanza', colorHex: '#62B878' },
   { name: 'Gratitud', colorHex: '#37a978' },
   { name: 'Ira', colorHex: '#df5d67' },
   { name: 'Miedo', colorHex: '#df5d67' },
-  { name: 'Neutral', colorHex: '#9ba1b2' },
-  { name: 'Soledad', colorHex: '#8b5cff' },
-  { name: 'Tristeza', colorHex: '#4b83e5' },
+  { name: 'Neutral', colorHex: '#8B95A7' },
+  { name: 'Soledad', colorHex: '#6670A8' },
+  { name: 'Tristeza', colorHex: '#5B84C4' },
 ];
 
 /**

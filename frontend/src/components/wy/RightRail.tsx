@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Icon from './Icon';
-import type { IconName } from './icons';
+import StageGlyph from './StageGlyph';
 import {
   getEmotionalSummary,
   listEmotionalLogs,
@@ -11,88 +11,72 @@ import {
   type EmotionalSummary,
 } from '@/lib/emotionalMap';
 import { getTree, type TreeView } from '@/lib/tree';
-import TreeArt from './TreeArt';
 
 interface RightRailProps {
   summaryHidden: boolean;
   onToggleSummary: () => void;
   onMood: () => void;
+  /** v58 solo muestra la tarjeta de recomendación en Inicio. */
+  showRecommendation?: boolean;
 }
 
-const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-function dayLabel(value: string, index: number) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return DAYS[index] ?? '';
-  return DAYS[(date.getDay() + 6) % 7];
-}
-const WEEK: { value: number; color: string }[] = DAYS.map(() => ({
-  value: 0,
-  color: '#dfe1e8',
-}));
-
-const EMOJI: Record<string, string> = {
-  Calma: '😌',
-  Ansiedad: '😰',
-  Neutral: '😐',
-  Tristeza: '😢',
-  Esperanza: '🌱',
+/** Colores y emojis de emociones tal como los define v58 (emotionConfig). */
+const EMOTION: Record<string, { emoji: string; color: string; soft: string }> = {
+  Alegría: { emoji: '😄', color: '#F4B942', soft: '#FFF6D9' },
+  Calma: { emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
+  Esperanza: { emoji: '🌱', color: '#62B878', soft: '#E8F6EC' },
+  Neutral: { emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
+  Tristeza: { emoji: '😔', color: '#5B84C4', soft: '#E7EFFB' },
+  Ansiedad: { emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
+  Enojo: { emoji: '😠', color: '#E06A5F', soft: '#FCEAE7' },
+  Soledad: { emoji: '🫥', color: '#6670A8', soft: '#EAECF5' },
+  Cansancio: { emoji: '😴', color: '#B08B68', soft: '#F5EEE7' },
 };
 
 interface Recommendation {
-  icon: IconName;
+  icon: string;
   title: string;
   copy: string;
   cta: string;
   href?: string;
 }
 
-const DEFAULT_RECOMMENDATION: Recommendation = {
-  icon: 'sparkle',
-  title: 'Un momento para ti',
-  copy: 'Elige una práctica breve para acompañar lo que sientes hoy.',
-  cta: 'Abrir Mi espacio',
-};
+/** Misma lógica que recommendationFor() de v58. */
+function recommendationFor(name: string | undefined, intensity: number): Recommendation {
+  if (name === 'Ansiedad' || name === 'Enojo')
+    return { icon: '🌬️', title: 'Calma tu mente', copy: 'Una pausa guiada de un minuto para bajar el ritmo antes de continuar.', cta: 'Comenzar 1 minuto' };
+  if (name === 'Tristeza' || name === 'Soledad' || name === 'Cansancio')
+    return { icon: '👣', title: 'Un paso posible', copy: 'Elige una acción pequeña y realista para acompañarte hoy.', cta: 'Elegir mi paso' };
+  if (name === 'Neutral')
+    return { icon: '🧩', title: 'Desenreda lo que sientes', copy: 'Separa lo que ocurrió, lo que necesitas y tu siguiente paso.', cta: 'Desenredar' };
+  if (name === 'Alegría' || name === 'Calma' || name === 'Esperanza')
+    return { icon: '✉️', title: 'Guarda este momento', copy: 'Conserva lo que hoy te hizo bien para volver a leerlo en el futuro.', cta: 'Crear cápsula', href: '/mis-capsulas' };
+  return intensity >= 7
+    ? { icon: '🌬️', title: 'Calma tu mente', copy: 'Una pausa guiada de un minuto antes de decidir qué hacer.', cta: 'Comenzar 1 minuto' }
+    : { icon: '🧩', title: 'Desenreda lo que sientes', copy: 'Ordena este momento en tres pasos privados.', cta: 'Comenzar' };
+}
 
-const RECOMMENDATIONS: Record<string, Recommendation> = {
-  Calma: {
-    icon: 'bookmark',
-    title: 'Guarda este momento',
-    copy: 'Conserva lo que hoy te hizo bien para volver a leerlo en el futuro.',
-    cta: 'Crear cápsula',
-    href: '/mis-capsulas',
-  },
-  Ansiedad: {
-    icon: 'pulse',
-    title: 'Respira conmigo',
-    copy: 'Dos minutos para bajar el ritmo y volver al momento presente.',
-    cta: 'Empezar pausa',
-  },
-  Neutral: {
-    icon: 'pulse',
-    title: 'Escucha lo que necesitas',
-    copy: 'Una pausa corta para poner nombre a lo que aparece hoy.',
-    cta: 'Abrir Mi espacio',
-  },
-  Tristeza: {
-    icon: 'heart',
-    title: 'Un espacio para ti',
-    copy: 'Una actividad suave para acompañar la tristeza sin exigirte.',
-    cta: 'Abrir Mi espacio',
-  },
-  Esperanza: {
-    icon: 'sparkle',
-    title: 'Cuida lo que está creciendo',
-    copy: 'Anota el pequeño paso que te dio un poco de luz esta semana.',
-    cta: 'Registrar estado',
-  },
-};
+const pad = (n: number) => String(n).padStart(2, '0');
+const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+/** Semana de lunes a domingo, con las iniciales que muestra v58. */
+function currentWeek() {
+  const today = new Date();
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
+  return WEEK_LABELS.map((label, i) => ({
+    key: isoDay(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)),
+    label,
+  }));
+}
 
 export default function RightRail({
   summaryHidden,
   onToggleSummary,
   onMood,
+  showRecommendation = false,
 }: RightRailProps) {
+  const router = useRouter();
   const [summary, setSummary] = useState<EmotionalSummary | null>(null);
   const [lastMood, setLastMood] = useState<{ name: string; value: number } | null>(null);
   const [tree, setTree] = useState<TreeView | null>(null);
@@ -129,22 +113,28 @@ export default function RightRail({
     };
   }, []);
 
-  const weekly = summary?.days.length
-    ? summary.days.slice(-7).map((day, index) => ({
-        label: dayLabel(day.date, index),
-        value: day.averageIntensity ?? 0,
-        color: day.emotion?.colorHex ?? '#dfe1e8',
-      }))
-    : WEEK.map((day, index) => ({ ...day, label: DAYS[index] }));
+  const byDay = new Map((summary?.days ?? []).map((day) => [day.date.slice(0, 10), day]));
+  const weekly = currentWeek().map(({ key, label }) => {
+    const day = byDay.get(key);
+    const value = day?.entries ? Math.round(day.averageIntensity ?? 0) : 0;
+    const name = day?.emotion?.name ?? '';
+    return {
+      key,
+      label,
+      value,
+      color: value ? EMOTION[name]?.color ?? day?.emotion?.colorHex ?? '#E5E7EB' : '#E5E7EB',
+      title: value ? `${name} ${value}/10` : 'Sin registro',
+    };
+  });
 
-  const topEmotion = summary?.emotions[0];
-  const topName = topEmotion?.name ?? 'Esperanza';
-  const recommendation = (lastMood && RECOMMENDATIONS[lastMood.name]) || DEFAULT_RECOMMENDATION;
+  const topName = summary?.emotions[0]?.name ?? 'Esperanza';
+  const recommendation = recommendationFor(lastMood?.name, lastMood?.value ?? 5);
+  const recColors = EMOTION[lastMood?.name ?? ''] ?? EMOTION.Esperanza;
   const nextDrops = tree?.stage.nextDrops ?? null;
-  const progress = Math.round((tree?.stage.progress ?? 0) * 100);
+  const drops = (n: number) => `${n} ${n === 1 ? 'gota' : 'gotas'}`;
   const treeCopy =
     tree && nextDrops !== null
-      ? `${tree.totalDrops} gotas en total · ${nextDrops} gotas para ${tree.stage.nextLabel ?? 'seguir creciendo'}`
+      ? `${drops(tree.totalDrops)} en total · ${drops(nextDrops)} para ${tree.stage.nextLabel ?? 'seguir creciendo'}`
       : 'Crece con cada registro que haces.';
 
   return (
@@ -153,11 +143,10 @@ export default function RightRail({
         <div className="summary-title">
           <h3>Resumen de tu semana</h3>
           <button
-            className="summary-toggle privacy-tip"
+            className="summary-toggle"
             type="button"
             onClick={onToggleSummary}
             aria-label={summaryHidden ? 'Mostrar resumen' : 'Ocultar resumen'}
-            data-tooltip="Solo tú puedes verlo"
           >
             <Icon name={summaryHidden ? 'eye' : 'lock'} />
           </button>
@@ -178,12 +167,10 @@ export default function RightRail({
             <div className="weekly-mini emotion-bars">
               {weekly.map((day) => (
                 <span
-                  key={day.label}
-                  style={{
-                    height: `${day.value ? Math.max(8, day.value * 8.5) : 4}%`,
-                    background: day.color,
-                  }}
+                  key={day.key}
+                  style={{ height: `${day.value ? day.value * 8 : 2}%`, ['--bar' as string]: day.color }}
                   data-day={day.label}
+                  title={day.title}
                 />
               ))}
             </div>
@@ -191,19 +178,18 @@ export default function RightRail({
               {summary && summary.totalEntries > 0 ? (
                 <>
                   <b>
-                    Emoción frecuente: {topName} {EMOJI[topName] ?? '🌱'}
+                    Emoción frecuente: {topName} {EMOTION[topName]?.emoji ?? '🌱'}
                   </b>
                   <br />
-                  {summary.totalEntries} {summary.totalEntries === 1 ? 'registro' : 'registros'} esta
-                  semana.
+                  {summary.totalEntries} registros esta semana
                 </>
               ) : (
                 'Aún no hay registros esta semana.'
               )}
             </div>
-            <p className="private-line">
+            <div className="private-line">
               <Icon name="lock" /> Solo tú puedes verlo
-            </p>
+            </div>
             <button className="text-link" type="button" onClick={onMood}>
               Ver mis emociones
             </button>
@@ -211,70 +197,65 @@ export default function RightRail({
         )}
       </div>
 
-      <section className="right-card card recommended-card compact">
-        <div className="recommended-icon">
-          <Icon name={recommendation.icon} />
-        </div>
-        <div className="recommended-copy">
-          <span className="micro-label">
-            {lastMood ? 'RECOMENDADO SEGÚN TU ÚLTIMO REGISTRO' : 'RECOMENDADO PARA HOY'}
-          </span>
-          <h3>{recommendation.title}</h3>
-          <p>{recommendation.copy}</p>
-          {lastMood ? (
-            <small>
-              {EMOJI[lastMood.name] ?? '🌱'} {lastMood.name} · {lastMood.value}/10
-            </small>
-          ) : null}
-        </div>
-        {recommendation.href ? (
-          <Link className="secondary" href={recommendation.href}>
-            {recommendation.cta}
-          </Link>
-        ) : (
-          <button className="secondary" type="button" onClick={onMood}>
+      {showRecommendation ? (
+        <section
+          className="recommended-card compact card"
+          style={{ ['--rec' as string]: recColors.color, ['--rec-soft' as string]: recColors.soft }}
+        >
+          <div className="recommended-icon" aria-hidden="true">
+            {recommendation.icon}
+          </div>
+          <div className="recommended-copy">
+            <span className="micro-label">
+              {lastMood ? 'RECOMENDADO SEGÚN TU ÚLTIMO REGISTRO' : 'RECOMENDADO PARA HOY'}
+            </span>
+            <h3>{recommendation.title}</h3>
+            <p>{recommendation.copy}</p>
+            {lastMood ? (
+              <small>
+                {EMOTION[lastMood.name]?.emoji ?? '🌱'} {lastMood.name} · {lastMood.value}/10
+              </small>
+            ) : null}
+          </div>
+          <button
+            className="secondary"
+            type="button"
+            onClick={() => (recommendation.href ? router.push(recommendation.href) : onMood())}
+          >
             {recommendation.cta}
           </button>
-        )}
-      </section>
+        </section>
+      ) : null}
 
-      <section className="right-card card tree-mini">
+      <div className="right-card card tree-mini">
         <div className="summary-title">
           <h3>Mi árbol</h3>
-          <Link className="guide-btn" href="/mi-arbol">
+          <button className="guide-btn" type="button" onClick={() => router.push('/mi-arbol')}>
             <Icon name="help" />
             <span>Guía</span>
-          </Link>
+          </button>
         </div>
         <div className="tree-mini-row">
           <span className="mini-tree">
-            <TreeArt
-              className="mini-tree-art"
-              stage={tree?.stage.index ?? 0}
-              species={tree?.customization.species}
-              pot={tree?.customization.pot}
-            />
+            <StageGlyph stage={tree?.stage.index ?? 0} />
           </span>
           <div className="tree-mini-copy">
-            <b>{tree?.stage.label ?? 'Tu árbol'}</b>
+            <b>{tree?.stage.label ?? 'Semilla'}</b>
             <small>{treeCopy}</small>
-            <div className="mini-progress">
-              <i style={{ width: `${progress}%` }} />
-            </div>
           </div>
         </div>
-        <Link className="secondary" href="/mi-arbol">
+        <button className="secondary" type="button" onClick={() => router.push('/mi-arbol')}>
           Ver mi crecimiento
-        </Link>
-      </section>
+        </button>
+      </div>
 
       <div className="right-card card prompt-card">
         <span className="micro-label">TEMA PARA CONVERSAR</span>
         <h3>Una conversación que suma</h3>
         <p>¿Qué pequeño gesto te hizo sentir acompañado esta semana?</p>
-        <Link className="secondary" href="/mis-relatos?compose=1">
+        <button className="secondary" type="button" onClick={() => router.push('/mis-relatos?compose=1')}>
           Responder en privado o publicar
-        </Link>
+        </button>
       </div>
     </>
   );

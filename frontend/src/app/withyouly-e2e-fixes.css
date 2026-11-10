@@ -1,98 +1,42 @@
 /* ---------------------------------------------------------------------------
    Correcciones de paridad v58 medidas en la verificación E2E.
-   Se carga después de withyouly.css y de la capa de paridad para que estas
-   reglas ganen la cascada en las vistas comparadas.
+   Se carga después de withyouly.css y de la capa de paridad.
 --------------------------------------------------------------------------- */
 
-/* Subpáginas de ayuda y configuración: encabezado de 28 px. */
-.wy .urgent-help-page .screen-back,
-.wy .help-subpage .screen-back,
-.wy .settings-subpage .screen-back{display:grid;gap:15px;margin:0 0 18px;padding:0}
-.wy .urgent-help-page .screen-back h1,
-.wy .help-subpage .screen-back h1,
-.wy .settings-subpage .screen-back h1{margin:0;color:#111;font-size:28px;line-height:1.25;letter-spacing:-.02em}
-.wy .urgent-help-page .screen-back p,
-.wy .help-subpage .screen-back p,
-.wy .settings-subpage .screen-back p{margin:0;color:#716a78;font-size:14px;line-height:1.55}
+/* Base de controles: v58 no usa el preflight de Tailwind, así que los botones
+   y campos conservan el espaciado de letras y el relleno del navegador.
+   :where() mantiene la especificidad mínima para que las reglas con clase ganen. */
+:where(.wy) :is(button,input,select,textarea){letter-spacing:normal}
+:where(.wy) button{padding:1px 6px}
+:where(.wy) input:where(:not([type=checkbox]):not([type=radio])){padding:1px 2px}
+:where(.wy) textarea{padding:2px}
+:where(.wy) :is(input,button,select,textarea,optgroup){margin:revert}
 
-/* Ayuda y seguridad. */
-.wy .help-v58 .help-hero{padding:23px;border-radius:20px}
-.wy .help-v58 .help-hero h1{line-height:1.25}
-.wy .help-v58 .help-card,
-.wy .help-v58 .help-list{border-radius:20px}
+/* Deshacer el preflight de Tailwind dentro de .wy: v58 se apoya en los estilos
+   por defecto del navegador para títulos, párrafos, listas, iconos y botones
+   sin clase. `revert` devuelve el valor nativo; :where() deja especificidad 0. */
+:where(.wy) :is(blockquote,dl,dd,h1,h2,h3,h4,h5,h6,hr,figure,p,pre){margin:revert}
+:where(.wy) :is(h1,h2,h3,h4,h5,h6){font-size:revert;font-weight:revert}
+:where(.wy) :is(ol,ul,menu){list-style:revert;margin:revert;padding:revert}
+:where(.wy) :is(img,svg,video,canvas,audio,iframe,embed,object){display:revert;vertical-align:revert}
+:where(.wy) :is(button,select){text-transform:revert}
+:where(.wy) :is(button,[type=button],[type=reset],[type=submit]){background-color:revert;background-image:revert;border-width:revert;border-style:revert;border-color:revert}
+:where(.wy) :is(input,select,textarea){border-width:revert;border-style:revert;border-color:revert;background-color:revert}
+:where(.wy) :is(b,strong){font-weight:revert}
+:where(.wy) small{font-size:revert}
+:where(.wy) a{color:revert;text-decoration:revert}
 
-/* Espacios privados: título de 32 px como en la entrega. */
-.wy .tree-hero h1,
-.wy .care-hero h1,
-.wy .capsule-hero h1,
-.wy .transform-hero h1{font-size:clamp(1.625rem,3vw,2rem);line-height:1.25;letter-spacing:-.02em;color:#111}
-.wy .tree-hero h1,.wy .transform-hero h1{margin:0}
-.wy .care-hero h1,.wy .capsule-hero h1{margin:4px 0}
+/* Compositor: v58 no deshabilita los botones de la barra; se validan al enviar.
+   Mantenemos el atributo disabled pero con el mismo aspecto. */
+.wy .compose-publish-bar>.primary:disabled{background:linear-gradient(135deg,var(--purple),var(--purple-2));color:#FFF;opacity:1;cursor:not-allowed}
+.wy .compose-publish-bar>.secondary:disabled{color:var(--purple);opacity:1;cursor:not-allowed}
 
-/* Mis emociones: cabecera de la vista de resumen. */
-.wy .mood-hero57 .mood-hero-copy h1{font-size:clamp(1.625rem,3vw,2rem);line-height:1.2;letter-spacing:-.02em;color:#111;margin:18px 0 12px}
-
-/* v43 oculta el rail derecho en los cinco espacios privados. Se conserva la
+/* v43 vacía el rail derecho en Mi diario y Mis emociones; se conserva la
    columna para no alterar el ancho de lectura. */
-.wy:has(.mi-space-nav) .right-rail{visibility:hidden}
+.wy:has(.diary-screen, .diary-summary) .right-rail{visibility:hidden}
 
-/* El título del resumen semanal no debe partirse en dos líneas. */
-.wy .summary-title h3{white-space:nowrap}
-
-/* Compositor v58: pestañas en tarjeta y campos visibles. */
-.wy .create-story-screen .create-story-card{padding:22px;border-radius:20px}
-.wy .create-story-screen .compose-format-heading{display:none}
-.wy .create-story-screen .compose-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:9px;border:1px solid var(--line);border-radius:18px;background:#FFF;margin:0 0 18px}
-.wy .create-story-screen .compose-tabs button{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;min-height:62px;padding:10px 12px;border:1px solid transparent;border-radius:13px;background:#FFF;color:#191A20;text-align:left}
-.wy .create-story-screen .compose-tabs button>svg{grid-row:1;width:21px;height:21px}
-.wy .create-story-screen .compose-tabs button>span{display:block}
-.wy .create-story-screen .compose-tabs button b{font-size:14px;line-height:1.3}
-.wy .create-story-screen .compose-tabs button small{display:none}
-.wy .create-story-screen .compose-tabs button.active{border-color:#CBBEFF;background:#F1EDFF;color:#6246F5}
-.wy .create-story-screen .story-form .field-label{font-size:16px;font-weight:700;color:#111;margin:18px 0 7px}
-.wy .create-story-screen .story-form .story-field{border:1px solid #DFD9EA;border-radius:14px;background:#FAF9FC;box-shadow:none;padding:14px 16px;font-size:16px;font-weight:400;min-height:48px}
-.wy .create-story-screen .story-form .story-field:focus{border-color:#A998FF;box-shadow:0 0 0 3px rgba(98,70,245,.1)}
-.wy .create-story-screen .story-form textarea.story-field{min-height:220px;line-height:1.65}
-.wy .create-story-screen .story-form .hint{font-size:14px}
-.wy .create-story-screen .editor-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
-.wy .create-story-screen .editor-actions>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-
-/* Detalles medidos en tarjetas y cabeceras. */
-.wy .my-story-card{padding:15px}
-.wy .urgent{border-radius:20px}
-.wy .tree-hero{border-color:#DCEEE2;border-radius:20px}
-.wy .mood-hero57 .mood-hero-copy h1{color:#111!important}
-.wy .mood-page .mood-hero57 .privacy-badge{background:transparent;border:0;color:#50535D;padding:0;font-size:14px;gap:6px}
-
-
-/* Barras sin registros: guion gris en la base, como V58. */
-.wy .bar-chart.is-empty .bar-col i{display:none}
-.wy .bar-chart.is-empty .bar-col::after{content:"";width:min(32px,70%);height:4px;border-radius:999px;background:#D9D9E3}
-.wy .create-story-screen .editor-actions{justify-content:flex-end}
-.wy .create-story-screen .editor-actions>.ghost{display:none}
-.wy .empty-state{padding:36px 22px}
-
-/* Tailwind Preflight anula los márgenes de los títulos; V58 conserva los del
-   navegador cuando el componente no los define. */
-.wy h1{margin:.67em 0}
-.wy h2{margin:.83em 0}
-.wy h3{margin:1em 0}
-.wy h4{margin:1.33em 0}
-.wy .onboarding-card h1{margin:0;text-align:left;font-size:34px;line-height:1.12;letter-spacing:-.035em}
-.wy .onboarding-card>p{text-align:left;margin:10px 0 24px;max-width:none;color:#50535D}
-.wy :is(.hint,.private-line,.tip,.info-callout)>svg{width:18px;height:18px;flex:0 0 18px;vertical-align:-3px}
-.wy .tree-page .tree-hero{border-color:var(--line);border-radius:20px}
-.wy .care-hero{padding:19px}
-.wy .urgent-help-page .urgent{border-radius:20px}
-.wy .settings-subpage .empty-state,.wy .empty-state.card{padding:36px 22px}
-.wy .create-story-screen .compose-tabs{border:0;border-radius:0;padding:9px;background:#FFF}
-.wy .create-story-screen .editor-actions .primary:disabled{background:#6246F5;color:#FFF;opacity:1}
-.wy .control-card-head p{max-width:none}
-.wy .notification.card{background:#FFF}
-/* Modal ¿Qué necesitas hoy?: filas simples con separador, como V58. */
-.wy .welcome-choices>button{grid-template-columns:25px minmax(0,1fr) 18px;gap:13px;padding:18px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:#FFF}
-.wy .welcome-choices>button:hover{background:#FFF;border-color:var(--line)}
-.wy .welcome-choices>button>svg:first-child{width:22px;height:22px;padding:0;border-radius:0;background:transparent;color:#6246F5;box-sizing:border-box}
-.wy .welcome-choices>button>svg:last-child{width:18px;height:18px;color:#6246F5}
-.wy .welcome-choices b{font-size:16px;color:#191A20}
-.wy .welcome-choices small{margin-top:5px;font-size:13px;color:#50535D}
+/* Mis relatos: la fila usa la rejilla .story-row de v58; el contenedor interno
+   no añade caja y la apelación ocupa todo el ancho. */
+.wy .story-row > .my-story-line{display:contents}
+.wy .story-row > .appeal-block{grid-column:1/-1}
+.wy a.reference-logo{color:inherit}

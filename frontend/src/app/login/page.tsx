@@ -65,15 +65,15 @@ export default function LoginPage() {
     <AuthCard
       variant="reference"
       showTrust
-      title="Bienvenido a Withyouly"
-      subtitle="Ingresa para continuar en tu comunidad."
       image="/withyouly-community.jpeg"
       imageAlt="Jóvenes conversando. Aquí, lo que sientes importa."
     >
-      {error ? <div className="auth-error">{error}</div> : null}
-      {success ? <div className="auth-success">Acceso correcto. Entrando…</div> : null}
+      <form className="reference-form" onSubmit={handleLogin}>
+        <h1>Bienvenido a Withyouly</h1>
+        <p>Ingresa y comparte alegrías, días difíciles y momentos de tu día.</p>
+        {error ? <div className="auth-error">{error}</div> : null}
+        {success ? <div className="auth-success">Acceso correcto. Entrando…</div> : null}
 
-      <form onSubmit={handleLogin}>
         <label htmlFor="identifier">Correo electrónico</label>
         <div className="input-with-icon">
           <Icon name="user" />
@@ -134,6 +134,15 @@ export default function LoginPage() {
           <span>¿Aún no tienes una cuenta?</span>
           <button type="button" onClick={() => router.push('/register')}>
             Crear cuenta
+          </button>
+        </div>
+        <div className="reference-legal">
+          <button type="button" onClick={() => router.push('/ayuda/privacidad')}>
+            Privacidad
+          </button>
+          <span>•</span>
+          <button type="button" onClick={() => router.push('/ayuda')}>
+            Ayuda
           </button>
         </div>
       </form>

@@ -52,6 +52,9 @@ function buildCreativeDraft(source: string, format: CreativeFormat, tone: Creati
   return `${opening}\n\n${source}`;
 }
 
+/** Glifos de formato de v58. */
+const FORMAT_GLYPH: Record<string, string> = { Poema: '✦', Canción: '♫', 'Relato literario': '⌁' };
+
 export default function TransformPage() {
   const router = useRouter();
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
@@ -315,7 +318,7 @@ export default function TransformPage() {
     <WyFrame
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
-      activeRoute="my-stories"
+      activeRoute="tree"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
@@ -330,24 +333,17 @@ export default function TransformPage() {
       }
     >
       <section className="screen transform-page">
-        <section className="card transform-hero">
+        <div className="screen-heading">
           <div>
-            <span className="micro-label">CREATIVIDAD · PLANTILLAS LOCALES</span>
             <h1>Transforma tu relato</h1>
-            <p>Dale otra forma a un texto propio. Elige formato y tono; el resultado es un borrador privado que puedes editar.</p>
+            <p>Dale una forma creativa a una experiencia que ya escribiste.</p>
           </div>
-          <span className="privacy-badge">
-            <Icon name="lock" /> Borrador privado
-          </span>
-        </section>
+        </div>
 
-        <section className="card transform-form">
-          <div className="transform-note">
-            <Icon name="sparkle" />
-            <p>
-              Esta transformación usa plantillas locales. Tu texto no se envía a un servicio externo de inteligencia
-              artificial y tu relato original no se modifica.
-            </p>
+        <section className="editor card">
+          <div className="tip">
+            Ejercicio de edición: organiza tus palabras en un borrador editable. No utiliza un servicio externo de
+            inteligencia artificial y tu relato original no se modifica.
           </div>
 
           {sourcesError ? (
@@ -370,12 +366,42 @@ export default function TransformPage() {
             </div>
           ) : (
             <>
-              <label className="field-label" htmlFor="creativeOrigin">
-                Relato de origen
-              </label>
+              <label>Elige el formato</label>
+              <div className="option-cards">
+                {FORMATS.map((item) => (
+                  <button
+                    key={item.value}
+                    className={`option-card${format === item.value ? ' selected' : ''}`}
+                    type="button"
+                    aria-pressed={format === item.value}
+                    onClick={() => setFormat(item.value)}
+                  >
+                    <span>{FORMAT_GLYPH[item.value] ?? '✦'}</span>
+                    <b>{item.value}</b>
+                    <small>{item.hint}</small>
+                  </button>
+                ))}
+              </div>
+
+              <label>Tono</label>
+              <div className="filter-row">
+                  {TONES.map((item) => (
+                    <button
+                      key={item}
+                      className={`filter-pill${tone === item ? ' active' : ''}`}
+                      type="button"
+                      aria-pressed={tone === item}
+                      onClick={() => setTone(item)}
+                    >
+                      {item}
+                    </button>
+                ))}
+              </div>
+
+              <label htmlFor="creativeOrigin">Relato de origen</label>
               <select
                 id="creativeOrigin"
-                className="transform-select"
+                aria-label="Relato propio de origen"
                 value={sourceId}
                 onChange={(event) => {
                   setSourceId(event.target.value);
@@ -389,63 +415,21 @@ export default function TransformPage() {
                 ))}
               </select>
 
-              <div className="transform-source-preview">
-                <span className="micro-label">TEXTO DE PARTIDA</span>
-                <b>{source?.title ?? 'Elige un relato'}</b>
-                <p>{sourceText ? `${sourceText.slice(0, 260)}${sourceText.length > 260 ? '…' : ''}` : 'Sin texto disponible.'}</p>
-              </div>
-
-              <fieldset className="transform-fieldset">
-                <legend>Elige el formato</legend>
-                <div className="transform-format-grid">
-                  {FORMATS.map((item) => (
-                    <button
-                      key={item.value}
-                      className={`transform-format-card${format === item.value ? ' selected' : ''}`}
-                      type="button"
-                      aria-pressed={format === item.value}
-                      onClick={() => setFormat(item.value)}
-                    >
-                      <span>
-                        <Icon name={item.icon} />
-                      </span>
-                      <b>{item.value}</b>
-                      <small>{item.hint}</small>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset className="transform-fieldset">
-                <legend>Tono</legend>
-                <div className="filter-row transform-tones">
-                  {TONES.map((item) => (
-                    <button
-                      key={item}
-                      className={`filter-pill${tone === item ? ' active' : ''}`}
-                      type="button"
-                      aria-pressed={tone === item}
-                      onClick={() => setTone(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
               {formError ? (
                 <p className="auth-error" role="alert">
                   {formError}
                 </p>
               ) : null}
 
-              <div className="editor-actions transform-actions">
+              <div className="editor-actions">
                 <button className="ghost" type="button" onClick={() => router.push('/mis-relatos')}>
                   Cancelar
                 </button>
-                <button className="primary" type="button" onClick={openDraft} disabled={!source}>
-                  <Icon name="sparkle" /> Crear borrador
-                </button>
+                <div>
+                  <button className="primary" style={{ padding: '11px 18px' }} type="button" onClick={openDraft} disabled={!source}>
+                    <Icon name="sparkle" /> Crear borrador
+                  </button>
+                </div>
               </div>
             </>
           )}

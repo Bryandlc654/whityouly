@@ -150,12 +150,9 @@ export default function EditProfilePage() {
       <section className="screen">
         <div className="screen-heading">
           <div>
-            <h1>Editar perfil</h1>
-            <p>Tu identidad pública. El correo y el nombre real nunca se muestran.</p>
+            <h1>Editar perfil seudónimo</h1>
+            <p>Tu nombre real y correo nunca se muestran.</p>
           </div>
-          <button className="ghost" type="button" onClick={() => router.push('/cuenta')}>
-            Volver
-          </button>
         </div>
 
         {loading ? <p className="muted small">Cargando tu perfil…</p> : null}

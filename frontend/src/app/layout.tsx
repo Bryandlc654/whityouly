@@ -22,11 +22,8 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-        <link href="https://fonts.googleapis.com" rel="preconnect"/>
-        <link crossOrigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect"/>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+        {/* v58 declara Inter en la pila tipográfica pero no la descarga: se ve con la
+            fuente del sistema. No se carga ninguna webfont para conservar ese aspecto. */}
       </head>
       <body className={`antialiased font-body-md`}>
         <ReadingSizeSync />

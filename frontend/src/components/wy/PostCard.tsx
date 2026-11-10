@@ -5,7 +5,6 @@ import Avatar from './Avatar';
 import Icon from './Icon';
 import VisualStoryCard from './VisualStoryCard';
 import type { FeedStory } from './feedData';
-import { countryLabel, languageLabel } from '@/lib/locales';
 
 interface PostCardProps {
   story: FeedStory;
@@ -85,43 +84,25 @@ export default function PostCard({
         <Avatar initials={story.initials} />
         <div>
           <div className="post-author">
-            <span
-              className="author-name"
-              role="button"
-              tabIndex={0}
-              onClick={onAuthor}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onAuthor();
-                }
-              }}
-            >
+            <button className="author-name" type="button" onClick={onAuthor}>
               {story.author}
-            </span>
+            </button>
             {isOwn ? (
-              <span className="tag update" style={{ marginLeft: 8 }}>
-                {statusLabel === 'PUBLISHED' ? 'Tu relato · Publicado' : 'Tu relato · Borrador'}
-              </span>
+              statusLabel !== 'PUBLISHED' ? <span className="tag update">Borrador</span> : null
             ) : (
               <button
                 type="button"
-                key={followingAuthor ? 'following' : 'follow'}
-                className={`follow-btn${followingAuthor ? ' on' : ''}`}
                 aria-pressed={followingAuthor}
+                title="Ver sus nuevos relatos en Siguiendo"
                 onClick={onFollowAuthor}
               >
-                <Icon name={followingAuthor ? 'check' : 'plus'} />
-                {followingAuthor ? 'Siguiendo' : 'Seguir autor'}
+                {followingAuthor ? 'Siguiendo' : '+ Seguir autor'}
               </button>
             )}
           </div>
-          <div className="post-time">
-            {story.time} · Seudónimo único · {languageLabel(story.language)}
-            {story.countryCode ? ` · ${countryLabel(story.countryCode)}` : ''}
-          </div>
+          <div className="post-time">{story.time}</div>
         </div>
-        <button className="more-btn" type="button" onClick={onOpenMenu} aria-label="Más opciones">
+        <button className="more-btn" type="button" onClick={onOpenMenu} aria-label="Más opciones del relato">
           <Icon name="more" />
         </button>
       </div>
@@ -228,29 +209,56 @@ export default function PostCard({
       ) : null}
       </div>
 
-      <div className="post-stats">
-        <span>{supportCount ?? story.support + (supported ? 1 : 0)} personas están contigo</span>
-        <span>{story.comments} comentarios</span>
-      </div>
+      {(() => {
+        const support = supportCount ?? story.support + (supported ? 1 : 0);
+        return (
+          <div className="post-stats" hidden={!support && !story.comments}>
+            <span className="support-summary" hidden={!support}>
+              <span className="support-heart" aria-hidden="true">
+                <Icon name="heart" />
+              </span>
+              <span>{support} personas están contigo</span>
+            </span>
+            <button type="button" onClick={onComment} hidden={!story.comments}>
+              {story.comments} comentarios
+            </button>
+          </div>
+        );
+      })()}
 
       <div className="post-actions">
-        <button className={supported ? 'on' : undefined} type="button" onClick={onSupport}>
+        <button
+          className={supported ? 'on' : undefined}
+          type="button"
+          onClick={onSupport}
+          aria-pressed={supported}
+          aria-label="Estoy contigo"
+        >
           <Icon name="heart" />
           <span className="action-label">Estoy contigo</span>
         </button>
-        <button type="button" onClick={onComment}>
+        <button type="button" onClick={onComment} aria-label="Comentar">
           <Icon name="message" />
           <span className="action-label">Comentar</span>
         </button>
-        <button className={followingStory ? 'on' : undefined} type="button" onClick={onFollowStory}>
-          <Icon name="bell" />
-          <span className="action-label">{followingStory ? 'Siguiendo' : 'Seguir relato'}</span>
-        </button>
-        <button className={saved ? 'on' : undefined} type="button" onClick={onSave}>
-          <Icon name="bookmark" />
-          <span className="action-label">Guardar</span>
-        </button>
-        <button type="button" onClick={onShare}>
+        {isOwn ? (
+          <button className={saved ? 'on' : undefined} type="button" onClick={onSave} aria-label="Guardar relato">
+            <Icon name="bookmark" />
+            <span className="action-label">Guardar</span>
+          </button>
+        ) : (
+          <button
+            className={followingStory ? 'on' : undefined}
+            type="button"
+            onClick={onFollowStory}
+            aria-pressed={followingStory}
+            title="Recibir solo las continuaciones de esta historia"
+          >
+            <Icon name="trend" />
+            <span className="action-label">{followingStory ? 'Siguiendo' : 'Seguir relato'}</span>
+          </button>
+        )}
+        <button type="button" onClick={onShare} aria-label="Compartir relato">
           <Icon name="share" />
           <span className="action-label">Compartir</span>
         </button>

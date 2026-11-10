@@ -29,7 +29,7 @@ export default function EmergencyResources({ buttonClassName = 'primary' }: Emer
         </button>
       </section>
 
-      <section className="card help-country-card">
+      <section className="control-card card">
         <label htmlFor="helpCountry">País o región</label>
         <select
           id="helpCountry"

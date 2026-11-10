@@ -31,7 +31,7 @@ export default function PrivacyGuidePage() {
       <section className="screen help-v58 help-subpage">
         <div className="screen-back">
           <button className="ghost" type="button" onClick={() => router.push('/ayuda')}>
-            <Icon name="chevron" /> Ayuda y seguridad
+            ← Ayuda y seguridad
           </button>
           <div>
             <h1>Publica sin revelar tu identidad</h1>

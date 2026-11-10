@@ -7,8 +7,7 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
-import GuideModal from '@/components/wy/GuideModal';
-import { GUIDES } from '@/lib/guideContent';
+import Guide58Modal from '@/components/wy/Guide58Modal';
 import type { IconName } from '@/components/wy/icons';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -187,52 +186,6 @@ const EFFECTS: { value: CareOutcome; label: string }[] = [
   { value: 'worse', label: 'Un poco peor' },
   { value: 'unsure', label: 'No estoy seguro' },
 ];
-
-const RECOMMENDATIONS: Record<string, { view: View; icon: IconName; title: string; copy: string; cta: string }> = {
-  Ansiedad: {
-    view: 'calm',
-    icon: 'pulse',
-    title: 'Calma tu mente',
-    copy: 'Una pausa de un minuto para bajar el ritmo y volver al momento presente.',
-    cta: 'Empezar pausa',
-  },
-  Tristeza: {
-    view: 'company',
-    icon: 'heart',
-    title: 'Sentirte acompañado',
-    copy: 'Opciones suaves para no sostenerlo todo en soledad.',
-    cta: 'Ver opciones',
-  },
-  Neutral: {
-    view: 'thoughts',
-    icon: 'book',
-    title: 'Desenreda lo que sientes',
-    copy: 'Separa el origen, lo que necesitas y un paso posible.',
-    cta: 'Ordenar ideas',
-  },
-  Calma: {
-    view: 'small',
-    icon: 'check',
-    title: 'Un paso posible',
-    copy: 'Aprovecha esta calma para elegir una acción pequeña y amable.',
-    cta: 'Elegir un paso',
-  },
-  Esperanza: {
-    view: 'small',
-    icon: 'sparkle',
-    title: 'Cuida lo que está creciendo',
-    copy: 'Un paso pequeño puede sostener lo que hoy te da un poco de luz.',
-    cta: 'Elegir un paso',
-  },
-};
-
-const DEFAULT_RECOMMENDATION = {
-  view: 'calm' as View,
-  icon: 'sparkle' as IconName,
-  title: 'Un momento para ti',
-  copy: 'Elige una práctica breve para acompañar lo que sientes hoy.',
-  cta: 'Empezar pausa',
-};
 
 const RECOGNITION: Record<CareActivityType, { title: string; copy: string }> = {
   BREATHING: {
@@ -879,7 +832,6 @@ export default function CarePage() {
     }
   };
 
-  const recommendation = latestMood ? RECOMMENDATIONS[latestMood.name] ?? DEFAULT_RECOMMENDATION : DEFAULT_RECOMMENDATION;
   const phase = BREATH_PHASES[breath.phase] ?? BREATH_PHASES[0];
   const elapsed = 60 - breath.remaining;
   const unravelFeeling = latestMood?.name ?? 'Neutral';
@@ -894,55 +846,18 @@ export default function CarePage() {
 
   const renderLibrary = () => (
     <>
-      <section className="care-hero card">
+      <section className="support-hero card space-description">
         <div>
-          <span className="micro-label">ACTIVIDADES BREVES Y PRIVADAS</span>
+          <span className="micro-label">SOLO PARA TI · OPCIONAL</span>
           <h1>Cuidarme</h1>
-          <p>Elige cómo quieres cuidarte ahora. No hay puntos, respuestas correctas ni obligación de continuar.</p>
+          <p>
+            Respira, ordena tus ideas o elige un pequeño paso. Puedes usar estas actividades sin registrar una
+            emoción.
+          </p>
         </div>
-        <div className="care-hero-actions">
-          <span className="privacy-badge">
-            <Icon name="lock" /> Privado
-          </span>
-          <button className="secondary care-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
-            <Icon name="help" /> Cómo usarlo
-          </button>
-        </div>
-      </section>
-
-      <section className="care-context card">
-        <div>
-          <span className="micro-label">TU PUNTO DE PARTIDA</span>
-          {latestMood ? (
-            <>
-              <h2>
-                {moodEmoji(latestMood.name)} Registraste {latestMood.name} · {latestMood.intensity}/10
-              </h2>
-              <p>Usamos ese registro para ordenar las sugerencias. Tú decides si alguna te sirve o si prefieres continuar sin realizar una actividad.</p>
-            </>
-          ) : (
-            <>
-              <h2>Un momento para empezar</h2>
-              <p>Aún no registras cómo te sientes. Puedes hacerlo o elegir una actividad directamente.</p>
-            </>
-          )}
-        </div>
-        <button className="secondary" type="button" onClick={() => router.push('/mi-estado')}>
-          {latestMood ? 'Actualizar registro' : 'Registrar cómo me siento'}
-        </button>
-      </section>
-
-      <section className="care-recommendation card">
-        <div className="care-recommendation-icon">
-          <Icon name={recommendation.icon} />
-        </div>
-        <div>
-          <span className="micro-label">SUGERIDO PARA AHORA</span>
-          <h2>{recommendation.title}</h2>
-          <p>{recommendation.copy}</p>
-        </div>
-        <button className="secondary" type="button" onClick={() => openActivity(recommendation.view)}>
-          {recommendation.cta}
+        <button className="guide-btn" type="button" onClick={() => setGuideOpen(true)} aria-label="Cómo usar Cuidarme">
+          <Icon name="help" />
+          <span>Cómo usarlo</span>
         </button>
       </section>
 
@@ -976,19 +891,17 @@ export default function CarePage() {
         </section>
       ) : null}
 
-      <div className="care-section-heading">
+      <div className="section-heading">
         <div>
           <span className="micro-label">EXPERIENCIAS INTERACTIVAS</span>
           <h2>Elige una actividad breve</h2>
-          <p>Cada experiencia tiene un propósito claro y termina preguntándote si te ayudó.</p>
+          <p>Elige lo que te venga bien en este momento.</p>
         </div>
       </div>
 
-      <div className="care-experience-grid">
+      <div className="experience-grid">
         <button type="button" onClick={() => openActivity('calm')}>
-          <span>
-            <Icon name="pulse" />
-          </span>
+          <span>🌬️</span>
           <div>
             <small>1 MINUTO</small>
             <b>Calma tu mente</b>
@@ -997,9 +910,7 @@ export default function CarePage() {
           <em>Comenzar</em>
         </button>
         <button type="button" onClick={() => openActivity('thoughts')}>
-          <span>
-            <Icon name="book" />
-          </span>
+          <span>🧩</span>
           <div>
             <small>2 MINUTOS</small>
             <b>Desenreda lo que sientes</b>
@@ -1008,9 +919,7 @@ export default function CarePage() {
           <em>Comenzar</em>
         </button>
         <button type="button" onClick={() => openActivity('small')}>
-          <span>
-            <Icon name="check" />
-          </span>
+          <span>👣</span>
           <div>
             <small>1 MINUTO</small>
             <b>Un paso posible</b>
@@ -1020,17 +929,15 @@ export default function CarePage() {
         </button>
       </div>
 
-      <section className="care-other card">
-        <div className="care-section-heading">
+      <section className="other-support card">
+        <div className="section-heading">
           <div>
             <h2>Otras formas de cuidarte</h2>
           </div>
         </div>
-        <div className="care-rows">
+        <div className="support-rows">
           <button type="button" onClick={() => openActivity('vent')}>
-            <span>
-              <Icon name="message" />
-            </span>
+            <span>✍️</span>
             <div>
               <b>Desahogarme en privado</b>
               <small>Escribe sin publicar nada.</small>
@@ -1038,9 +945,7 @@ export default function CarePage() {
             <Icon name="chevron" />
           </button>
           <button type="button" onClick={() => openActivity('company')}>
-            <span>
-              <Icon name="heart" />
-            </span>
+            <span>🫶</span>
             <div>
               <b>Sentirme acompañado</b>
               <small>Encuentra opciones de apoyo seguro.</small>
@@ -1048,9 +953,7 @@ export default function CarePage() {
             <Icon name="chevron" />
           </button>
           <button type="button" onClick={() => openActivity('distract')}>
-            <span>
-              <Icon name="music" />
-            </span>
+            <span>🎧</span>
             <div>
               <b>Cambiar de foco</b>
               <small>Toma distancia durante unos minutos.</small>
@@ -1060,7 +963,7 @@ export default function CarePage() {
         </div>
       </section>
 
-      <section className="care-safety card">
+      <section className="safety-inline card">
         <div>
           <Icon name="shield" />
         </div>
@@ -1068,7 +971,7 @@ export default function CarePage() {
           <b>¿Necesitas ayuda inmediata o no te sientes a salvo?</b>
           <p>Withyouly acompaña, pero no reemplaza atención profesional o servicios de emergencia.</p>
         </div>
-        <button className="secondary" type="button" onClick={() => router.push('/soporte')}>
+        <button className="secondary" type="button" onClick={() => router.push('/ayuda')}>
           Ver ayuda y seguridad
         </button>
       </section>
@@ -1905,7 +1808,7 @@ export default function CarePage() {
     <WyFrame
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
-      activeRoute="mood"
+      activeRoute="tree"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
@@ -1932,7 +1835,7 @@ export default function CarePage() {
 
         {guideOpen ? (
           <div className="modal-layer">
-            <GuideModal guide={GUIDES.care} onClose={() => setGuideOpen(false)} />
+            <Guide58Modal type="support" onClose={() => setGuideOpen(false)} />
           </div>
         ) : null}
       </section>

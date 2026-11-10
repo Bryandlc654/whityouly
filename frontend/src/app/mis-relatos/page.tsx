@@ -581,7 +581,8 @@ export default function MyStoriesPage() {
       rightRail={
         <RightRail
           summaryHidden={summaryHidden}
-          onToggleSummary={() => setSummaryHidden((value) => !value)}          onMood={() => router.push('/mi-estado')}
+          onToggleSummary={() => setSummaryHidden((value) => !value)}
+          onMood={() => router.push('/mi-estado')}
         />
       }
     >
@@ -591,18 +592,13 @@ export default function MyStoriesPage() {
             <h1>Mis relatos</h1>
             <p>Puedes volver, editar o continuar cuando lo necesites.</p>
           </div>
-          <div className="heading-actions">
-            <button className="secondary" type="button" onClick={() => router.push('/transformar')}>
-              <Icon name="sparkle" /> Transformar
-            </button>
-            <button className="secondary" type="button" onClick={openComposer}>
-              <Icon name="plus" /> Nuevo relato
-            </button>
-          </div>
+          <button className="secondary" type="button" onClick={openComposer}>
+            Nuevo relato
+          </button>
         </div>
 
         <button
-          className="text-link my-stories-trash"
+          className="text-link"
           type="button"
           onClick={() => router.push('/mis-relatos/retirados')}
         >
@@ -684,7 +680,7 @@ export default function MyStoriesPage() {
         {view !== 'saved' && stories.length > 0 ? (
           <div className="story-list my-story-list">
             {stories.map((story) => (
-              <article key={story.id} className="card my-story-card">
+              <article key={story.id} className="story-row card my-story-card">
                 <div className="my-story-line">
                   <div>
                     {story.categories[0] ? <span className="tag">{story.categories[0]}</span> : null}
@@ -787,7 +783,7 @@ export default function MyStoriesPage() {
         {view === 'saved' && saved.length > 0 ? (
           <div className="story-list my-story-list">
             {saved.map((item) => (
-              <article key={item.id} className="card my-story-card">
+              <article key={item.id} className="story-row card my-story-card">
                 <div className="my-story-line">
                   <div>
                     <h3>

@@ -7,8 +7,7 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
-import GuideModal from '@/components/wy/GuideModal';
-import { GUIDES } from '@/lib/guideContent';
+import Guide58Modal from '@/components/wy/Guide58Modal';
 import MoodModal, { MOOD_EMOJI } from '@/components/wy/MoodModal';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -662,16 +661,20 @@ export default function DiaryPage() {
       <section className="screen diary-screen">
         <MiEspacioNav active="diary" />
 
-        <header className="diary-heading">
+        <header className="diary-heading space-description">
           <div>
             <span className="diary-private">
               <Icon name="lock" /> Solo para ti · Opcional
             </span>
             <h1>Mi diario</h1>
-            <p>Guarda recuerdos, ideas y cómo te sientes. Este espacio es tuyo, para usarlo cuando quieras.</p>
+            <p>
+              Escribe recuerdos e ideas, o registra cómo te sientes. Aquí encontrarás tus notas y emociones
+              guardadas; solo tú puedes verlas.
+            </p>
           </div>
-          <button className="secondary diary-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
-            <Icon name="help" /> Cómo usarlo
+          <button className="guide-btn" type="button" onClick={() => setGuideOpen(true)} aria-label="Cómo usar Mi diario">
+            <Icon name="help" />
+            <span>Cómo usarlo</span>
           </button>
         </header>
 
@@ -867,7 +870,7 @@ export default function DiaryPage() {
 
         {guideOpen ? (
           <div className="modal-layer">
-            <GuideModal guide={GUIDES.diary} onClose={() => setGuideOpen(false)} />
+            <Guide58Modal type="diary" onClose={() => setGuideOpen(false)} />
           </div>
         ) : null}
       </section>

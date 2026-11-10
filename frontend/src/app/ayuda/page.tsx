@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from '@/components/wy/Icon';
 import ProfileShell from '@/components/wy/ProfileShell';
-import EmergencyResources from '@/components/wy/EmergencyResources';
 import { createGeneralReport } from '@/lib/reports';
 import { REPORT_REASONS, REPORT_REASON_LABELS } from '@/lib/moderation';
 
@@ -25,7 +24,16 @@ export default function HelpPage() {
           </p>
         </section>
 
-        <EmergencyResources buttonClassName="secondary" />
+        <section className="card urgent">
+          <h2>¿Tú o alguien está en peligro inmediato?</h2>
+          <p>
+            Contacta ahora a los servicios de emergencia de tu país o a una línea de crisis local. No
+            dependas de una respuesta de la comunidad.
+          </p>
+          <button className="secondary" type="button" onClick={() => router.push('/ayuda/recursos')}>
+            Encontrar recursos de mi región
+          </button>
+        </section>
 
         <div className="help-grid">
           <article className="card help-card">

@@ -14,6 +14,7 @@ import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { fetchPublicProfile } from '@/lib/characters';
 import { listFollowersOf, listFollowingOf } from '@/lib/follows';
 import { listMyStories } from '@/lib/stories';
+import { getTree, type TreeView } from '@/lib/tree';
 
 interface ProfileStats {
   stories: number;
@@ -39,6 +40,17 @@ export default function ProfilePage() {
   const [account, setAccount] = useState<Account | null>(null);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [stats, setStats] = useState<ProfileStats>(EMPTY_STATS);
+  const [tree, setTree] = useState<TreeView | null>(null);
+
+  useEffect(() => {
+    getTree()
+      .then(setTree)
+      .catch(() => setTree(null));
+  }, []);
+
+  const completedTrees = tree?.cycle.completed ?? 0;
+  const cycleDrops = tree?.cycle.drops ?? 0;
+  const treeCopy = `Solo para ti · ${completedTrees} ${completedTrees === 1 ? 'árbol completado' : 'árboles completados'} · ${Math.max(0, cycleDrops)} de ${tree?.cycle.goal ?? 300} gotas en el actual`;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -228,14 +240,11 @@ export default function ProfilePage() {
             />
             <div className="profile-copy">
               <h1>{name || 'Tu seudónimo'}</h1>
-              <p>
-                @{name ? name.toLowerCase() : 'withyouly'}
-                {character?.tagline ? ` · ${character.tagline}` : ''}
-              </p>
+              <p>@{name ? name.toLowerCase() : 'withyouly'}</p>
             </div>
             <div className="profile-actions">
               <button className="secondary" type="button" onClick={() => router.push('/perfil/editar')}>
-                <Icon name="edit" /> Editar perfil
+                Editar perfil
               </button>
               <button
                 className="text-link"
@@ -250,11 +259,11 @@ export default function ProfilePage() {
           {character?.bio ? <p className="profile-bio">{character.bio}</p> : null}
 
           <div className="profile-stats">
-            <div className="profile-stat is-static">
+            <div>
               <b>{stats.stories}</b>
               <small>Relatos</small>
             </div>
-            <div className="profile-stat is-static">
+            <div>
               <b>{stats.companionships}</b>
               <small>Personas contigo</small>
             </div>
@@ -287,79 +296,47 @@ export default function ProfilePage() {
 
         <section className="settings-list card">
           <button className="settings-row" type="button" onClick={() => router.push('/mis-relatos')}>
-            <span>
-              <Icon name="book" />
-            </span>
+            <Icon name="book" />
             <span>
               <b>Mis relatos</b>
               <small>Publicaciones, borradores y guardados</small>
             </span>
             <Icon name="chevron" />
           </button>
-          <button className="settings-row" type="button" onClick={() => router.push('/mi-estado')}>
-            <span>
-              <Icon name="pulse" />
-            </span>
-            <span>
-              <b>Mi espacio emocional</b>
-              <small>Registros, gráficas y actividades privadas</small>
-            </span>
-            <Icon name="chevron" />
-          </button>
-          <button className="settings-row" type="button" onClick={() => router.push('/cuidarme')}>
-            <span>
-              <Icon name="heart" />
-            </span>
-            <span>
-              <b>Cuidarme</b>
-              <small>Actividades breves y privadas para este momento</small>
-            </span>
-            <Icon name="chevron" />
-          </button>
           <button className="settings-row" type="button" onClick={() => router.push('/mi-diario')}>
-            <span>
-              <Icon name="book" />
-            </span>
+            <Icon name="pulse" />
             <span>
               <b>Mi diario</b>
-              <small>Notas, emociones y papelera privada</small>
+              <small>Notas, emociones y actividades privadas</small>
+            </span>
+            <Icon name="chevron" />
+          </button>
+          <button className="settings-row" type="button" onClick={() => router.push('/mi-arbol')}>
+            <Icon name="bonsai" />
+            <span>
+              <b>Mi árbol</b>
+              <small>{treeCopy}</small>
             </span>
             <Icon name="chevron" />
           </button>
           <button className="settings-row" type="button" onClick={() => router.push('/mis-capsulas')}>
-            <span>
-              <Icon name="calendar" />
-            </span>
+            <Icon name="clock" />
             <span>
               <b>Mis cápsulas</b>
               <small>Mensajes privados para tu yo futuro</small>
             </span>
             <Icon name="chevron" />
           </button>
-          <button className="settings-row" type="button" onClick={() => router.push('/mi-arbol')}>
-            <span>
-              <Icon name="trend" />
-            </span>
-            <span>
-              <b>Mi árbol</b>
-              <small>Tu crecimiento permanece privado</small>
-            </span>
-            <Icon name="chevron" />
-          </button>
           <button className="settings-row" type="button" onClick={() => router.push('/cuenta/configuracion')}>
-            <span>
-              <Icon name="settings" />
-            </span>
+            <Icon name="settings" />
             <span>
               <b>Privacidad y configuración</b>
               <small>Cuenta, seudónimo y notificaciones</small>
             </span>
             <Icon name="chevron" />
           </button>
-          <button className="settings-row" type="button" onClick={() => router.push('/soporte')}>
-            <span>
-              <Icon name="shield" />
-            </span>
+          <button className="settings-row" type="button" onClick={() => router.push('/ayuda')}>
+            <Icon name="shield" />
             <span>
               <b>Ayuda y seguridad</b>
               <small>Reportes y recursos de apoyo</small>
@@ -368,9 +345,7 @@ export default function ProfilePage() {
           </button>
           {isStaff ? (
             <button className="settings-row" type="button" onClick={() => router.push('/moderacion')}>
-              <span>
-                <Icon name="flag" />
-              </span>
+              <Icon name="flag" />
               <span>
                 <b>Panel de moderación</b>
                 <small>Reportes, apelaciones e historial</small>

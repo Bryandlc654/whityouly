@@ -7,8 +7,7 @@ import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
-import GuideModal from '@/components/wy/GuideModal';
-import { GUIDES } from '@/lib/guideContent';
+import Guide58Modal from '@/components/wy/Guide58Modal';
 import RightRail from '@/components/wy/RightRail';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
@@ -315,7 +314,7 @@ export default function CapsulesPage() {
     <WyFrame
       characterInitials={initialsOf(character?.name)}
       avatarUrl={character?.avatarUrl}
-      activeRoute="mood"
+      activeRoute="tree"
       onNavigate={navigate}
       onOpenAccount={openAccount}
       toast={toast}
@@ -401,30 +400,38 @@ export default function CapsulesPage() {
     >
       <section className="screen capsules-page">
         <MiEspacioNav active="capsules" />
-        <section className="card capsule-hero">
+        <section className="capsule-hero card space-description">
           <div>
             <span className="micro-label">PRIVADA POR DEFECTO</span>
-            <h1>Mis cápsulas</h1>
-            <div className="purpose-copy">
+            <h1>Cápsula para mi futuro</h1>
+            <div className="purpose-copy capsule-description49">
               <b>¿Para qué sirve?</b>
               <span>
-                Guarda un mensaje privado para tu yo del futuro. Cuando llegue la fecha podrás
-                recordar lo que sentías, lo que aprendiste y cuánto has cambiado.
+                Guarda un mensaje privado para tu yo del futuro. Cuando lo abras podrás recordar lo que
+                sentías, lo que aprendiste y reconocer cuánto has cambiado.
               </span>
             </div>
           </div>
-          <button className="secondary capsule-guide-btn" type="button" onClick={() => setGuideOpen(true)}>
-            <Icon name="help" /> Cómo usarlo
+          <button
+            className="guide-btn"
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            aria-label="Cómo usar Cápsula para mi futuro"
+          >
+            <Icon name="help" />
+            <span>Cómo usarlo</span>
           </button>
         </section>
 
+        <p className="capsule-local49">
+          Solo para ti. Tus cápsulas se guardan de forma privada en tu cuenta y te avisaremos cuando llegue
+          la fecha de apertura.
+        </p>
+
         <section className="card capsule-editor">
-          <label className="field-label" htmlFor="capsuleText">
-            ¿Qué quieres decirle a tu yo futuro?
-          </label>
+          <label htmlFor="capsuleText">¿Qué quieres decirle a tu yo futuro?</label>
           <textarea
             id="capsuleText"
-            className="field"
             value={content}
             maxLength={5000}
             placeholder="Hoy me siento… Quiero recordar… Espero que cuando leas esto…"
@@ -433,9 +440,7 @@ export default function CapsulesPage() {
 
           <div className="capsule-options">
             <div>
-              <label className="field-label" htmlFor="capsuleDate">
-                Abrir en
-              </label>
+              <label htmlFor="capsuleDate">Abrir dentro de</label>
               <select id="capsuleDate" value={dateChoice} onChange={(event) => setDateChoice(event.target.value)}>
                 {DATE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -454,9 +459,7 @@ export default function CapsulesPage() {
               ) : null}
             </div>
             <div>
-              <label className="field-label" htmlFor="capsuleMood">
-                Emoción de hoy
-              </label>
+              <label htmlFor="capsuleMood">Emoción de hoy</label>
               <select id="capsuleMood" value={mood} onChange={(event) => setMood(event.target.value)}>
                 {MOODS.map((item) => (
                   <option key={item.name} value={item.name}>
@@ -486,7 +489,7 @@ export default function CapsulesPage() {
           </button>
         </section>
 
-        <h2 className="discovery-section-title">Cápsulas guardadas</h2>
+        {capsules.length > 0 ? <h2 className="discovery-section-title">Cápsulas guardadas</h2> : null}
 
         {listLoading ? <p className="muted small">Cargando tus cápsulas…</p> : null}
 
@@ -499,12 +502,6 @@ export default function CapsulesPage() {
           </div>
         ) : null}
 
-        {!listLoading && !error && capsules.length === 0 ? (
-          <div className="empty-state">
-            <h2>Aún no tienes cápsulas</h2>
-            <p>Escribe un mensaje para tu yo futuro. Solo tú podrás leerlo cuando llegue la fecha.</p>
-          </div>
-        ) : null}
 
         {!listLoading && !error
           ? capsules.map((capsule) => {
@@ -556,7 +553,7 @@ export default function CapsulesPage() {
 
         {guideOpen ? (
           <div className="modal-layer">
-            <GuideModal guide={GUIDES.capsules} onClose={() => setGuideOpen(false)} />
+            <Guide58Modal type="capsule" onClose={() => setGuideOpen(false)} />
           </div>
         ) : null}
       </section>

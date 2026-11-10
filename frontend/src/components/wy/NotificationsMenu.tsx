@@ -99,19 +99,14 @@ export default function NotificationsMenu({ unreadCount }: NotificationsMenuProp
   return (
     <div className="notif-menu" ref={containerRef}>
       <button
-        className="icon-btn"
+        className={badge > 0 ? 'icon-btn has-dot' : 'icon-btn'}
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label="Notificaciones"
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <Icon name="bell" />
-        {badge > 0 ? (
-          <span className="notif-badge" aria-hidden>
-            {badge > 9 ? '9+' : badge}
-          </span>
-        ) : null}
+        <span data-icon="bell"><Icon name="bell" /></span>
       </button>
 
       {open ? (

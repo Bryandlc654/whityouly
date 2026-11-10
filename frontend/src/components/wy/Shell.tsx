@@ -70,17 +70,17 @@ function TopBar({
             onClick={() => onNavigate('help')}
             aria-label="Ayuda y seguridad"
           >
-            <Icon name="help" />
+            <span data-icon="help"><Icon name="help" /></span>
           </button>
           <NotificationsMenu unreadCount={unreadNotifications} />
           <button
-            className="avatar avatar-sm"
+            className={avatarUrl ? 'avatar avatar-art avatar-sm avatar-illustrated' : 'avatar avatar-sm'}
             type="button"
             onClick={() => onNavigate('profile')}
             aria-label="Mi perfil"
           >
             {avatarUrl ? (
-              <Image src={avatarUrl} alt="" width={42} height={42} unoptimized />
+              <Image src={avatarUrl} alt="" width={96} height={96} unoptimized draggable={false} />
             ) : (
               characterInitials
             )}
@@ -106,13 +106,13 @@ function LeftRail({
             aria-current={activeRoute === item.route ? 'page' : undefined}
             onClick={() => onNavigate(item.route)}
           >
-            <Icon name={item.icon} />
+            <span data-icon={item.icon}><Icon name={item.icon} /></span>
             <b>{item.label}</b>
           </button>
         ))}
       </nav>
       <div className="safety-note">
-        <span>
+        <span data-icon="shield">
           <Icon name="shield" />
         </span>
         <div>
@@ -138,7 +138,7 @@ function BottomNav({
         className={activeRoute === 'home' ? 'active' : undefined}
         onClick={() => onNavigate('home')}
       >
-        <Icon name="home" />
+        <span data-icon="home"><Icon name="home" /></span>
         <small>Inicio</small>
       </button>
       <button
@@ -146,18 +146,18 @@ function BottomNav({
         className={activeRoute === 'explore' ? 'active' : undefined}
         onClick={() => onNavigate('explore')}
       >
-        <Icon name="search" />
+        <span data-icon="search"><Icon name="search" /></span>
         <small>Explorar</small>
       </button>
       <button className="create-fab" type="button" onClick={() => onNavigate('my-stories')} aria-label="Compartir relato">
-        <Icon name="plus" />
+        <span data-icon="plus"><Icon name="plus" /></span>
       </button>
       <button
         type="button"
         className={activeRoute === 'mood' ? 'active' : undefined}
         onClick={() => onNavigate('mood')}
       >
-        <Icon name="pulse" />
+        <span data-icon="pulse"><Icon name="pulse" /></span>
         <small>Mi espacio</small>
       </button>
       <button
@@ -165,7 +165,7 @@ function BottomNav({
         className={activeRoute === 'profile' ? 'active' : undefined}
         onClick={() => onNavigate('profile')}
       >
-        <Icon name="user" />
+        <span data-icon="user"><Icon name="user" /></span>
         <small>Perfil</small>
       </button>
     </nav>

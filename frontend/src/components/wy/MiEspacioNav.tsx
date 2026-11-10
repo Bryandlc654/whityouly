@@ -12,14 +12,14 @@ interface Props {
 const ITEMS: {
   id: MiEspacioSection;
   label: string;
-  icon: 'book' | 'pulse' | 'heart' | 'trend' | 'calendar';
+  icon: 'book' | 'pulse' | 'heart' | 'bonsai' | 'clock';
   href: string;
 }[] = [
   { id: 'diary', label: 'Mi diario', icon: 'book', href: '/mi-diario' },
   { id: 'mood', label: 'Mis emociones', icon: 'pulse', href: '/mi-estado' },
   { id: 'care', label: 'Cuidarme', icon: 'heart', href: '/cuidarme' },
-  { id: 'tree', label: 'Mi árbol', icon: 'trend', href: '/mi-arbol' },
-  { id: 'capsules', label: 'Cápsulas', icon: 'calendar', href: '/mis-capsulas' },
+  { id: 'tree', label: 'Mi árbol', icon: 'bonsai', href: '/mi-arbol' },
+  { id: 'capsules', label: 'Cápsulas', icon: 'clock', href: '/mis-capsulas' },
 ];
 
 export default function MiEspacioNav({ active }: Props) {

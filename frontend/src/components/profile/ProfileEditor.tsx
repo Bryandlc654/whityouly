@@ -122,6 +122,7 @@ export default function ProfileEditor({
   );
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [avatarPanelOpen, setAvatarPanelOpen] = useState(mode === 'create');
   const [creatorConfig, setCreatorConfig] = useState<AvatarConfig>(
     () => parseAvatarConfigFromUrl(initial?.avatarUrl) ?? DEFAULT_AVATAR_CONFIG,
   );
@@ -368,6 +369,19 @@ export default function ProfileEditor({
           size="lg"
           alt="Vista previa de tu avatar"
         />
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => setAvatarPanelOpen((value) => !value)}
+          aria-expanded={avatarPanelOpen}
+          disabled={busy}
+        >
+          Cambiar avatar
+        </button>
+      </div>
+
+      {avatarPanelOpen ? (
+      <div className="avatar-change-panel">
         <div className="profile-avatar-actions">
           <input
             ref={fileInputRef}
@@ -406,7 +420,6 @@ export default function ProfileEditor({
             WebP de máximo 2 MB.
           </p>
         </div>
-      </div>
 
       {creatorOpen ? (
         <AvatarCreator
@@ -436,6 +449,8 @@ export default function ProfileEditor({
           </button>
         ))}
       </div>
+      </div>
+      ) : null}
 
       <label htmlFor="profile-name">Seudónimo</label>
       <input
@@ -449,29 +464,16 @@ export default function ProfileEditor({
         aria-describedby="profile-name-status"
         className={mode === 'edit' ? 'is-locked' : undefined}
       />
+      {mode === 'create' ? (
       <p
         id="profile-name-status"
         className={`profile-name-status ${nameStatus.state}`}
         role="status"
         aria-live="polite"
       >
-        {mode === 'edit'
-          ? 'El seudónimo es estable para que otras personas puedan reconocerte.'
-          : nameStatus.message}
+        {nameStatus.message}
       </p>
-
-      <label htmlFor="profile-tagline">Descripción corta</label>
-      <input
-        id="profile-tagline"
-        value={tagline}
-        onChange={(event) => setTagline(event.target.value)}
-        maxLength={TAGLINE_MAX}
-        placeholder="Una frase que te describa"
-        disabled={busy}
-      />
-      <span className="char-count">
-        {tagline.length}/{TAGLINE_MAX}
-      </span>
+      ) : null}
 
       <label htmlFor="profile-bio">Biografía</label>
       <textarea
@@ -482,9 +484,6 @@ export default function ProfileEditor({
         placeholder="Cuéntanos qué te trae por aquí, si quieres."
         disabled={busy}
       />
-      <span className="char-count">
-        {bio.length}/{BIO_MAX}
-      </span>
 
       <label>Temas que quieres ver</label>
       {catalogError ? (
@@ -520,8 +519,30 @@ export default function ProfileEditor({
           })
         )}
       </div>
+
+      <label className="profile-visibility">
+        <input
+          type="checkbox"
+          checked={privacy.showFollowing}
+          onChange={(event) => setPrivacy((prev) => ({ ...prev, showFollowing: event.target.checked }))}
+          disabled={busy}
+        />
+        <span>Mostrar a otras personas los autores que sigo</span>
+      </label>
+
+      <details className="publish-options profile-more-options">
+        <summary>Más opciones de privacidad del perfil</summary>
+      <label htmlFor="profile-tagline">Descripción corta</label>
+      <input
+        id="profile-tagline"
+        value={tagline}
+        onChange={(event) => setTagline(event.target.value)}
+        maxLength={TAGLINE_MAX}
+        placeholder="Una frase que te describa"
+        disabled={busy}
+      />
       <span className="char-count">
-        {interests.length}/{MAX_INTERESTS} elegidos
+        {tagline.length}/{TAGLINE_MAX}
       </span>
 
       <label>Visibilidad del perfil</label>
@@ -591,32 +612,12 @@ export default function ProfileEditor({
           </span>
         </label>
 
-        <label className="settings-row">
-          <span>
-            <Icon name="users" />
-          </span>
-          <span>
-            <b>Mostrar a quién sigo</b>
-            <small>Si lo desactivas, solo tú verás tu lista de seguidos.</small>
-          </span>
-          <span>
-            <input
-              type="checkbox"
-              checked={privacy.showFollowing}
-              onChange={(event) =>
-                setPrivacy((prev) => ({ ...prev, showFollowing: event.target.checked }))
-              }
-              disabled={busy}
-            />
-          </span>
-        </label>
       </div>
 
+      </details>
+
+      {mode === 'create' ? <p className="hint">Podrás cambiarlo después desde tu cuenta.</p> : null}
       <div className="editor-actions">
-        <span className="char-count">
-          {mode === 'create' ? 'Podrás cambiarlo después desde tu cuenta.' : ''}
-        </span>
-        <div>
           {onCancel ? (
             <button className="ghost" type="button" onClick={onCancel} disabled={busy}>
               Cancelar
@@ -634,7 +635,6 @@ export default function ProfileEditor({
           >
             {busy ? 'Guardando…' : submitLabel}
           </button>
-        </div>
       </div>
     </form>
   );

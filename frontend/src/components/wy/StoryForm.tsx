@@ -257,7 +257,20 @@ export default function StoryForm({
     !done;
 
   async function submit(publish: boolean) {
-    if (!canSubmit) return;
+    if (saving || uploading || done) return;
+    if (!canSubmit) {
+      // v58 no deshabilita los botones: valida al enviar y explica qué falta.
+      setError(
+        !titleReady
+          ? 'Escribe un título de al menos 3 caracteres.'
+          : !contentReady
+            ? format === 'audio'
+              ? 'Graba o sube un audio antes de publicar.'
+              : 'Escribe tu relato antes de publicar.'
+            : 'Elige el relato que quieres continuar.',
+      );
+      return;
+    }
     setSaving(publish ? 'publish' : 'draft');
     setAction(publish ? 'publish' : 'draft');
     setError('');
@@ -495,16 +508,6 @@ export default function StoryForm({
         </label>
       ) : null}
 
-      {!minimal ? (
-        <div className="compose-format-heading">
-          <div>
-            <span className="micro-label">FORMATO DEL RELATO</span>
-            <h2>¿Cómo quieres publicarlo?</h2>
-          </div>
-          <small>Elige cómo aparecerá en el feed.</small>
-        </div>
-      ) : null}
-
       <div
         className={minimal ? 'compose-tabs' : 'compose-tabs compose-tabs-three card'}
         role="tablist"
@@ -520,7 +523,6 @@ export default function StoryForm({
           <Icon name="edit" />
           <span>
             <b>Texto</b>
-            <small>Relato clásico</small>
           </span>
         </button>
         <button
@@ -535,7 +537,6 @@ export default function StoryForm({
           <Icon name="sparkle" />
           <span>
             <b>Tarjeta visual</b>
-            <small>Diseño en el feed</small>
           </span>
         </button>
         <button
@@ -548,7 +549,6 @@ export default function StoryForm({
           <Icon name="music" />
           <span>
             <b>Audio</b>
-            <small>Voz + transcripción</small>
           </span>
         </button>
       </div>
@@ -584,81 +584,49 @@ export default function StoryForm({
       ) : (
         <>
           {!continuation ? (
-            <label className="field-label" style={{ marginTop: 10 }}>
-              Título
+            <>
+              <label htmlFor="storyTitle">Título</label>
               <input
-                className="field story-field"
+                id="storyTitle"
                 type="text"
                 value={title}
                 maxLength={TITLE_MAX}
-                placeholder="Una frase que resuma lo que quieres contar"
+                placeholder="Ponle un título a lo que quieres contar"
                 onChange={(event) => setTitle(event.target.value)}
               />
-            </label>
+            </>
           ) : null}
 
-          <label className="field-label">
-            Tu relato
-            <textarea
-              className="field story-field"
-              value={content}
-              maxLength={CONTENT_MAX}
-              style={{ minHeight: 130 }}
-              placeholder="No tienes que explicarlo todo. Escribe a tu ritmo."
-              onChange={(event) => setContent(event.target.value)}
-            />
-          </label>
-          <p className="hint" style={{ textAlign: 'right', margin: 0 }}>
-            {content.trim().length}/{CONTENT_MAX}
+          <label htmlFor="storyBody">Tu relato</label>
+          <textarea
+            id="storyBody"
+            value={content}
+            maxLength={CONTENT_MAX}
+            placeholder="Cuenta algo que quieras compartir: una alegría, una experiencia o un momento de tu día…"
+            onChange={(event) => setContent(event.target.value)}
+          />
+          <div className="char-count">
+            <span>{content.length}</span>/{CONTENT_MAX} caracteres
+          </div>
+          <p className="draft-status" role="status">
+            Puedes guardarlo como borrador desde Detalles del relato.
           </p>
         </>
       )) : (
-        <label className="field-label" style={{ marginTop: 10 }}>
-          Título
+        <>
+          <label htmlFor="storyTitle">Título</label>
           <input
-            className="field story-field"
+            id="storyTitle"
             type="text"
             value={title}
             maxLength={TITLE_MAX}
             placeholder="Ponle un título a lo que quieres contar"
             onChange={(event) => setTitle(event.target.value)}
           />
-        </label>
+        </>
       )}
 
-      {!minimal ? (
-        <div className="editor-grid">
-          <label className="field-label">
-            Tema principal
-            <select
-              className="field"
-              value={category ?? ''}
-              onChange={(event) => setCategory(event.target.value || null)}
-            >
-              <option value="">Sin tema</option>
-              {(catalog?.categories ?? []).map((item) => (
-                <option key={item.id ?? item.name} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field-label">
-            Tipo de publicación
-            <select
-              className="field"
-              value={continuation ? 'continuation' : 'new'}
-              onChange={(event) => {
-                setPublicationKind(event.target.value === 'continuation' ? 'continuation' : 'new');
-                if (event.target.value === 'continuation' && format === 'card') setFormat('text');
-              }}
-            >
-              <option value="new">Relato nuevo</option>
-              <option value="continuation">Actualización de un relato anterior</option>
-            </select>
-          </label>
-        </div>
-      ) : null}
+
 
       {format === 'card' ? (
         <div className="story-card-picker">
@@ -811,11 +779,66 @@ export default function StoryForm({
         <details className="compose-details">
           <summary>
             <span>
-              <b>Opciones avanzadas</b>
-              <small>Imagen, categoría, emoción y visibilidad</small>
+              <b>
+                Detalles del relato <small>(opcional)</small>
+              </b>
+              <span data-compose-details-summary="">Tema, emoción, tipo, imagen y más</span>
             </span>
+            <Icon name="chevron" />
           </summary>
           <div className="compose-details-body">
+            <div className="metadata-fields">
+              <div>
+                <label htmlFor="storyCategory">Tema <span className="field-optional">(opcional)</span></label>
+                <select
+              id="storyCategory"
+              value={category ?? ''}
+              onChange={(event) => setCategory(event.target.value || null)}
+            >
+              <option value="">Sin elegir tema</option>
+              {(catalog?.categories ?? []).map((item) => (
+                <option key={item.id ?? item.name} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+              </div>
+              <div>
+                <label htmlFor="storyEmotion">Emoción o estado <span className="field-optional">(opcional)</span></label>
+                <select
+                  id="storyEmotion"
+                  value={emotions[0] ?? ''}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setEmotions((current) => (value ? [value, ...current.filter((item) => item !== value)].slice(0, MAX_EMOTIONS) : current.slice(1)));
+                  }}
+                >
+                  <option value="">Sin elegir emoción</option>
+                  {(catalog?.emotions ?? []).map((item) => (
+                    <option key={item.id ?? item.name} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="editor-grid">
+              <div>
+                <label htmlFor="storyKind">Tipo de publicación</label>
+                <select
+              id="storyKind"
+              value={continuation ? 'continuation' : 'new'}
+              onChange={(event) => {
+                setPublicationKind(event.target.value === 'continuation' ? 'continuation' : 'new');
+                if (event.target.value === 'continuation' && format === 'card') setFormat('text');
+              }}
+            >
+              <option value="new">Relato nuevo</option>
+              <option value="continuation">Actualización de un relato anterior</option>
+            </select>
+              </div>
+            </div>
+
             <div className="row-between compose-tools-row">
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {format !== 'audio' ? (
@@ -836,6 +859,12 @@ export default function StoryForm({
                 {visibility === 'PUBLIC' ? 'Público' : visibility === 'FOLLOWERS' ? 'Seguidores' : 'Privado'}
               </span>
             </div>
+            <div className="compose-draft-action">
+              <span>Puedes continuar más tarde.</span>
+              <button type="button" className="ghost" onClick={() => void submit(false)}>
+                {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
+              </button>
+            </div>
           </div>
         </details>
       )}
@@ -843,19 +872,19 @@ export default function StoryForm({
       {showOptions ? <div className="story-options">{options}</div> : null}
 
       {!minimal ? (
-        <div className="editor-actions">
-          <button className="ghost" type="button" onClick={() => void submit(false)} disabled={!canSubmit}>
-            {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
-          </button>
-          <div>
-            <button className="secondary" type="button" onClick={() => setPreviewOpen(true)} disabled={!titleReady}>
-              <Icon name="eye" /> Vista previa
+        <>
+          <div className="tip compose-privacy-hint">
+            <Icon name="shield" />
+            <span>Antes de publicar, revisa que no hayas incluido datos que te identifiquen.</span>
+          </div>
+          <div className="editor-actions compose-publish-bar">
+            <button className="secondary" type="button" onClick={() => setPreviewOpen(true)}>
+              Vista previa
             </button>
             <button
               className="primary"
               type="button"
               onClick={() => void submit(true)}
-              disabled={!canSubmit}
             >
               {saving === 'publish'
                 ? 'Publicando…'
@@ -866,7 +895,7 @@ export default function StoryForm({
                     : 'Publicar relato'}
             </button>
           </div>
-        </div>
+        </>
       ) : null}
       </div>
 

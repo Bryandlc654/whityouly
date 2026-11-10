@@ -38,6 +38,8 @@ export const ICON_PATHS = {
   mail: "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"m3 7 9 6 9-6\"/>",
   trash: "<path d=\"M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6\"/>",
   restore: "<path d=\"M3 12a9 9 0 1 0 3-6.7L3 8\"/><path d=\"M3 3v5h5\"/>",
+  bonsai: "<path d=\"M7 18h10l-1 4H8z\"/><path d=\"M12 18c0-3.4.2-5.5-1.6-7.7M12 16c1.3-2.7 2.7-4.2 5-5.4\"/><circle cx=\"7.2\" cy=\"9.5\" r=\"3.2\"/><circle cx=\"11.2\" cy=\"7.4\" r=\"3.6\"/><circle cx=\"15.7\" cy=\"8.7\" r=\"3.4\"/><circle cx=\"12.3\" cy=\"11.1\" r=\"3.7\"/>",
+  clock: "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

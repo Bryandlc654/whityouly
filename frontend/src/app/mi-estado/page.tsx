@@ -10,8 +10,7 @@ import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
 import Icon from '@/components/wy/Icon';
 import MiEspacioNav from '@/components/wy/MiEspacioNav';
-import GuideModal from '@/components/wy/GuideModal';
-import { GUIDES } from '@/lib/guideContent';
+import Guide58Modal from '@/components/wy/Guide58Modal';
 import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import MoodModal, { MOOD_EMOJI } from '@/components/wy/MoodModal';
 import {
@@ -147,6 +146,48 @@ function moodEmoji(name: string | undefined | null): string {
   return MOOD_EMOJI[name] ?? '📝';
 }
 
+/** Emociones y colores de v58 (emotionConfig), en su orden. */
+const EMOTIONS58: { name: string; emoji: string; color: string; soft: string }[] = [
+  { name: 'Alegría', emoji: '😄', color: '#F4B942', soft: '#FFF6D9' },
+  { name: 'Calma', emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
+  { name: 'Esperanza', emoji: '🌱', color: '#62B878', soft: '#E8F6EC' },
+  { name: 'Neutral', emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
+  { name: 'Tristeza', emoji: '😔', color: '#5B84C4', soft: '#E7EFFB' },
+  { name: 'Ansiedad', emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
+  { name: 'Enojo', emoji: '😠', color: '#E06A5F', soft: '#FCEAE7' },
+  { name: 'Soledad', emoji: '🫥', color: '#6670A8', soft: '#EAECF5' },
+  { name: 'Cansancio', emoji: '😴', color: '#B08B68', soft: '#F5EEE7' },
+];
+const EMOTION58 = Object.fromEntries(EMOTIONS58.map((item) => [item.name, item]));
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const dayKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+/** Días de la semana actual (lunes a domingo), como weekKeys() de v58. */
+function weekKeys(): string[] {
+  const now = new Date();
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => dayKey(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)));
+}
+
+/** Todos los días del mes actual, como monthKeys() de v58. */
+function monthKeys(): string[] {
+  const now = new Date();
+  const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return Array.from({ length: total }, (_, i) => dayKey(new Date(now.getFullYear(), now.getMonth(), i + 1)));
+}
+
+/** «10 de noviembre», como dateLabel() de v58. */
+function dateLabel(key: string): string {
+  return new Date(`${key}T12:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'long' });
+}
+
+/** Ventana en días que cubre la semana y el mes actuales. */
+function summaryWindow(): number {
+  const now = new Date();
+  return Math.max(now.getDate(), ((now.getDay() + 6) % 7) + 1, 7);
+}
+
 export default function EmotionalMapPage() {
   const router = useRouter();
 
@@ -163,7 +204,8 @@ export default function EmotionalMapPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [logsError, setLogsError] = useState('');
   const [loadingMore, setLoadingMore] = useState(false);
-  const [emotionFilter, setEmotionFilter] = useState('ALL');
+  const [emotionFilter, setEmotionFilter] = useState('Esperanza');
+  const [todayLogs, setTodayLogs] = useState<EmotionalLog[]>([]);
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [dayLogs, setDayLogs] = useState<EmotionalLog[]>([]);
@@ -174,7 +216,7 @@ export default function EmotionalMapPage() {
   const [formName, setFormName] = useState('Esperanza');
   const [formValue, setFormValue] = useState(7);
   const [formNote, setFormNote] = useState('');
-  const [formDaypart, setFormDaypart] = useState('Todo el día');
+  const [formDaypart, setFormDaypart] = useState('Ahora');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -196,9 +238,18 @@ export default function EmotionalMapPage() {
     [],
   );
 
-  const loadSummary = useCallback(async (days: RangeDays) => {
+  const loadSummary = useCallback(async (_days: RangeDays) => {
     setSummaryLoading(true);
-    const result = await getEmotionalSummary({ days, tzOffsetMinutes: timezoneOffsetMinutes() });
+    const todayKey = dayKey(new Date());
+    const [result, todayResult] = await Promise.all([
+      getEmotionalSummary({ days: summaryWindow(), tzOffsetMinutes: timezoneOffsetMinutes() }),
+      listEmotionalLogs({
+        from: new Date(`${todayKey}T00:00:00`).toISOString(),
+        to: new Date(`${todayKey}T23:59:59.999`).toISOString(),
+        limit: 50,
+      }),
+    ]);
+    if (todayResult.status === 'ok') setTodayLogs([...todayResult.data.items].reverse());
     setSummaryLoading(false);
 
     if (result.status !== 'ok') {
@@ -272,6 +323,11 @@ export default function EmotionalMapPage() {
     [notify],
   );
 
+  // v58 abre el calendario con el día de hoy seleccionado.
+  useEffect(() => {
+    if (!loading) void loadDay(dayKey(new Date()));
+  }, [loading, loadDay]);
+
   const refresh = useCallback(async () => {
     await Promise.all([loadSummary(range), loadRecentLogs()]);
     if (selectedDay) void loadDay(selectedDay);
@@ -335,7 +391,7 @@ export default function EmotionalMapPage() {
     setFormName(name);
     setFormValue(7);
     setFormNote('');
-    setFormDaypart('Todo el día');
+    setFormDaypart('Ahora');
     setFormError('');
     setModalOpen(true);
   };
@@ -399,16 +455,49 @@ export default function EmotionalMapPage() {
     return logs.filter((log) => log.emotion.name === emotionFilter);
   }, [logs, emotionFilter]);
 
-  const bars = useMemo(() => {
-    if (!summary) return [];
-    // El gráfico cubre todo el periodo elegido, igual que el resumen.
-    return summary.days;
-  }, [summary]);
+  const byDay = useMemo(
+    () => new Map((summary?.days ?? []).map((day) => [day.date.slice(0, 10), day])),
+    [summary],
+  );
+  const periodName = range === 1 ? 'Día' : range === 30 ? 'Mes' : 'Semana';
+  const periodKeys = range === 1 ? [dayKey(new Date())] : range === 30 ? monthKeys() : weekKeys();
 
-  // Con muchos días no se puede etiquetar cada barra; se muestran unas pocas.
-  const barLabelEvery = Math.max(1, Math.ceil(bars.length / 12));
+  /** Barras del periodo, como slotsFor() de v58. */
+  const slots: { key: string; label: string; value: number | null; emotion: string | null }[] =
+    range === 1
+      ? todayLogs.map((log) => ({
+          key: log.id,
+          label: formatTime(log.loggedAt),
+          value: log.intensity,
+          emotion: log.emotion.name,
+        }))
+      : periodKeys.map((key) => {
+          const day = byDay.get(key);
+          const has = Boolean(day && day.entries > 0);
+          return {
+            key,
+            label:
+              range === 30
+                ? String(Number(key.slice(-2)))
+                : new Date(`${key}T12:00:00`).toLocaleDateString('es-PE', { weekday: 'narrow' }).toUpperCase(),
+            value: has ? Math.round(day?.averageIntensity ?? 0) : null,
+            emotion: has ? day?.emotion?.name ?? null : null,
+          };
+        });
 
-  const dominant = summary?.emotions[0] ?? null;
+  const periodCount =
+    range === 1 ? todayLogs.length : periodKeys.reduce((sum, key) => sum + (byDay.get(key)?.entries ?? 0), 0);
+  const periodEmotion = (() => {
+    const counts = new Map<string, number>();
+    for (const slot of slots) if (slot.emotion) counts.set(slot.emotion, (counts.get(slot.emotion) ?? 0) + 1);
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  })();
+
+  const trendColors = EMOTION58[emotionFilter] ?? EMOTION58.Esperanza;
+  const trendPoints = slots.filter((slot) => slot.emotion === emotionFilter && slot.value !== null);
+  const today = dayKey(new Date());
+  const days = monthKeys();
+  const monthTitle = new Date().toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
 
   return (
     <WyFrame
@@ -441,7 +530,8 @@ export default function EmotionalMapPage() {
       rightRail={
         <RightRail
           summaryHidden={false}
-          onToggleSummary={() => notify('Tu resumen es privado: solo tú lo ves.')}          onMood={() => setRange(30)}
+          onToggleSummary={() => notify('Tu resumen es privado: solo tú lo ves.')}
+          onMood={() => setRange(30)}
         />
       }
     >
@@ -514,114 +604,121 @@ export default function EmotionalMapPage() {
         <section className="chart-card card">
           <div className="chart-head">
             <div>
-              <h2>Resumen de semana</h2>
+              <h2>Resumen de {periodName.toLowerCase()}</h2>
               <p>Cada color representa una emoción; la altura representa intensidad.</p>
             </div>
             <div className="legend">
               <span>
-                <i style={{ background: '#37a978' }} /> Intensidad 1–10
+                <i style={{ background: '#62B878' }} /> Intensidad 1–10
               </span>
             </div>
           </div>
 
-          <div
-            className={`bar-chart emotion-chart${
-              !summary || summary.totalEntries === 0 ? ' is-empty' : ''
-            }`}
-          >
-            {bars.map((day, index) => (
-              <div
-                className="bar-col"
-                key={day.date}
-                title={
-                  day.averageIntensity !== null
-                    ? `${formatDayLong(day.date)}: ${day.averageIntensity}/10`
-                    : `${formatDayLong(day.date)}: sin registros`
-                }
-              >
-                <i
-                  style={
-                    {
-                      '--h': `${(day.averageIntensity ?? 0) * 8}%`,
-                      background: day.emotion?.colorHex
-                        ? `linear-gradient(${day.emotion.colorHex}, ${day.emotion.colorHex}cc)`
-                        : undefined,
-                    } as CSSProperties
-                  }
-                />
-                {day.averageIntensity !== null ? <b>{day.averageIntensity}</b> : null}
-                <small>{WEEKDAYS[index % 7]}</small>
-              </div>
-            ))}
+          <div className={`bar-chart emotion-chart ${range === 30 ? 'month-bars' : ''}`}>
+            {slots.length ? (
+              slots.map((slot) => (
+                <div
+                  className="bar-col"
+                  key={slot.key}
+                  aria-label={slot.value !== null ? `${slot.emotion}, intensidad ${slot.value} de 10` : 'Sin registro'}
+                >
+                  <b>{slot.value !== null ? slot.value : '—'}</b>
+                  <i
+                    style={
+                      {
+                        '--h': `${slot.value !== null ? slot.value * 8.5 : 2}%`,
+                        '--bar': slot.value !== null ? EMOTION58[slot.emotion ?? '']?.color ?? '#6246F5' : '#E5E7EB',
+                      } as CSSProperties
+                    }
+                  />
+                  <small>{slot.label}</small>
+                </div>
+              ))
+            ) : (
+              <p>Hoy todavía no has registrado cómo te sientes.</p>
+            )}
           </div>
 
           <div className="chart-foot">
             <span>
-              {summary && summary.totalEntries > 0
-                ? `Emoción frecuente: ${dominant?.name ?? 'Sin registros'}`
-                : 'Sin registros en este periodo'}
+              {periodEmotion ? (
+                <>
+                  Emoción frecuente:{' '}
+                  <b>
+                    {periodEmotion} {EMOTION58[periodEmotion]?.emoji ?? moodEmoji(periodEmotion)}
+                  </b>
+                </>
+              ) : (
+                'Sin registros en este periodo'
+              )}
             </span>
-            <span>{summary?.totalEntries ?? 0} registros</span>
+            <span>{periodCount} registros</span>
           </div>
         </section>
 
-        <section className="chart-card card emotion-line-card">
+        <section
+          className="chart-card card emotion-line-card"
+          style={{ '--trend': trendColors.color, '--trend-soft': trendColors.soft } as CSSProperties}
+        >
           <div className="chart-head">
             <div>
-              <h2>Evolución de una emoción</h2>
-              <p>Elige una emoción para ver cómo cambió su intensidad.</p>
+              <h2>Tendencia por emoción</h2>
+              <p>Selecciona una emoción específica. No se mezclan emociones opuestas en un solo puntaje.</p>
             </div>
             <select
               className="emotion-select"
+              id="emotionSelect"
               value={emotionFilter}
               onChange={(event) => setEmotionFilter(event.target.value)}
-              aria-label="Filtrar por emoción"
+              aria-label="Emoción"
             >
-              <option value="ALL">Todas las emociones</option>
-              {(summary?.emotions ?? []).map((emotion) => (
+              {EMOTIONS58.map((emotion) => (
                 <option key={emotion.name} value={emotion.name}>
-                  {emotion.name}
+                  {emotion.emoji} {emotion.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {summary && summary.totalEntries > 0 ? (
-            <div className="line-chart">
+          <div className="line-chart">
+            {trendPoints.length ? (
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
                 <polyline
-                  points={bars
-                    .map((day, index) => {
-                      const x = bars.length === 1 ? 50 : (index / (bars.length - 1)) * 100;
-                      const y = 100 - (day.averageIntensity ?? 0) * 8;
-                      return `${x},${y}`;
-                    })
+                  points={slots
+                    .map((slot, index) =>
+                      slot.emotion === emotionFilter && slot.value !== null
+                        ? `${slots.length === 1 ? 50 : (index / (slots.length - 1)) * 100},${100 - slot.value * 8.5}`
+                        : null,
+                    )
+                    .filter(Boolean)
                     .join(' ')}
                   fill="none"
-                  stroke="#6246F5"
-                  strokeWidth="2"
+                  stroke="var(--trend)"
+                  strokeWidth="3"
                   vectorEffect="non-scaling-stroke"
                 />
               </svg>
-            </div>
-          ) : (
-            <p className="no-emotion-data">
-              No hay registros de {emotionFilter === 'ALL' ? 'emociones' : emotionFilter} en este
-              periodo.
-            </p>
-          )}
-
+            ) : (
+              <p className="no-emotion-data">No hay registros de {emotionFilter.toLowerCase()} en este periodo.</p>
+            )}
+          </div>
           <div className="insight">
-            Puedes elegir otra emoción o registrar cómo te sientes ahora.
+            {trendPoints.length
+              ? `${emotionFilter}: ${trendPoints.length} ${trendPoints.length === 1 ? 'registro' : 'registros'} en este periodo.`
+              : 'Puedes elegir otra emoción o registrar cómo te sientes ahora.'}
           </div>
         </section>
 
         <section className="chart-card card">
           <div className="chart-head">
             <div>
-              <h2>Tu calendario</h2>
-              <p>El color de cada día refleja tu emoción dominante. Toca un día para ver el detalle.</p>
+              <h2>Tu mapa emocional — {monthTitle}</h2>
+              <p>Color: emoción predominante. Saturación: intensidad registrada.</p>
             </div>
+            <button className="guide-btn" type="button" onClick={() => setGuideOpen(true)}>
+              <Icon name="help" />
+              <span>Guía</span>
+            </button>
           </div>
 
           <div className="calendar">
@@ -630,58 +727,63 @@ export default function EmotionalMapPage() {
                 {label}
               </div>
             ))}
-            {summary && summary.days.length > 0
-              ? Array.from({ length: mondayIndex(summary.days[0].date) }).map((_, index) => (
-                  <div key={`pad-${index}`} aria-hidden />
-                ))
-              : null}
-            {(summary?.days ?? []).map((day) => (
-              <button
-                key={day.date}
-                type="button"
-                className={`day${selectedDay === day.date ? ' selected' : ''}`}
-                style={{ '--c': tint(day.emotion?.colorHex, '#f6f5f8') } as CSSProperties}
-                onClick={() => void loadDay(day.date)}
-                aria-label={formatDayLong(day.date)}
-              >
-                <b>{shortDay(day.date)}</b>
-                {day.entries > 0 ? <small>{day.entries}</small> : null}
-              </button>
+            {Array.from({ length: mondayIndex(days[0]) }).map((_, index) => (
+              <div key={`pad-${index}`} />
             ))}
+            {days.map((key) => {
+              const day = byDay.get(key);
+              const has = Boolean(day && day.entries > 0);
+              const cfg = has ? EMOTION58[day?.emotion?.name ?? ''] : null;
+              const value = has ? Math.round(day?.averageIntensity ?? 0) : null;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`day ${has ? '' : 'empty-day'} ${selectedDay === key ? 'selected' : ''}`}
+                  disabled={key > today}
+                  style={{ '--c': cfg?.soft ?? '#FFF', '--edge': cfg?.color ?? '#E5E7EB' } as CSSProperties}
+                  onClick={() => void loadDay(key)}
+                  aria-label={`${dateLabel(key)}: ${has ? `${day?.emotion?.name ?? ''} ${value}/10` : 'sin registro'}`}
+                >
+                  <b>{Number(key.slice(-2))}</b>
+                  {has ? (
+                    <>
+                      <span>{cfg?.emoji ?? moodEmoji(day?.emotion?.name)}</span>
+                      <small>{value}/10</small>
+                    </>
+                  ) : (
+                    <small>—</small>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="calendar-legend">
-            {(summary?.emotions ?? []).slice(0, 6).map((emotion) => (
-              <span
-                key={emotion.name}
-                style={{ '--dot': emotion.colorHex ?? 'var(--purple)' } as CSSProperties}
-              >
-                {emotion.name}
+            {EMOTIONS58.map((emotion) => (
+              <span key={emotion.name} style={{ '--dot': emotion.color } as CSSProperties}>
+                {emotion.emoji} {emotion.name}
               </span>
             ))}
           </div>
 
           {selectedDay ? (
             <div className="day-detail show">
-              <h3>{formatDayLong(selectedDay)}</h3>
+              <h3>{dateLabel(selectedDay)}</h3>
               {dayLoading ? (
-                <p className="muted small">Cargando…</p>
+                <p>Cargando…</p>
               ) : dayLogs.length === 0 ? (
-                <p className="muted small">No hay registros en este día.</p>
+                <p>No hay registros en este día.</p>
               ) : (
                 dayLogs.map((log) => (
                   <div className="timeline-item" key={log.id}>
-                    <span className="timeline-emoji">{moodEmoji(log.emotion.name)}</span>
                     <time>{formatTime(log.loggedAt)}</time>
                     <div>
                       <b>
-                        {log.emotion.name} · {log.intensity}/10
+                        {EMOTION58[log.emotion.name]?.emoji ?? moodEmoji(log.emotion.name)} {log.emotion.name} ·{' '}
+                        {log.intensity}/10
                       </b>
-                      {log.contextNote ? (
-                        <p className="muted small" style={{ margin: '3px 0 0' }}>
-                          {log.contextNote}
-                        </p>
-                      ) : null}
+                      {log.contextNote ? <p>{log.contextNote}</p> : null}
                     </div>
                   </div>
                 ))
@@ -692,7 +794,7 @@ export default function EmotionalMapPage() {
 
         {guideOpen ? (
           <div className="modal-layer">
-            <GuideModal guide={GUIDES.mood} onClose={() => setGuideOpen(false)} />
+            <Guide58Modal type="summary" onClose={() => setGuideOpen(false)} />
           </div>
         ) : null}
       </section>
