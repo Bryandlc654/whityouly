@@ -173,3 +173,6 @@
 /* Modales: scroll disponible, barra oculta. */
 .wy .modal-layer,.wy .modal,.wy .sheet-layer,.wy .sheet{scrollbar-width:none;-ms-overflow-style:none}
 .wy .modal-layer::-webkit-scrollbar,.wy .modal::-webkit-scrollbar,.wy .sheet-layer::-webkit-scrollbar,.wy .sheet::-webkit-scrollbar{width:0;height:0;display:none}
+.wy .session-expired-modal{width:min(480px,100%)}
+.wy .session-expired-icon{display:grid;place-items:center;width:46px;height:46px;flex:0 0 46px;border-radius:15px;background:#F1EDFF;color:#6246F5}
+.wy .session-expired-icon svg{width:22px;height:22px}

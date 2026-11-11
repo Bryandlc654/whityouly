@@ -106,6 +106,12 @@ const es: Messages = {
   'auth.forgot.submit': 'Enviar enlace de recuperación',
   'auth.forgot.back': 'Volver a iniciar sesión',
   'auth.error': 'No se pudo completar la solicitud.',
+  'auth.sessionExpired': 'Tu sesión expiró. Inicia sesión de nuevo para continuar.',
+  'session.kicker': 'SESIÓN',
+  'session.expiredTitle': 'Tu sesión expiró',
+  'session.expiredCopy':
+    'Por seguridad, vuelve a iniciar sesión. Tu borrador y los cambios guardados en este dispositivo se conservan.',
+  'session.expiredCta': 'Iniciar sesión',
   'auth.showPassword': 'Mostrar contraseña',
   'auth.hidePassword': 'Ocultar contraseña',
 
@@ -382,6 +388,12 @@ const en: Messages = {
   'auth.forgot.submit': 'Send recovery link',
   'auth.forgot.back': 'Back to sign in',
   'auth.error': 'The request could not be completed.',
+  'auth.sessionExpired': 'Your session expired. Sign in again to continue.',
+  'session.kicker': 'SESSION',
+  'session.expiredTitle': 'Your session expired',
+  'session.expiredCopy':
+    'For your security, sign in again. Your draft and changes saved on this device are preserved.',
+  'session.expiredCta': 'Sign in',
   'auth.showPassword': 'Show password',
   'auth.hidePassword': 'Hide password',
 

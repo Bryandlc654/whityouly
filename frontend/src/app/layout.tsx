@@ -9,6 +9,7 @@ import "./withyouly-v58-parity.css";
 // Correcciones medidas en la verificacion E2E (se cargan al final).
 import "./withyouly-e2e-fixes.css";
 import ReadingSizeSync from "@/components/ReadingSizeSync";
+import SessionExpiredGuard from "@/components/providers/SessionExpiredGuard";
 import { I18nProvider } from "@/components/providers/I18nProvider";
 import { DEFAULT_LANGUAGE, type Language } from "@/lib/i18n/messages";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
       <body className={`antialiased font-body-md`}>
         <I18nProvider initialLanguage={language}>
           <ReadingSizeSync />
+          <SessionExpiredGuard />
           {children}
         </I18nProvider>
       </body>

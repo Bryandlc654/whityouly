@@ -2,6 +2,9 @@ import { API_URL } from './api';
 
 const ACCESS_TOKEN_KEY = 'accessToken';
 
+/** Evento global para que la app cierre la sesión de forma coordinada. */
+export const SESSION_EXPIRED_EVENT = 'withyouly:session-expired';
+
 /**
  * El access token (de vida corta) se guarda en el navegador para adjuntarlo a
  * las peticiones. El refresh token (de vida larga) vive en una cookie httpOnly
@@ -70,6 +73,9 @@ export async function authFetch(input: string, init: RequestInit = {}): Promise<
   const refreshed = await refreshAccessToken();
   if (!refreshed) {
     tokenStorage.clear();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     return response;
   }
 

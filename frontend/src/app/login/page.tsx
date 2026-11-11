@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
 import { authFetch, tokenStorage } from '@/lib/auth';
@@ -16,9 +16,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const router = useRouter();
   const { t } = useI18n();
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('motivo') === 'sesion') {
+      setSessionExpired(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +79,11 @@ export default function LoginPage() {
       <form className="reference-form" onSubmit={handleLogin}>
         <h1>{t('auth.login.title')}</h1>
         <p>{t('auth.login.subtitle')}</p>
+        {sessionExpired ? (
+          <div className="tip" role="status">
+            <Icon name="lock" /> {t('auth.sessionExpired')}
+          </div>
+        ) : null}
         {error ? <div className="auth-error">{error}</div> : null}
         {success ? <div className="auth-success">{t('auth.login.submitting')}</div> : null}
 
