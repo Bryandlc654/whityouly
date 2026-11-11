@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { fetchAccount } from '@/lib/account';
 import { countryLabel, languageLabel } from '@/lib/locales';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
@@ -20,6 +19,7 @@ import JoinPrompt from '@/components/wy/JoinPrompt';
 import { followStory, listSupportedStoryIds, supportStory, unfollowStory, unsupportStory } from '@/lib/interactions';
 import { whatIFollow } from '@/lib/follows';
 import { rememberReturnTo } from '@/lib/returnTo';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 function initialsOf(name?: string | null) {
   if (!name) return '?';
@@ -40,13 +40,13 @@ export default function StoryPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const storyId = typeof params?.id === 'string' ? params.id : '';
+  const { t, language } = useI18n();
 
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [story, setStory] = useState<MyStory | null>(null);
   const [storyLoading, setStoryLoading] = useState(true);
-  const [preferredLanguage, setPreferredLanguage] = useState('es');
-  const [translated, setTranslated] = useState(false);
+  const [translated, setTranslated] = useState(true);
   const [error, setError] = useState('');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
@@ -124,10 +124,6 @@ export default function StoryPage() {
           }
         });
 
-        const accountResult = await fetchAccount();
-        if (accountResult.status === 'ok') {
-          setPreferredLanguage(accountResult.data.preferences.language || 'es');
-        }
       } catch (err) {
         console.error('Error verificando sesión', err);
       } finally {
@@ -267,7 +263,7 @@ export default function StoryPage() {
   }
 
   const tags = story ? [...story.categories, ...story.tags].slice(0, 5) : [];
-  const translation = story?.translations?.[preferredLanguage] ?? null;
+  const translation = story?.translations?.[language] ?? null;
   const displayStory =
     story && translated && translation
       ? {
@@ -346,7 +342,7 @@ export default function StoryPage() {
                   ))}
                   {translation ? (
                     <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
-                      {translated ? 'Ver original' : `Ver traducción (${languageLabel(preferredLanguage)})`}
+                      {translated ? t('post.viewOriginal') : `${t('post.viewTranslation')} (${languageLabel(language)})`}
                     </button>
                   ) : null}
                 </div>

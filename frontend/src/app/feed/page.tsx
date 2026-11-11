@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { fetchAccount } from '@/lib/account';
 import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
@@ -114,12 +113,11 @@ function toEntry(story: FollowingStory, authorName: string, preferredLanguage: s
 
 export default function FeedPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [loading, setLoading] = useState(true);
   const [character, setCharacter] = useState<CharacterSummary | null>(null);
 
   const [feedItems, setFeedItems] = useState<FollowingStory[] | null>(null);
-  const [preferredLanguage, setPreferredLanguage] = useState('es');
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState('');
 
@@ -203,18 +201,13 @@ export default function FeedPage() {
     if (!options?.silent) setFeedLoading(true);
     setFeedError('');
 
-    const [feed, follows, followedStories, supportedStories, unread, account] = await Promise.all([
+    const [feed, follows, followedStories, supportedStories, unread] = await Promise.all([
       getFeed(),
       listFollowing(),
       whatIFollow(),
       listSupportedStoryIds(),
       unreadNotificationsCount(),
-      fetchAccount(),
     ]);
-
-    if (account.status === 'ok') {
-      setPreferredLanguage(account.data.preferences.language || 'es');
-    }
 
     if (follows.status === 'ok') {
       setFollowedAuthors(new Set(follows.data.items.map((item) => item.name)));
@@ -558,7 +551,7 @@ export default function FeedPage() {
   };
 
   const renderCard = (story: FollowingStory, index: number, authorName: string) => {
-    const entry = toEntry(story, authorName, preferredLanguage);
+    const entry = toEntry(story, authorName, language);
     return (
       <div
         key={story.id}

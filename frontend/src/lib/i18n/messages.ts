@@ -219,6 +219,8 @@ const es: Messages = {
   'post.musicPreview': 'Canción vinculada por el autor · Vista previa',
   'post.play': 'Reproducir fragmento',
   'post.followHint': 'Recibir solo las continuaciones de esta historia',
+  'post.viewOriginal': 'Ver original',
+  'post.viewTranslation': 'Ver traducción',
 
   'notif.title': 'Notificaciones',
   'notif.subtitle': 'Primero tus conversaciones y las historias que continúan.',
@@ -492,6 +494,8 @@ const en: Messages = {
   'post.musicPreview': 'Song linked by the author · Preview',
   'post.play': 'Play clip',
   'post.followHint': 'Receive only the continuations of this story',
+  'post.viewOriginal': 'View original',
+  'post.viewTranslation': 'View translation',
 
   'notif.title': 'Notifications',
   'notif.subtitle': 'Your conversations and continuing stories come first.',

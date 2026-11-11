@@ -57,7 +57,7 @@ export default function PostCard({
 }: PostCardProps) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
-  const [translated, setTranslated] = useState(false);
+  const [translated, setTranslated] = useState(Boolean(story.translation));
   const [warningRevealed, setWarningRevealed] = useState(!story.contentWarning);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [textOverflows, setTextOverflows] = useState(false);
@@ -116,7 +116,7 @@ export default function PostCard({
         ) : null}
         {story.translation ? (
           <button className="tag translation-toggle" type="button" onClick={() => setTranslated((value) => !value)}>
-            {translated ? 'Ver original' : 'Ver traducción'}
+            {translated ? t('post.viewOriginal') : t('post.viewTranslation')}
           </button>
         ) : null}
         {followingStory ? <span className="tag hope">Siguiendo relato</span> : null}
