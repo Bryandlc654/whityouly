@@ -152,3 +152,9 @@
 .wy .auth-lang{position:fixed;top:16px;right:16px;z-index:80}
 .wy .auth-lang-inline{position:absolute;top:14px;right:14px}
 .wy .auth-card{position:relative}
+
+/* Buscador e idioma: foco neutro, sin borde morado al hacer clic. */
+.wy .header-search-box:focus-within{border-color:#cfd2db;background:#f4f3f8;box-shadow:none}
+.wy .header-search-box input:focus-visible{outline:none!important;box-shadow:none!important}
+.wy .lang-switch:focus-within{outline:none;border-color:#cfd2db;box-shadow:none}
+.wy .lang-switch select:focus-visible{outline:none!important;box-shadow:none!important}
