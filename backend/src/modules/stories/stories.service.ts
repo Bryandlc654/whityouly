@@ -36,6 +36,7 @@ import {
 } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
 import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
+import { translateStory } from '../../common/translation/translate';
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 20;
@@ -149,6 +150,43 @@ const STORY_LIST_SELECT = {
 export class StoriesService {
   private readonly logger = new Logger(StoriesService.name);
 
+  /** Traduce la apertura del relato y guarda el resultado en `translations`. */
+  private async storeTranslation(
+    story: { id: string; title: string; language: string; translations: Prisma.JsonValue | null },
+    content: string,
+  ): Promise<void> {
+    if (env.translation.provider === 'none') return;
+    if (story.language === env.translation.targetLanguage) return;
+
+    try {
+      const translated = await translateStory({
+        title: story.title,
+        content,
+        sourceLanguage: story.language,
+      });
+      if (!translated) return;
+
+      const current =
+        story.translations && typeof story.translations === 'object' && !Array.isArray(story.translations)
+          ? (story.translations as Prisma.JsonObject)
+          : {};
+
+      await this.prisma.story.update({
+        where: { id: story.id },
+        data: {
+          translations: {
+            ...current,
+            [env.translation.targetLanguage]: translated,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo traducir el relato ${story.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly quota: QuotaService,
@@ -242,6 +280,8 @@ export class StoriesService {
     // Camino de cuidado o expresión: escribir un relato da una gota al día.
     await this.tree.award(userId, TreePath.CARE_EXPRESSION, 'story');
 
+    await this.storeTranslation(story, content);
+
     return this.toOwnerView(story);
   }
 
@@ -334,6 +374,8 @@ export class StoriesService {
         select: STORY_DETAIL_SELECT,
       });
     });
+
+    await this.storeTranslation(updated, updated.updates[0]?.content ?? '');
 
     return this.toOwnerView(updated);
   }

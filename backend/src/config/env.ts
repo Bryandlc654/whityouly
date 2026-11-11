@@ -178,6 +178,20 @@ export const env = {
     // Máximo de modificaciones de metadatos (título, visibilidad, taxonomía).
     editsPerHour: parseNumber(process.env.STORY_EDITS_PER_HOUR, 60),
   },
+  translation: {
+    // Traducción automática de relatos. `none` la desactiva.
+    // `mymemory` no necesita clave, pero envía el texto a un servicio externo.
+    provider: (process.env.TRANSLATION_PROVIDER ?? 'mymemory') as
+      | 'none'
+      | 'mymemory'
+      | 'openai'
+      | 'deepl',
+    apiKey: process.env.TRANSLATION_API_KEY ?? '',
+    apiUrl: process.env.TRANSLATION_API_URL ?? '',
+    model: process.env.TRANSLATION_MODEL ?? 'gpt-4o-mini',
+    targetLanguage: process.env.TRANSLATION_TARGET_LANGUAGE ?? 'en',
+    timeoutMs: parseNumber(process.env.TRANSLATION_TIMEOUT_MS, 10_000),
+  },
   discovery: {
     // Ventana de tiempo que define "tendencia": solo cuenta la interacción
     // reciente, para que lo popular de hace un mes deje de copar la portada.
