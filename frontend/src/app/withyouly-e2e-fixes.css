@@ -158,3 +158,9 @@
 .wy .header-search-box input:focus-visible{outline:none!important;box-shadow:none!important}
 .wy .lang-switch:focus-within{outline:none;border-color:#cfd2db;box-shadow:none}
 .wy .lang-switch select:focus-visible{outline:none!important;box-shadow:none!important}
+
+/* Columna derecha: se puede desplazar, pero sin barra visible. */
+.wy .right-rail{scrollbar-width:none;-ms-overflow-style:none}
+.wy .right-rail::-webkit-scrollbar{width:0;height:0;display:none}
+.wy .app-shell .right-rail{scrollbar-width:none!important;-ms-overflow-style:none}
+.wy .app-shell .right-rail::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}
