@@ -43,7 +43,7 @@
 
 /* «¿Cómo estás ahora?»: cinco ilustraciones + «Ver todas». */
 .wy .mood-choices-illustrated{grid-template-columns:repeat(6,minmax(0,1fr))}
-.wy .mood-choices-illustrated .mood-illustration{display:block;width:40px;height:40px;margin:0 auto 4px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(30,12,90,.22))}
+.wy .mood-choices-illustrated .mood-illustration{display:block;width:40px;height:40px;margin:0 auto 4px;object-fit:contain}
 @media(max-width:520px){
 .wy .mood-choices-illustrated{grid-template-columns:repeat(3,minmax(0,1fr))}
 .wy .mood-choices-illustrated .mood-illustration{width:34px;height:34px}
@@ -169,3 +169,7 @@
 .wy .mood-pick .mood-illustration{width:38px;height:38px}
 .wy .mood-modal .guide-btn{white-space:nowrap;flex:0 0 auto;min-height:40px}
 .wy .mood-modal .modal-head-actions{flex:0 0 auto;gap:6px}
+
+/* Modales: scroll disponible, barra oculta. */
+.wy .modal-layer,.wy .modal,.wy .sheet-layer,.wy .sheet{scrollbar-width:none;-ms-overflow-style:none}
+.wy .modal-layer::-webkit-scrollbar,.wy .modal::-webkit-scrollbar,.wy .sheet-layer::-webkit-scrollbar,.wy .sheet::-webkit-scrollbar{width:0;height:0;display:none}
