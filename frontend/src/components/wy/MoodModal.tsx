@@ -3,19 +3,27 @@
 import { useState, type CSSProperties } from 'react';
 import Guide58Modal from './Guide58Modal';
 import Icon from './Icon';
+import { useI18n } from '@/components/providers/I18nProvider';
 
-export const MOODS = [
+export const MOODS: Array<{
+  name: string;
+  key: string;
+  emoji: string;
+  image?: string;
+  color: string;
+  soft: string;
+}> = [
   // Las nueve emociones de v58 (emotionConfig), con su emoji y color.
-  { name: 'Alegría', emoji: '😄', color: '#F4B942', soft: '#FFF6D9' },
-  { name: 'Calma', emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
-  { name: 'Esperanza', emoji: '🌱', color: '#62B878', soft: '#E8F6EC' },
-  { name: 'Neutral', emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
-  { name: 'Tristeza', emoji: '😔', color: '#5B84C4', soft: '#E7EFFB' },
-  { name: 'Ansiedad', emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
-  { name: 'Enojo', emoji: '😠', color: '#E06A5F', soft: '#FCEAE7' },
-  { name: 'Soledad', emoji: '🫥', color: '#6670A8', soft: '#EAECF5' },
-  { name: 'Cansancio', emoji: '😴', color: '#B08B68', soft: '#F5EEE7' },
-] as const;
+  { name: 'Alegría', key: 'alegria', emoji: '😄', image: '/assets/moods/alegria.webp', color: '#F4B942', soft: '#FFF6D9' },
+  { name: 'Calma', key: 'calma', image: '/assets/moods/calma.webp', emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
+  { name: 'Esperanza', key: 'esperanza', emoji: '🌱', image: '/assets/moods/esperanza.webp', color: '#62B878', soft: '#E8F6EC' },
+  { name: 'Neutral', key: 'neutral', emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
+  { name: 'Tristeza', key: 'tristeza', emoji: '😔', image: '/assets/moods/tristeza.webp', color: '#5B84C4', soft: '#E7EFFB' },
+  { name: 'Ansiedad', key: 'ansiedad', emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
+  { name: 'Enojo', key: 'enojo', emoji: '😠', image: '/assets/moods/enojo.webp', color: '#E06A5F', soft: '#FCEAE7' },
+  { name: 'Soledad', key: 'soledad', emoji: '🫥', color: '#6670A8', soft: '#EAECF5' },
+  { name: 'Cansancio', key: 'cansancio', emoji: '😴', image: '/assets/moods/cansancio.webp', color: '#B08B68', soft: '#F5EEE7' },
+];
 
 export const MOOD_EMOJI: Record<string, string> = MOODS.reduce(
   (map, mood) => ({ ...map, [mood.name]: mood.emoji }),
@@ -57,6 +65,7 @@ export default function MoodModal({
   onSave,
   onClose,
 }: MoodModalProps) {
+  const { t } = useI18n();
   const editing = mode === 'edit';
   const [guideOpen, setGuideOpen] = useState(false);
 
@@ -96,8 +105,13 @@ export default function MoodModal({
             style={{ '--mood': mood.color, '--mood-soft': mood.soft } as CSSProperties}
             onClick={() => onChangeName(mood.name)}
           >
-            <span>{mood.emoji}</span>
-            <small>{mood.name}</small>
+            {mood.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="mood-illustration" src={mood.image} alt="" width={34} height={34} />
+            ) : (
+              <span>{mood.emoji}</span>
+            )}
+            <small>{t(`mood.${mood.key}`)}</small>
           </button>
         ))}
       </div>

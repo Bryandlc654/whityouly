@@ -48,11 +48,14 @@ function initialsOf(name?: string | null) {
 }
 
 // Accesos rápidos de «¿Cómo estás ahora?» con ilustraciones propias (public/assets/moods).
+// Accesos rápidos de «¿Cómo estás ahora?» con ilustraciones propias (public/assets/moods).
 const QUICK_MOODS = [
-  { key: 'alegria', name: 'Alegría', emoji: '\u{1F604}', color: '#F4B942' },
-  { key: 'calma', name: 'Calma', emoji: '\u{1F60C}', color: '#42B8A8' },
-  { key: 'tristeza', name: 'Tristeza', emoji: '\u{1F614}', color: '#5B84C4' },
-  { key: 'ansiedad', name: 'Ansiedad', emoji: '\u{1F61F}', color: '#8B6CCF' },
+  { key: 'alegria', name: 'Alegría', image: '/assets/moods/alegria.webp', color: '#F4B942' },
+  { key: 'calma', name: 'Calma', image: '/assets/moods/calma.webp', color: '#42B8A8' },
+  { key: 'tristeza', name: 'Tristeza', image: '/assets/moods/tristeza.webp', color: '#5B84C4' },
+  { key: 'enojo', name: 'Enojo', image: '/assets/moods/enojo.webp', color: '#E06A5F' },
+  { key: 'cansancio', name: 'Cansancio', image: '/assets/moods/cansancio.webp', color: '#B08B68' },
+  { key: 'esperanza', name: 'Esperanza', image: '/assets/moods/esperanza.webp', color: '#62B878' },
 ] as const;
 
 function relativeTime(value: string): string {
@@ -729,7 +732,7 @@ export default function FeedPage() {
                 {t('feed.quickMood.register')}
               </button>
             </div>
-            <div className="mood-choices mood-choices-v2">
+            <div className="mood-choices mood-choices-v2 mood-choices-illustrated">
               {QUICK_MOODS.map((mood) => (
                 <button
                   key={mood.name}
@@ -738,14 +741,11 @@ export default function FeedPage() {
                   style={{ '--mood': mood.color } as CSSProperties}
                   onClick={() => openMood(mood.name)}
                 >
-                  <span>{mood.emoji}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="mood-illustration" src={mood.image} alt="" width={40} height={40} />
                   <small>{t(`mood.${mood.key}`)}</small>
                 </button>
               ))}
-              <button className="mood-choice more-emotions" type="button" onClick={() => openMood()}>
-                <span>＋</span>
-                <small>{t('feed.quickMood.more')}</small>
-              </button>
             </div>
           </section>
         ) : moodRegisteredToday === true ? (

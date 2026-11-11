@@ -164,3 +164,8 @@
 .wy .right-rail::-webkit-scrollbar{width:0;height:0;display:none}
 .wy .app-shell .right-rail{scrollbar-width:none!important;-ms-overflow-style:none}
 .wy .app-shell .right-rail::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}
+.wy .mood-pick .mood-illustration{display:block;width:34px;height:34px;margin:0 auto 2px;object-fit:contain}
+.wy .mood-picker-nine .mood-pick{min-height:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.wy .mood-pick .mood-illustration{width:38px;height:38px}
+.wy .mood-modal .guide-btn{white-space:nowrap;flex:0 0 auto;min-height:40px}
+.wy .mood-modal .modal-head-actions{flex:0 0 auto;gap:6px}

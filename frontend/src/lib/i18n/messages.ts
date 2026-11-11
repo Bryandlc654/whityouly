@@ -165,6 +165,7 @@ const es: Messages = {
   'mood.esperanza': 'Esperanza',
   'mood.enojo': 'Enojo',
   'mood.cansancio': 'Cansancio',
+  'mood.soledad': 'Soledad',
 
   'mood.modal.title': '¿Cómo te sientes?',
   'mood.modal.copy': 'Un registro rápido y privado. Puedes hacerlo una vez o varias veces al día.',
@@ -440,6 +441,7 @@ const en: Messages = {
   'mood.esperanza': 'Hope',
   'mood.enojo': 'Anger',
   'mood.cansancio': 'Tiredness',
+  'mood.soledad': 'Loneliness',
 
   'mood.modal.title': 'How do you feel?',
   'mood.modal.copy': 'A quick, private log. You can do it once or several times a day.',
