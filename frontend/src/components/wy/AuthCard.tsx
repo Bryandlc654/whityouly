@@ -9,6 +9,8 @@ interface AuthCardProps {
   children: ReactNode;
   image?: string;
   imageAlt?: string;
+  /** Texto superpuesto a la imagen en la variante `reference` (la foto ya no lo trae). */
+  imageCaption?: ReactNode;
   /** Layout de acceso de la referencia v42: panel + imagen y bloque de confianza. */
   variant?: 'default' | 'reference';
   showTrust?: boolean;
@@ -51,6 +53,7 @@ export default function AuthCard({
   children,
   image,
   imageAlt,
+  imageCaption,
   variant = 'default',
   showTrust = false,
 }: AuthCardProps) {
@@ -72,12 +75,18 @@ export default function AuthCard({
             </div>
           </div>
 
-          <div
-            className="reference-visual"
-            role="img"
-            aria-label={imageAlt ?? 'Comunidad de Withyouly'}
-            style={{ backgroundImage: `url('${image}')` }}
-          />
+          {imageCaption ? (
+            <div className="reference-visual reference-visual-photo" style={{ backgroundImage: `url('${image}')` }}>
+              <div className="reference-caption">{imageCaption}</div>
+            </div>
+          ) : (
+            <div
+              className="reference-visual"
+              role="img"
+              aria-label={imageAlt ?? 'Comunidad de Withyouly'}
+              style={{ backgroundImage: `url('${image}')` }}
+            />
+          )}
         </section>
 
         {showTrust ? (

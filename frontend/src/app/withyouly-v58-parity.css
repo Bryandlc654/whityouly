@@ -5645,3 +5645,27 @@ body .wy .summary-actions57>.summary-diary-link57{align-self:center;padding-inli
 }
 .wy :is(h1,h2,h3,h4,h5,h6){font-weight:700}
 .wy{line-height:1.55;color:var(--ink)}
+
+/* Login: foto sin texto incrustado; el lema se dibuja encima como texto real. */
+.wy .reference-visual-photo{position:relative;display:flex;align-items:flex-end;background-size:cover;background-position:65% center;overflow:hidden}
+.wy .reference-visual-photo::before{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(19,18,55,.88) 0%,rgba(19,18,55,.55) 30%,rgba(19,18,55,0) 58%);pointer-events:none}
+.wy .reference-caption{position:relative;max-width:760px;padding:0 64px 10vh;color:#fff}
+.wy .reference-caption h2{margin:0;font-size:clamp(40px,4.3vw,76px);line-height:1.04;letter-spacing:-.035em;font-weight:800;color:#fff}
+.wy .reference-caption h2 em{font-style:normal;color:#ff7b6b}
+.wy .reference-caption p{margin:18px 0 0;max-width:34ch;font-size:clamp(17px,1.5vw,22px);line-height:1.45;color:rgba(255,255,255,.92)}
+@media(min-width:901px) and (max-width:1180px){
+.wy .reference-visual-photo{background-size:cover}
+.wy .reference-caption{padding:0 40px 56px}
+}
+@media(max-width:900px){
+.wy .reference-visual-photo{height:340px;background-size:cover;background-position:60% 20%}
+.wy .reference-caption{padding:0 28px 26px}
+.wy .reference-caption h2{font-size:34px}
+.wy .reference-caption p{font-size:15px;margin-top:8px}
+}
+@media(max-width:600px){
+.wy .reference-visual-photo{height:280px;background-size:cover;background-position:60% 15%}
+.wy .reference-caption{padding:0 18px 20px}
+.wy .reference-caption h2{font-size:28px}
+.wy .reference-caption p{display:none}
+}

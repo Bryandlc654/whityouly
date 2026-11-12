@@ -73,8 +73,16 @@ export default function LoginPage() {
     <AuthCard
       variant="reference"
       showTrust
-      image="/withyouly-community.jpeg"
+      image="/assets/withyouly-login.webp"
       imageAlt={t('auth.login.imageAlt')}
+      imageCaption={
+        <>
+          <h2>
+            {t('auth.login.visualTitle')} <em>{t('auth.login.visualAccent')}</em>
+          </h2>
+          <p>{t('auth.login.visualText')}</p>
+        </>
+      }
     >
       <form className="reference-form" onSubmit={handleLogin}>
         <h1>{t('auth.login.title')}</h1>
