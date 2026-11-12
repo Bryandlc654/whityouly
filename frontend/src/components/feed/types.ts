@@ -13,6 +13,7 @@ export interface CharacterSummary {
   bio?: string | null;
   interests?: string[];
   privacySettings?: PrivacySettings;
+  createdAt?: string;
 }
 
 export interface SessionInfo {

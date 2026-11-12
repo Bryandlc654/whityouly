@@ -35,6 +35,9 @@ import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '
 import { useI18n } from '@/components/providers/I18nProvider';
 import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
 
+/** Ventana en la que un personaje cuenta como nuevo para la guía de publicación. */
+const NEW_CHARACTER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 interface FeedEntry extends FeedStory {
   isOwn: boolean;
   status?: 'DRAFT' | 'PUBLISHED';
@@ -252,9 +255,18 @@ export default function FeedPage() {
     if (!loading) void loadMoodToday();
   }, [loading, loadMoodToday]);
 
+  // La guía de publicación se abre sola únicamente para personajes recién
+  // creados: quien ya usaba Whityouly no debe verla al cambiar de dominio o de
+  // navegador (localStorage es por origen). Siempre se puede abrir a mano.
   useEffect(() => {
     if (!character) return;
-    if (window.localStorage.getItem('withyouly-how-to-start-v58') === 'seen') return;
+    const createdAt = character.createdAt ? Date.parse(character.createdAt) : NaN;
+    if (Number.isNaN(createdAt) || Date.now() - createdAt > NEW_CHARACTER_WINDOW_MS) return;
+    try {
+      if (window.localStorage.getItem('withyouly-how-to-start-v58') === 'seen') return;
+    } catch {
+      return;
+    }
     setIntroMode('guide');
     setIntroOpen(true);
   }, [character]);
@@ -299,7 +311,11 @@ export default function FeedPage() {
   };
 
   const closeIntro = () => {
-    window.localStorage.setItem('withyouly-how-to-start-v58', 'seen');
+    try {
+      window.localStorage.setItem('withyouly-how-to-start-v58', 'seen');
+    } catch {
+      // Sin almacenamiento (modo privado): solo se cierra.
+    }
     setIntroOpen(false);
   };
 
