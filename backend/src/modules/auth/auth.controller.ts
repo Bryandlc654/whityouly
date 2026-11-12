@@ -23,6 +23,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ResendVerificationDto,
+  VerifyEmailCodeDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CsrfOriginGuard } from './guards/csrf-origin.guard';
@@ -53,6 +54,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Verificar correo electrónico' })
   verifyEmail(@Body('token') token: string) {
     return this.authService.verifyEmail(token);
+  }
+
+  @Post('verify-email-code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Verificar correo electrónico con el código de 6 dígitos' })
+  verifyEmailCode(@Body() dto: VerifyEmailCodeDto) {
+    return this.authService.verifyEmailCode(dto);
   }
 
   @Post('resend-verification')

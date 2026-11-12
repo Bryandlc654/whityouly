@@ -5669,3 +5669,24 @@ body .wy .summary-actions57>.summary-diary-link57{align-self:center;padding-inli
 .wy .reference-caption h2{font-size:28px}
 .wy .reference-caption p{display:none}
 }
+
+/* Logo del login: imagen completa, escalada sin recorte. */
+.wy .reference-logo{height:auto!important}
+.wy .reference-logo img{display:block;width:100%;max-width:340px;height:auto}
+@media(max-width:900px){.wy .reference-logo img{max-width:230px;margin:0 auto}}
+@media(max-width:600px){.wy .reference-logo img{max-width:195px}}
+/* Sin los bloques informativos, el login ocupa exactamente la pantalla. */
+.wy .reference-entry{min-height:100vh}
+
+/* Paso de verificación por código (registro y login). */
+.wy .verify-code-form{display:flex;flex-direction:column}
+.wy .verify-code-copy{margin:6px 0 22px;color:#5b6276;line-height:1.5}
+.wy .verify-code-form label{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#343a4d;margin-bottom:9px}
+.wy .verify-code-input{height:64px;width:100%;border:1px solid #e3e3f2;border-radius:16px;background:#f0f2ff;text-align:center;font-size:30px;font-weight:800;letter-spacing:.45em;padding-left:.45em;color:#151b2d;font-variant-numeric:tabular-nums}
+.wy .verify-code-input:focus{outline:2px solid var(--purple);outline-offset:1px;background:#fff}
+.wy .verify-code-input::placeholder{color:#c7c9da}
+.wy .verify-code-form .auth-submit{margin-top:22px}
+.wy .verify-code-actions{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin:18px 0 10px}
+.wy .verify-code-actions button{border:0;background:transparent;color:var(--purple);font-weight:800;font-size:14px;cursor:pointer;padding:4px 0;display:inline-flex;align-items:center;gap:6px}
+.wy .verify-code-actions button:disabled{color:#9aa0b2;cursor:default}
+.wy .verify-code-actions svg{width:16px;height:16px}

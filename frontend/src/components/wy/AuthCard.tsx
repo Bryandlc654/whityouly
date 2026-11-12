@@ -67,7 +67,9 @@ export default function AuthCard({
           <div className="reference-login-panel">
             <div className="reference-panel-inner">
               <Link href="/" className="reference-logo" aria-label="Inicio de Withyouly">
-                <span className="brand-crop" />
+                {/* Logo completo y transparente: el recorte de .brand-crop cortaba los bordes. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/assets/withyouly-wordmark.webp" alt="" width={920} height={211} />
               </Link>
 
               {/* El formulario de la página es el propio .reference-form, como en v58. */}

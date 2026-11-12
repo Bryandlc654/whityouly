@@ -58,6 +58,18 @@ export class ResetPasswordDto {
   newPassword!: string;
 }
 
+export class VerifyEmailCodeDto {
+  @Transform(normalizeEmail)
+  @IsEmail({}, { message: 'El correo no es válido' })
+  @MaxLength(254, { message: 'El correo es demasiado largo' })
+  email!: string;
+
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.replace(/\s+/g, '') : value))
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'El código debe tener 6 dígitos' })
+  code!: string;
+}
+
 export class ResendVerificationDto {
   @Transform(normalizeEmail)
   @IsEmail({}, { message: 'El correo no es válido' })

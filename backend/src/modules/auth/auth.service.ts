@@ -7,11 +7,12 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ResendVerificationDto,
+  VerifyEmailCodeDto,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { MailerService } from '@nestjs-modules/mailer';
 import { User } from '@prisma/client';
-import { createHash, randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, randomInt, randomUUID, timingSafeEqual } from 'crypto';
 import { env } from '../../config/env';
 import { SessionsService } from './sessions.service';
 import { PasswordBreachService } from './password-breach.service';
@@ -21,7 +22,11 @@ import { CooldownService } from '../../common/cooldown/cooldown.service';
 
 // Hash de referencia (contraseña aleatoria) para igualar el tiempo de respuesta
 // cuando el usuario no existe y evitar enumeración de cuentas por timing.
-const DUMMY_HASH = '$2b$12$VgDJYavMipaIb6jpsflBMGTdsOddUxJyjv8XXDC0dzuEqZfkbURu0';
+/** Vigencia y número de intentos del código de verificación de correo. */
+const EMAIL_CODE_TTL_MS = 15 * 60_000;
+const EMAIL_CODE_MAX_ATTEMPTS = 5;
+
+const DUMMY_HASH ='$2b$12$VgDJYavMipaIb6jpsflBMGTdsOddUxJyjv8XXDC0dzuEqZfkbURu0';
 
 export interface SessionMeta {
   ipAddress?: string | null;
@@ -288,9 +293,47 @@ export class AuthService {
     return { message: 'Correo verificado exitosamente. Ya puedes iniciar sesión.' };
   }
 
+  /**
+   * Verificación por código de 6 dígitos. El mensaje de error es el mismo para
+   * correo inexistente, código incorrecto o vencido, para no filtrar cuentas.
+   */
+  async verifyEmailCode(dto: VerifyEmailCodeDto) {
+    const invalid = 'El código es incorrecto o ha expirado.';
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user) {
+      throw new BadRequestException(invalid);
+    }
+    if (user.isEmailVerified) {
+      return { message: 'Tu correo ya estaba verificado. Ya puedes iniciar sesión.' };
+    }
+    if (
+      !user.emailVerificationCodeHash ||
+      !user.emailVerificationCodeExpiresAt ||
+      user.emailVerificationCodeExpiresAt.getTime() < Date.now()
+    ) {
+      throw new BadRequestException('El código ha expirado. Pide uno nuevo.');
+    }
+    if (user.emailVerificationAttempts >= EMAIL_CODE_MAX_ATTEMPTS) {
+      throw new BadRequestException('Demasiados intentos. Pide un código nuevo.');
+    }
+
+    const expected = Buffer.from(user.emailVerificationCodeHash, 'hex');
+    const received = Buffer.from(this.hashEmailCode(user.id, dto.code), 'hex');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+      const attempts = await this.usersService.recordEmailVerificationFailure(user.id);
+      if (attempts >= EMAIL_CODE_MAX_ATTEMPTS) {
+        throw new BadRequestException('Demasiados intentos. Pide un código nuevo.');
+      }
+      throw new BadRequestException(invalid);
+    }
+
+    await this.usersService.markEmailAsVerified(user.id);
+    return { message: 'Correo verificado exitosamente. Ya puedes iniciar sesión.' };
+  }
+
   async resendVerification(dto: ResendVerificationDto) {
     const user = await this.usersService.findByEmail(dto.email);
-    const message = 'Si el correo requiere verificación, se ha enviado un nuevo enlace.';
+    const message = 'Si el correo requiere verificación, se ha enviado un nuevo código.';
 
     if (!user || user.isEmailVerified) {
       return { message };
@@ -441,15 +484,32 @@ export class AuthService {
     );
     const verifyLink = `${env.frontendUrl}/verify-email?token=${encodeURIComponent(token)}`;
 
+    // Código de 6 dígitos (con ceros a la izquierda). Solo se guarda su hash.
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    await this.usersService.setEmailVerificationCode(
+      user.id,
+      this.hashEmailCode(user.id, code),
+      new Date(Date.now() + EMAIL_CODE_TTL_MS),
+    );
+
     try {
       await this.mailerService.sendMail({
         to: user.email,
-        subject: 'Whityouly - Verifica tu cuenta',
-        text: `Bienvenido a Whityouly. Por favor, verifica tu correo en el siguiente enlace: \n\n${verifyLink}`,
+        subject: `${code} es tu código de verificación de Withyouly`,
+        text:
+          `Bienvenido a Withyouly.\n\nTu código de verificación es: ${code}\n\n` +
+          `Vence en 15 minutos. También puedes verificar tu cuenta con este enlace:\n${verifyLink}\n\n` +
+          'Si no creaste una cuenta, ignora este correo.',
         html: `
-          <h3>Bienvenido a tu Refugio</h3>
-          <p>Solo falta un paso. Por favor, haz clic en el siguiente botón para verificar tu cuenta:</p>
-          <a href="${verifyLink}" style="padding: 10px 20px; background-color: #4648d4; color: white; text-decoration: none; border-radius: 5px;">Verificar mi cuenta</a>
+          <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #151b2d;">
+            <h2 style="margin: 0 0 8px; color: #5b3df5;">Bienvenido a Withyouly</h2>
+            <p style="margin: 0 0 24px; color: #4a5068;">Solo falta un paso. Ingresa este código para verificar tu correo:</p>
+            <div style="font-size: 36px; font-weight: 700; letter-spacing: 10px; text-align: center; padding: 18px 0; background: #f1edff; border-radius: 14px; color: #151b2d;">${code}</div>
+            <p style="margin: 16px 0 28px; font-size: 14px; color: #6b7184;">El código vence en 15 minutos.</p>
+            <p style="margin: 0 0 12px; font-size: 14px; color: #4a5068;">¿Prefieres un enlace? También puedes verificar desde aquí:</p>
+            <a href="${verifyLink}" style="display: inline-block; padding: 12px 22px; background-color: #5b3df5; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600;">Verificar mi cuenta</a>
+            <p style="margin: 28px 0 0; font-size: 12px; color: #9aa0b2;">Si no creaste una cuenta en Withyouly, ignora este correo.</p>
+          </div>
         `,
       });
     } catch (e) {
@@ -457,6 +517,10 @@ export class AuthService {
       // pero lo registramos para poder diagnosticarlo.
       console.error('Error enviando correo de verificación:', e);
     }
+  }
+
+  private hashEmailCode(userId: string, code: string): string {
+    return createHash('sha256').update(`${env.jwtSecret}:email-code:${userId}:${code}`).digest('hex');
   }
 
   // El secreto depende del estado de verificación: una vez verificado, el token

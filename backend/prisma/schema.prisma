@@ -33,6 +33,10 @@ model User {
   id               String            @id @default(uuid())
   email            String            @unique
   isEmailVerified  Boolean           @default(false)
+  /// Código de verificación de correo (6 dígitos), guardado solo como hash.
+  emailVerificationCodeHash      String?
+  emailVerificationCodeExpiresAt DateTime?
+  emailVerificationAttempts      Int       @default(0)
   passwordHash     String?
   internalUsername String?           @unique
   role             Role              @default(USER)

@@ -19,6 +19,8 @@ interface Mocks {
     updatePassword: ReturnType<typeof vi.fn>;
     updatePasswordIfMatches: ReturnType<typeof vi.fn>;
     markEmailAsVerified: ReturnType<typeof vi.fn>;
+    setEmailVerificationCode: ReturnType<typeof vi.fn>;
+    recordEmailVerificationFailure: ReturnType<typeof vi.fn>;
   };
   sessionsService: {
     create: ReturnType<typeof vi.fn>;
@@ -68,6 +70,8 @@ describe('AuthService', () => {
         updatePassword: vi.fn(),
         updatePasswordIfMatches: vi.fn().mockResolvedValue(true),
         markEmailAsVerified: vi.fn(),
+        setEmailVerificationCode: vi.fn().mockResolvedValue(undefined),
+        recordEmailVerificationFailure: vi.fn().mockResolvedValue(1),
       },
       sessionsService: {
         create: vi.fn().mockResolvedValue({}),
@@ -298,5 +302,75 @@ describe('AuthService', () => {
 
     expect(mocks.sessionsService.revokeAllForUserExcept).toHaveBeenCalledWith('user-1', 'current');
     expect(result.revokedCount).toBe(3);
+  });
+  describe('verificación por código', () => {
+    const codeFromMail = () => {
+      const subject: string = mocks.mailerService.sendMail.mock.calls[0][0].subject;
+      return subject.slice(0, 6);
+    };
+    const storedHash = () => mocks.usersService.setEmailVerificationCode.mock.calls[0][1] as string;
+
+    beforeEach(async () => {
+      mocks.usersService.createUser.mockResolvedValue({ id: 'user-1', email: 'user@example.com', passwordHash: 'h', isEmailVerified: false });
+      await service.register({ email: 'user@example.com', password: 'Secret123' } as any);
+    });
+
+    it('envía un código de 6 dígitos y guarda solo su hash', () => {
+      const code = codeFromMail();
+      expect(code).toMatch(/^\d{6}$/);
+      expect(storedHash()).not.toContain(code);
+      expect(mocks.mailerService.sendMail.mock.calls[0][0].text).toContain(code);
+    });
+
+    it('verifica el correo con el código correcto', async () => {
+      mocks.usersService.findByEmail.mockResolvedValue({
+        id: 'user-1',
+        isEmailVerified: false,
+        emailVerificationCodeHash: storedHash(),
+        emailVerificationCodeExpiresAt: new Date(Date.now() + 60_000),
+        emailVerificationAttempts: 0,
+      });
+      const result = await service.verifyEmailCode({ email: 'user@example.com', code: codeFromMail() });
+      expect(mocks.usersService.markEmailAsVerified).toHaveBeenCalledWith('user-1');
+      expect(result.message).toContain('verificado');
+    });
+
+    it('rechaza un código incorrecto y cuenta el intento', async () => {
+      const wrong = codeFromMail() === '000000' ? '111111' : '000000';
+      mocks.usersService.findByEmail.mockResolvedValue({
+        id: 'user-1',
+        isEmailVerified: false,
+        emailVerificationCodeHash: storedHash(),
+        emailVerificationCodeExpiresAt: new Date(Date.now() + 60_000),
+        emailVerificationAttempts: 0,
+      });
+      await expect(service.verifyEmailCode({ email: 'user@example.com', code: wrong })).rejects.toThrow();
+      expect(mocks.usersService.recordEmailVerificationFailure).toHaveBeenCalledWith('user-1');
+      expect(mocks.usersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
+
+    it('rechaza un código vencido aunque sea correcto', async () => {
+      mocks.usersService.findByEmail.mockResolvedValue({
+        id: 'user-1',
+        isEmailVerified: false,
+        emailVerificationCodeHash: storedHash(),
+        emailVerificationCodeExpiresAt: new Date(Date.now() - 1),
+        emailVerificationAttempts: 0,
+      });
+      await expect(service.verifyEmailCode({ email: 'user@example.com', code: codeFromMail() })).rejects.toThrow(/expirado/);
+      expect(mocks.usersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
+
+    it('bloquea tras agotar los intentos aunque el código sea correcto', async () => {
+      mocks.usersService.findByEmail.mockResolvedValue({
+        id: 'user-1',
+        isEmailVerified: false,
+        emailVerificationCodeHash: storedHash(),
+        emailVerificationCodeExpiresAt: new Date(Date.now() + 60_000),
+        emailVerificationAttempts: 5,
+      });
+      await expect(service.verifyEmailCode({ email: 'user@example.com', code: codeFromMail() })).rejects.toThrow(/intentos/);
+      expect(mocks.usersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
   });
 });

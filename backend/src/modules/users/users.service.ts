@@ -91,7 +91,34 @@ export class UsersService {
   async markEmailAsVerified(id: string): Promise<User> {
     return this.prisma.user.update({
       where: { id },
-      data: { isEmailVerified: true },
+      data: {
+        isEmailVerified: true,
+        emailVerificationCodeHash: null,
+        emailVerificationCodeExpiresAt: null,
+        emailVerificationAttempts: 0,
+      },
     });
+  }
+
+  /** Guarda un código nuevo (ya hasheado) y reinicia los intentos. */
+  async setEmailVerificationCode(id: string, codeHash: string, expiresAt: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        emailVerificationCodeHash: codeHash,
+        emailVerificationCodeExpiresAt: expiresAt,
+        emailVerificationAttempts: 0,
+      },
+    });
+  }
+
+  /** Suma un intento fallido y devuelve el total. */
+  async recordEmailVerificationFailure(id: string): Promise<number> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { emailVerificationAttempts: { increment: 1 } },
+      select: { emailVerificationAttempts: true },
+    });
+    return user.emailVerificationAttempts;
   }
 }

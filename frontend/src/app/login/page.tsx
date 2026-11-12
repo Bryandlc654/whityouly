@@ -6,6 +6,7 @@ import { API_URL, extractErrorMessage } from '@/lib/api';
 import { authFetch, tokenStorage } from '@/lib/auth';
 import AuthCard from '@/components/wy/AuthCard';
 import Icon from '@/components/wy/Icon';
+import VerifyCodeForm from '@/components/wy/VerifyCodeForm';
 import { consumeReturnTo } from '@/lib/returnTo';
 import { useI18n } from '@/components/providers/I18nProvider';
 
@@ -17,6 +18,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  // Cuenta sin verificar: se pide el código en lugar de solo mostrar el error.
+  const [verifyMode, setVerifyMode] = useState(false);
 
   const router = useRouter();
   const { t } = useI18n();
@@ -27,8 +30,19 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const startVerification = () => {
+    setVerifyMode(true);
+    setError('');
+    // El código anterior pudo vencer: se envía uno nuevo al entrar al paso.
+    void fetch(`${API_URL}/auth/resend-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => undefined);
+  };
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setLoading(true);
     setError('');
 
@@ -42,9 +56,16 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(extractErrorMessage(errorData, t('auth.login.invalid')));
+        const message = extractErrorMessage(errorData, t('auth.login.invalid'));
+        if (res.status === 401 && /verifica tu correo/i.test(message)) {
+          setLoading(false);
+          startVerification();
+          return;
+        }
+        throw new Error(message);
       }
 
+      setVerifyMode(false);
       const data = await res.json();
       tokenStorage.setAccess(data.accessToken);
       window.dispatchEvent(new Event('withyouly:session-changed'));
@@ -65,6 +86,7 @@ export default function LoginPage() {
       }, 900);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.login.invalid'));
+      setVerifyMode(false);
       setLoading(false);
     }
   };
@@ -72,7 +94,6 @@ export default function LoginPage() {
   return (
     <AuthCard
       variant="reference"
-      showTrust
       image="/assets/withyouly-login.webp"
       imageAlt={t('auth.login.imageAlt')}
       imageCaption={
@@ -84,6 +105,16 @@ export default function LoginPage() {
         </>
       }
     >
+      {verifyMode ? (
+        <div className="reference-form">
+          <h1>{t('auth.verify.title')}</h1>
+          <VerifyCodeForm
+            email={email}
+            onVerified={() => handleLogin()}
+            onChangeEmail={() => setVerifyMode(false)}
+          />
+        </div>
+      ) : (
       <form className="reference-form" onSubmit={handleLogin}>
         <h1>{t('auth.login.title')}</h1>
         <p>{t('auth.login.subtitle')}</p>
@@ -163,6 +194,7 @@ export default function LoginPage() {
           </button>
         </div>
       </form>
+      )}
     </AuthCard>
   );
 }

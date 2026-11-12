@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
+import { tokenStorage } from '@/lib/auth';
 import Icon from '@/components/wy/Icon';
+import VerifyCodeForm from '@/components/wy/VerifyCodeForm';
 import { useI18n } from '@/components/providers/I18nProvider';
 import LanguageSwitcher from '@/components/wy/LanguageSwitcher';
 
@@ -14,6 +16,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  // Tras crear la cuenta se pide el código que llega por correo.
+  const [step, setStep] = useState<'account' | 'verify'>('account');
 
   const router = useRouter();
   const { t } = useI18n();
@@ -36,10 +40,31 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
+      setLoading(false);
+      setStep('verify');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.error'));
       setLoading(false);
     }
+  };
+
+  // Con el correo verificado se inicia sesión con lo que la persona acaba de
+  // escribir, y pasa directo a elegir su seudónimo.
+  const signInAfterVerify = async () => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      router.push('/login');
+      return;
+    }
+    const data = await res.json();
+    tokenStorage.setAccess(data.accessToken);
+    window.dispatchEvent(new Event('withyouly:session-changed'));
+    router.push('/onboarding');
   };
 
   return (
@@ -56,6 +81,27 @@ export default function RegisterPage() {
             <span className="brand-crop" />
           </button>
 
+          {step === 'verify' ? (
+            <div className="auth-form">
+              <div className="step-line" aria-hidden="true">
+                <span className="active">1</span>
+                <i />
+                <span>2</span>
+                <i />
+                <span>3</span>
+              </div>
+              <span className="auth-kicker">{t('auth.verify.kicker')}</span>
+              <h1>{t('auth.verify.title')}</h1>
+              <VerifyCodeForm
+                email={email}
+                onVerified={signInAfterVerify}
+                onChangeEmail={() => {
+                  setStep('account');
+                  setSuccess(false);
+                }}
+              />
+            </div>
+          ) : (
           <form className="auth-form" onSubmit={handleRegister}>
             <div className="step-line" aria-hidden="true">
               <span className="active">1</span>
@@ -144,6 +190,7 @@ export default function RegisterPage() {
               </button>
             </div>
           </form>
+          )}
         </div>
 
         <aside className="signup-benefits">
