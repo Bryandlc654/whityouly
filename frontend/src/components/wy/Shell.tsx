@@ -52,11 +52,12 @@ function TopBar({
   characterInitials,
   avatarUrl,
   onNavigate,
+  onOpenAccount,
   onOpenStory,
   unreadNotifications = 0,
 }: Pick<
   FrameProps,
-  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'unreadNotifications'
+  'characterInitials' | 'avatarUrl' | 'onNavigate' | 'onOpenAccount' | 'unreadNotifications'
 > & { onOpenStory: (storyId: string, title: string) => void }) {
   const { t } = useI18n();
   return (
@@ -80,8 +81,11 @@ function TopBar({
           <button
             className={avatarUrl ? 'avatar avatar-art avatar-sm avatar-illustrated' : 'avatar avatar-sm'}
             type="button"
-            onClick={() => onNavigate('profile')}
-            aria-label={t('nav.myProfile')}
+            // El avatar abre el menú de cuenta (perfil, configuración, cerrar
+            // sesión). Las páginas que no lo ofrecen van directo al perfil.
+            onClick={() => (onOpenAccount ? onOpenAccount() : onNavigate('profile'))}
+            aria-label={onOpenAccount ? t('nav.account') : t('nav.myProfile')}
+            aria-haspopup={onOpenAccount ? 'menu' : undefined}
           >
             {avatarUrl ? (
               <Image src={avatarUrl} alt="" width={96} height={96} unoptimized draggable={false} />
@@ -183,6 +187,7 @@ export default function WyFrame({
   avatarUrl,
   activeRoute,
   onNavigate,
+  onOpenAccount,
   rightRail,
   overlay,
   sheet,
@@ -200,6 +205,7 @@ export default function WyFrame({
         characterInitials={characterInitials}
         avatarUrl={avatarUrl}
         onNavigate={onNavigate}
+        onOpenAccount={onOpenAccount}
         onOpenStory={(storyId, title) => setSearchReader({ id: storyId, title })}
         unreadNotifications={unreadNotifications}
       />
