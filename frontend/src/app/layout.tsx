@@ -10,6 +10,7 @@ import "./withyouly-v58-parity.css";
 import "./withyouly-e2e-fixes.css";
 import ReadingSizeSync from "@/components/ReadingSizeSync";
 import SessionExpiredGuard from "@/components/providers/SessionExpiredGuard";
+import ChunkReloadGuard from "@/components/providers/ChunkReloadGuard";
 import { I18nProvider } from "@/components/providers/I18nProvider";
 import { DEFAULT_LANGUAGE, type Language } from "@/lib/i18n/messages";
 
@@ -51,6 +52,7 @@ export default function RootLayout({
         <I18nProvider initialLanguage={language}>
           <ReadingSizeSync />
           <SessionExpiredGuard />
+          <ChunkReloadGuard />
           {children}
         </I18nProvider>
       </body>
