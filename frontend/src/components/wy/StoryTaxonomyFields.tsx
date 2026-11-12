@@ -15,6 +15,7 @@ export const EMOTION_EMOJI: Record<string, string> = {
   Gratitud: '🙏',
   Ira: '😠',
   Miedo: '😨',
+  Motivado: '💪',
   Neutral: '😐',
   Soledad: '🌧️',
   Tristeza: '😢',

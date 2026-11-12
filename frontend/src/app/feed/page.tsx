@@ -51,7 +51,6 @@ function initialsOf(name?: string | null) {
 }
 
 // Accesos rápidos de «¿Cómo estás ahora?» con ilustraciones propias (public/assets/moods).
-// Accesos rápidos de «¿Cómo estás ahora?» con ilustraciones propias (public/assets/moods).
 const QUICK_MOODS = [
   { key: 'alegria', name: 'Alegría', image: '/assets/moods/alegria.webp', color: '#F4B942' },
   { key: 'calma', name: 'Calma', image: '/assets/moods/calma.webp', color: '#42B8A8' },
@@ -59,6 +58,9 @@ const QUICK_MOODS = [
   { key: 'enojo', name: 'Enojo', image: '/assets/moods/enojo.webp', color: '#E06A5F' },
   { key: 'cansancio', name: 'Cansancio', image: '/assets/moods/cansancio.webp', color: '#B08B68' },
   { key: 'esperanza', name: 'Esperanza', image: '/assets/moods/esperanza.webp', color: '#62B878' },
+  { key: 'motivado', name: 'Motivado', image: '/assets/moods/motivado.webp', color: '#F29A2E' },
+  { key: 'ansiedad', name: 'Ansiedad', image: '/assets/moods/ansiedad.webp', color: '#8B6CCF' },
+  { key: 'soledad', name: 'Soledad', image: '/assets/moods/soledad.webp', color: '#6670A8' },
 ] as const;
 
 function relativeTime(value: string): string {

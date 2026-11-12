@@ -26,6 +26,8 @@ const EMOTION: Record<string, { emoji: string; color: string; soft: string }> = 
   Alegría: { emoji: '😄', color: '#F4B942', soft: '#FFF6D9' },
   Calma: { emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
   Esperanza: { emoji: '🌱', color: '#62B878', soft: '#E8F6EC' },
+  Motivado: { emoji: '💪', color: '#F29A2E', soft: '#FFF0DC' },
+  // Ya no se ofrece, pero hay registros antiguos con esta emoción.
   Neutral: { emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
   Tristeza: { emoji: '😔', color: '#5B84C4', soft: '#E7EFFB' },
   Ansiedad: { emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
@@ -50,7 +52,7 @@ function recommendationFor(name: string | undefined, intensity: number): Recomme
     return { icon: '👣', title: 'Un paso posible', copy: 'Elige una acción pequeña y realista para acompañarte hoy.', cta: 'Elegir mi paso' };
   if (name === 'Neutral')
     return { icon: '🧩', title: 'Desenreda lo que sientes', copy: 'Separa lo que ocurrió, lo que necesitas y tu siguiente paso.', cta: 'Desenredar' };
-  if (name === 'Alegría' || name === 'Calma' || name === 'Esperanza')
+  if (name === 'Alegría' || name === 'Calma' || name === 'Esperanza' || name === 'Motivado')
     return { icon: '✉️', title: 'Guarda este momento', copy: 'Conserva lo que hoy te hizo bien para volver a leerlo en el futuro.', cta: 'Crear cápsula', href: '/mis-capsulas' };
   return intensity >= 7
     ? { icon: '🌬️', title: 'Calma tu mente', copy: 'Una pausa guiada de un minuto antes de decidir qué hacer.', cta: 'Comenzar 1 minuto' }

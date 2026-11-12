@@ -86,6 +86,7 @@ const EMOTIONS = [
   { name: 'Gratitud', colorHex: '#37a978' },
   { name: 'Ira', colorHex: '#df5d67' },
   { name: 'Miedo', colorHex: '#df5d67' },
+  { name: 'Motivado', colorHex: '#F29A2E' },
   { name: 'Neutral', colorHex: '#8B95A7' },
   { name: 'Soledad', colorHex: '#6670A8' },
   { name: 'Tristeza', colorHex: '#5B84C4' },

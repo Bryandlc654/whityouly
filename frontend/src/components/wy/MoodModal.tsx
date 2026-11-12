@@ -17,17 +17,20 @@ export const MOODS: Array<{
   { name: 'Alegría', key: 'alegria', emoji: '😄', image: '/assets/moods/alegria.webp', color: '#F4B942', soft: '#FFF6D9' },
   { name: 'Calma', key: 'calma', image: '/assets/moods/calma.webp', emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
   { name: 'Esperanza', key: 'esperanza', emoji: '🌱', image: '/assets/moods/esperanza.webp', color: '#62B878', soft: '#E8F6EC' },
-  { name: 'Neutral', key: 'neutral', emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
+  // Motivado reemplaza a Neutral en el selector; Neutral sigue en el catálogo
+  // de la base para mostrar los registros antiguos.
+  { name: 'Motivado', key: 'motivado', emoji: '💪', image: '/assets/moods/motivado.webp', color: '#F29A2E', soft: '#FFF0DC' },
   { name: 'Tristeza', key: 'tristeza', emoji: '😔', image: '/assets/moods/tristeza.webp', color: '#5B84C4', soft: '#E7EFFB' },
-  { name: 'Ansiedad', key: 'ansiedad', emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
+  { name: 'Ansiedad', key: 'ansiedad', emoji: '😟', image: '/assets/moods/ansiedad.webp', color: '#8B6CCF', soft: '#F0EAFB' },
   { name: 'Enojo', key: 'enojo', emoji: '😠', image: '/assets/moods/enojo.webp', color: '#E06A5F', soft: '#FCEAE7' },
-  { name: 'Soledad', key: 'soledad', emoji: '🫥', color: '#6670A8', soft: '#EAECF5' },
+  { name: 'Soledad', key: 'soledad', emoji: '🫥', image: '/assets/moods/soledad.webp', color: '#6670A8', soft: '#EAECF5' },
   { name: 'Cansancio', key: 'cansancio', emoji: '😴', image: '/assets/moods/cansancio.webp', color: '#B08B68', soft: '#F5EEE7' },
 ];
 
 export const MOOD_EMOJI: Record<string, string> = MOODS.reduce(
   (map, mood) => ({ ...map, [mood.name]: mood.emoji }),
-  {} as Record<string, string>,
+  // Neutral ya no se ofrece, pero hay registros antiguos con esa emoción.
+  { Neutral: '😐' } as Record<string, string>,
 );
 
 const DAYPARTS = ['Ahora', 'Mañana', 'Tarde', 'Noche', 'Todo el día'];

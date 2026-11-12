@@ -41,9 +41,10 @@
 .wy .story-row > .appeal-block{grid-column:1/-1}
 .wy a.reference-logo{color:inherit}
 
-/* «¿Cómo estás ahora?»: cinco ilustraciones + «Ver todas». */
-.wy .mood-choices-illustrated{grid-template-columns:repeat(6,minmax(0,1fr))}
-.wy .mood-choices-illustrated .mood-illustration{display:block;width:40px;height:40px;margin:0 auto 4px;object-fit:contain}
+/* «¿Cómo estás ahora?»: las nueve emociones con ilustración. */
+.wy .mood-choices-illustrated{grid-template-columns:repeat(9,minmax(0,1fr));gap:6px}
+.wy .mood-choices-illustrated .mood-choice{padding-left:2px;padding-right:2px}
+.wy .mood-choices-illustrated .mood-illustration{display:block;width:38px;height:38px;margin:0 auto 4px;object-fit:contain}
 @media(max-width:520px){
 .wy .mood-choices-illustrated{grid-template-columns:repeat(3,minmax(0,1fr))}
 .wy .mood-choices-illustrated .mood-illustration{width:34px;height:34px}

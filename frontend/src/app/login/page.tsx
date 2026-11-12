@@ -124,7 +124,6 @@ export default function LoginPage() {
           </div>
         ) : null}
         {error ? <div className="auth-error">{error}</div> : null}
-        {success ? <div className="auth-success">{t('auth.login.submitting')}</div> : null}
 
         <label htmlFor="identifier">{t('auth.email')}</label>
         <div className="input-with-icon">
@@ -171,11 +170,7 @@ export default function LoginPage() {
         </div>
 
         <button className="primary reference-submit" type="submit" disabled={loading || success}>
-          {loading && !success
-            ? t('auth.login.submitting')
-            : success
-              ? t('auth.login.success')
-              : t('auth.login.submit')}
+          {loading || success ? t('auth.login.submitting') : t('auth.login.submit')}
         </button>
 
         <div className="create-account-line">
@@ -195,6 +190,17 @@ export default function LoginPage() {
         </div>
       </form>
       )}
+      {success ? (
+        <div className="login-toast" role="status" aria-live="polite">
+          <span className="login-toast-icon">
+            <Icon name="check" />
+          </span>
+          <span>
+            <b>{t('auth.login.success')}</b>
+            <small>{t('auth.login.successCopy')}</small>
+          </span>
+        </div>
+      ) : null}
     </AuthCard>
   );
 }

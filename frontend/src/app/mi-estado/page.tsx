@@ -151,14 +151,18 @@ const EMOTIONS58: { name: string; emoji: string; color: string; soft: string }[]
   { name: 'Alegría', emoji: '😄', color: '#F4B942', soft: '#FFF6D9' },
   { name: 'Calma', emoji: '😌', color: '#42B8A8', soft: '#E2F7F3' },
   { name: 'Esperanza', emoji: '🌱', color: '#62B878', soft: '#E8F6EC' },
-  { name: 'Neutral', emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
+  { name: 'Motivado', emoji: '💪', color: '#F29A2E', soft: '#FFF0DC' },
   { name: 'Tristeza', emoji: '😔', color: '#5B84C4', soft: '#E7EFFB' },
   { name: 'Ansiedad', emoji: '😟', color: '#8B6CCF', soft: '#F0EAFB' },
   { name: 'Enojo', emoji: '😠', color: '#E06A5F', soft: '#FCEAE7' },
   { name: 'Soledad', emoji: '🫥', color: '#6670A8', soft: '#EAECF5' },
   { name: 'Cansancio', emoji: '😴', color: '#B08B68', soft: '#F5EEE7' },
 ];
-const EMOTION58 = Object.fromEntries(EMOTIONS58.map((item) => [item.name, item]));
+const EMOTION58: Record<string, (typeof EMOTIONS58)[number]> = {
+  ...Object.fromEntries(EMOTIONS58.map((item) => [item.name, item])),
+  // Ya no se ofrece, pero hay registros antiguos con esta emoción.
+  Neutral: { name: 'Neutral', emoji: '😐', color: '#8B95A7', soft: '#EEF0F4' },
+};
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
