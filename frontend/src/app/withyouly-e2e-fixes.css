@@ -179,3 +179,11 @@
 .wy .session-expired-modal{width:min(480px,100%)}
 .wy .session-expired-icon{display:grid;place-items:center;width:46px;height:46px;flex:0 0 46px;border-radius:15px;background:#F1EDFF;color:#6246F5}
 .wy .session-expired-icon svg{width:22px;height:22px}
+
+.wy .password-generate{display:inline-flex;align-items:center;gap:5px}
+.wy .password-generate svg{width:14px;height:14px}
+.wy .password-rules{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;padding:0}
+.wy .password-rules li{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#F3F3F6;color:#767d90;font-size:12px;font-weight:700;transition:background .15s,color .15s}
+.wy .password-rules li svg{width:12px;height:12px;opacity:.35}
+.wy .password-rules li.ok{background:#eaf7f1;color:#2c855b}
+.wy .password-rules li.ok svg{opacity:1}

@@ -9,6 +9,39 @@ import VerifyCodeForm from '@/components/wy/VerifyCodeForm';
 import { useI18n } from '@/components/providers/I18nProvider';
 import LanguageSwitcher from '@/components/wy/LanguageSwitcher';
 
+// Reglas que exige el backend (auth.dto.ts): 8+ caracteres, mayúscula,
+// minúscula y número.
+const PASSWORD_RULES = [
+  { key: 'auth.register.ruleLength', test: (v: string) => v.length >= 8 },
+  { key: 'auth.register.ruleUpper', test: (v: string) => /[A-Z]/.test(v) },
+  { key: 'auth.register.ruleLower', test: (v: string) => /[a-z]/.test(v) },
+  { key: 'auth.register.ruleNumber', test: (v: string) => /\d/.test(v) },
+];
+
+// Genera una contraseña de 14 caracteres con al menos una mayúscula, una
+// minúscula, un número y un símbolo, usando el generador seguro del navegador.
+function generatePassword(length = 14): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%*?-_';
+  const all = upper + lower + digits + symbols;
+  const pick = (set: string) => {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return set[buf[0] % set.length];
+  };
+  const chars = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+  while (chars.length < length) chars.push(pick(all));
+  for (let i = chars.length - 1; i > 0; i--) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    const j = buf[0] % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,11 +49,24 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [generated, setGenerated] = useState(false);
   // Tras crear la cuenta se pide el código que llega por correo.
   const [step, setStep] = useState<'account' | 'verify'>('account');
 
   const router = useRouter();
   const { t } = useI18n();
+
+  const handleGenerate = async () => {
+    const next = generatePassword();
+    setPassword(next);
+    setShowPassword(true);
+    try {
+      await navigator.clipboard.writeText(next);
+      setGenerated(true);
+    } catch {
+      setGenerated(false);
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +184,12 @@ export default function RegisterPage() {
               <input id="signupBirth" name="birth" type="date" required />
             </div>
 
-            <label htmlFor="signupPassword">{t('auth.register.password')}</label>
+            <div className="label-row">
+              <label htmlFor="signupPassword">{t('auth.register.password')}</label>
+              <button type="button" className="password-generate" onClick={handleGenerate}>
+                <Icon name="lock" /> {t('auth.register.generate')}
+              </button>
+            </div>
             <div className="input-with-icon">
               <Icon name="lock" />
               <input
@@ -152,7 +203,10 @@ export default function RegisterPage() {
                 maxLength={72}
                 pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setGenerated(false);
+                }}
               />
               <button
                 type="button"
@@ -163,7 +217,16 @@ export default function RegisterPage() {
                 <Icon name="eye" />
               </button>
             </div>
-            <small className="field-hint">{t('auth.register.hint')}</small>
+            <ul className="password-rules" aria-label={t('auth.register.hint')}>
+              {PASSWORD_RULES.map((rule) => (
+                <li key={rule.key} className={rule.test(password) ? 'ok' : undefined}>
+                  <Icon name="check" /> {t(rule.key)}
+                </li>
+              ))}
+            </ul>
+            {generated ? (
+              <small className="field-hint">{t('auth.register.generatedCopied')}</small>
+            ) : null}
 
             <label className="consent-row">
               <input type="checkbox" required />
