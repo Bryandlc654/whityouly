@@ -22,7 +22,13 @@ const USER_SELECT = {
   status: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { characters: true, mediaAssets: true, sessions: true } },
+  character: {
+    select: {
+      name: true,
+      _count: { select: { stories: true } },
+    },
+  },
+  _count: { select: { mediaAssets: true, sessions: true } },
 } as const;
 
 
@@ -60,7 +66,10 @@ export class AdminUsersService {
     const hasMore = rows.length > take;
     const items = hasMore ? rows.slice(0, take) : rows;
 
-    return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
+    return {
+      items: items.map((row) => this.toPublicUser(row)),
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+    };
   }
 
   /**
@@ -198,7 +207,8 @@ export class AdminUsersService {
     status: string;
     createdAt: Date;
     updatedAt: Date;
-    _count?: { characters: number; mediaAssets: number; sessions: number };
+    character?: { name: string; _count: { stories: number } } | null;
+    _count?: { mediaAssets: number; sessions: number };
   }) {
     return {
       id: user.id,
@@ -208,13 +218,13 @@ export class AdminUsersService {
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      counts: user._count
-        ? {
-            characters: user._count.characters,
-            media: user._count.mediaAssets,
-            activeSessions: user._count.sessions,
-          }
-        : undefined,
+      characterName: user.character?.name ?? null,
+      counts: {
+        characters: user.character ? 1 : 0,
+        stories: user.character?._count.stories ?? 0,
+        media: user._count?.mediaAssets ?? 0,
+        activeSessions: user._count?.sessions ?? 0,
+      },
     };
   }
 }

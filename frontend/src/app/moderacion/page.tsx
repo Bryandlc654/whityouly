@@ -491,9 +491,16 @@ export default function ModerationPage() {
             </p>
           </div>
           {account ? (
-            <span className="account-badge">
-              <Icon name="shield" /> {account.role}
-            </span>
+            <div className="admin-header-actions">
+              {account.role === 'SUPERADMIN' ? (
+                <button className="secondary" type="button" onClick={() => router.push('/admin')}>
+                  <Icon name="shield" /> Panel de superadministración
+                </button>
+              ) : null}
+              <span className="account-badge">
+                <Icon name="shield" /> {account.role}
+              </span>
+            </div>
           ) : null}
         </div>
 

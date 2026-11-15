@@ -61,7 +61,7 @@ describe('AdminUsersService', () => {
         status: 'ACTIVE',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 1, mediaAssets: 2, sessions: 0 },
+        character: null, _count: { mediaAssets: 2, sessions: 0 },
       });
 
       const result = await service.updateRole('sa-1', 'u-2', 'MODERATOR');
@@ -106,7 +106,7 @@ describe('AdminUsersService', () => {
         status: 'ACTIVE',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 0, mediaAssets: 0, sessions: 1 },
+        character: null, _count: { mediaAssets: 0, sessions: 1 },
       });
 
       await service.updateRole('sa-1', 'sa-2', 'ADMIN');
@@ -127,7 +127,7 @@ describe('AdminUsersService', () => {
         status: 'SUSPENDED',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 0, mediaAssets: 0, sessions: 0 },
+        character: null, _count: { mediaAssets: 0, sessions: 0 },
       });
 
       await service.updateRole('sa-1', 'sa-2', 'USER');
@@ -148,7 +148,7 @@ describe('AdminUsersService', () => {
         status: 'ACTIVE',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 0, mediaAssets: 0, sessions: 0 },
+        character: null, _count: { mediaAssets: 0, sessions: 0 },
       });
 
       const result = await service.updateRole('sa-1', 'u-3', 'MODERATOR');
@@ -181,7 +181,7 @@ describe('AdminUsersService', () => {
         status: 'SUSPENDED',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 0, mediaAssets: 1, sessions: 3 },
+        character: null, _count: { mediaAssets: 1, sessions: 3 },
       });
 
       const result = await service.updateStatus('admin-1', 'u-4', 'SUSPENDED');
@@ -202,7 +202,7 @@ describe('AdminUsersService', () => {
         status: 'ACTIVE',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 0, mediaAssets: 0, sessions: 0 },
+        character: null, _count: { mediaAssets: 0, sessions: 0 },
       });
 
       await service.updateStatus('admin-1', 'u-5', 'ACTIVE');
@@ -233,7 +233,7 @@ describe('AdminUsersService', () => {
         status: 'SUSPENDED',
         createdAt: new Date(),
         updatedAt: new Date(),
-        _count: { characters: 0, mediaAssets: 0, sessions: 1 },
+        character: null, _count: { mediaAssets: 0, sessions: 1 },
       });
 
       await service.updateStatus('sa-1', 'admin-2', 'SUSPENDED');

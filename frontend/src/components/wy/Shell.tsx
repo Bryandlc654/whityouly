@@ -8,6 +8,7 @@ import HeaderSearch from './HeaderSearch';
 import NotificationsMenu from './NotificationsMenu';
 import StoryViewer from './StoryViewer';
 import LanguageSwitcher from './LanguageSwitcher';
+import AdminEntry from './AdminEntry';
 import { useI18n } from '@/components/providers/I18nProvider';
 
 export type WyRoute =
@@ -69,6 +70,7 @@ function TopBar({
         <HeaderSearch onOpenStory={onOpenStory} />
         <div className="top-actions">
           <LanguageSwitcher />
+          <AdminEntry />
           <button
             className="icon-btn"
             type="button"

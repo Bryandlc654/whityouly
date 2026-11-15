@@ -395,7 +395,12 @@ export class DiscoveryService {
     }
 
     const note = dto.note === undefined ? undefined : dto.note.trim();
-    const expiresAt = dto.expiresAt === undefined ? undefined : new Date(dto.expiresAt);
+    const expiresAt =
+      dto.expiresAt === undefined
+        ? undefined
+        : dto.expiresAt === null
+          ? null
+          : new Date(dto.expiresAt);
 
     const existing = await this.prisma.featuredStory.findUnique({
       where: { storyId },

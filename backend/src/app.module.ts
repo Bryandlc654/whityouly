@@ -36,6 +36,7 @@ import { CapsulesModule } from './modules/capsules/capsules.module';
 import { CareActivitiesModule } from './modules/care-activities/care-activities.module';
 import { DiaryModule } from './modules/diary/diary.module';
 import { ContentPreferencesModule } from './modules/content-preferences/content-preferences.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { ContentPreferencesModule } from './modules/content-preferences/content-
     CareActivitiesModule,
     DiaryModule,
     ContentPreferencesModule,
+    AdminModule,
     ThrottlerStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [ThrottlerStorageModule],

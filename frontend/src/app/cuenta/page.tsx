@@ -151,6 +151,15 @@ export default function ProfilePage() {
     setSheet({
       title: 'Tu cuenta',
       rows: [
+        ...(account?.role === 'SUPERADMIN'
+          ? [
+              {
+                label: 'Panel de superadministración',
+                icon: 'shield' as const,
+                onClick: () => router.push('/admin'),
+              },
+            ]
+          : []),
         { label: 'Editar perfil', icon: 'edit', onClick: () => router.push('/perfil/editar') },
         { label: 'Mis relatos', icon: 'book', onClick: () => router.push('/mis-relatos') },
         { label: 'Mis reportes', icon: 'flag', onClick: () => router.push('/mis-reportes') },
@@ -204,6 +213,7 @@ export default function ProfilePage() {
   const name = character?.name ?? '';
   const isStaff =
     account?.role === 'MODERATOR' || account?.role === 'ADMIN' || account?.role === 'SUPERADMIN';
+  const isSuperadmin = account?.role === 'SUPERADMIN';
 
   if (loading) {
     return (
@@ -342,6 +352,16 @@ export default function ProfilePage() {
             </span>
             <Icon name="chevron" />
           </button>
+          {isSuperadmin ? (
+            <button className="settings-row" type="button" onClick={() => router.push('/admin')}>
+              <Icon name="shield" />
+              <span>
+                <b>Panel de superadministración</b>
+                <small>Cuentas, catálogo, archivos y soporte</small>
+              </span>
+              <Icon name="chevron" />
+            </button>
+          ) : null}
           {isStaff ? (
             <button className="settings-row" type="button" onClick={() => router.push('/moderacion')}>
               <Icon name="flag" />

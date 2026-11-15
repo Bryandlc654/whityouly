@@ -5,6 +5,10 @@ const ACCESS_TOKEN_KEY = 'accessToken';
 /** Evento global para que la app cierre la sesión de forma coordinada. */
 export const SESSION_EXPIRED_EVENT = 'withyouly:session-expired';
 
+/** Caché de rol por pestaña: evita repetir /users/me solo para pintar el acceso. */
+export const ROLE_CACHE_KEY = 'withyouly-role';
+export const SESSION_CHANGED_EVENT = 'withyouly:session-changed';
+
 /**
  * El access token (de vida corta) se guarda en el navegador para adjuntarlo a
  * las peticiones. El refresh token (de vida larga) vive en una cookie httpOnly
@@ -20,6 +24,11 @@ export const tokenStorage = {
   },
   clear(): void {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
+    try {
+      sessionStorage.removeItem(ROLE_CACHE_KEY);
+    } catch {
+      /* almacenamiento bloqueado */
+    }
   },
 };
 

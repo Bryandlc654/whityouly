@@ -224,14 +224,18 @@ export class FilesService {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
       ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
-      select: { ...ASSET_SELECT, userId: true },
+      select: { ...ASSET_SELECT, userId: true, user: { select: { email: true } } },
     });
 
     const hasMore = rows.length > take;
     const items = hasMore ? rows.slice(0, take) : rows;
 
     return {
-      items: items.map((asset) => ({ ...this.toFile(asset), userId: asset.userId })),
+      items: items.map((asset) => ({
+        ...this.toFile(asset),
+        userId: asset.userId,
+        userEmail: asset.user?.email ?? null,
+      })),
       nextCursor: hasMore ? items[items.length - 1].id : null,
     };
   }

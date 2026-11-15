@@ -30,10 +30,12 @@ export class UpsertFeaturedDto {
   note?: string;
 
   @ApiPropertyOptional({
-    description: 'Fecha (ISO 8601) a partir de la cual el destacado deja de mostrarse.',
+    description:
+      'Fecha (ISO 8601) a partir de la cual el destacado deja de mostrarse. Enviar null para quitarla.',
     example: '2026-12-31T23:59:59.000Z',
+    nullable: true,
   })
   @IsOptional()
   @IsISO8601()
-  expiresAt?: string;
+  expiresAt?: string | null;
 }

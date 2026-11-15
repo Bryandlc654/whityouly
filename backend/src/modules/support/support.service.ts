@@ -14,6 +14,10 @@ import {
   type SupportCategory,
   type SupportStatus,
 } from './dto/support.dto';
+import type {
+  ListSupportTicketsQueryDto,
+  UpdateSupportTicketDto,
+} from './dto/admin-support.dto';
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
@@ -41,6 +45,12 @@ export interface SupportTicketView {
   createdAt: Date;
   updatedAt: Date;
   resolvedAt: Date | null;
+}
+
+export interface AdminSupportTicketView extends SupportTicketView {
+  userId: string;
+  userEmail: string | null;
+  characterName: string | null;
 }
 
 /**
@@ -135,6 +145,120 @@ export class SupportService {
     }
 
     return this.toView(ticket);
+  }
+
+  /**
+   * Bandeja de soporte. El texto del caso puede ser sensible, así que solo se
+   * expone a administración y se devuelve el correo de la cuenta para poder
+   * responder con contexto.
+   */
+  async listAll(query: ListSupportTicketsQueryDto) {
+    const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const search = query.search?.trim();
+
+    const rows = await this.prisma.supportTicket.findMany({
+      where: {
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.category ? { category: query.category } : {}),
+        ...(search
+          ? {
+              OR: [
+                { body: { contains: search, mode: 'insensitive' as const } },
+                { user: { email: { contains: search, mode: 'insensitive' as const } } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      select: {
+        ...SUPPORT_SELECT,
+        userId: true,
+        user: {
+          select: {
+            email: true,
+            character: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    const hasMore = rows.length > take;
+    const items = hasMore ? rows.slice(0, take) : rows;
+
+    return {
+      items: items.map((row) => this.toAdminView(row)),
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+    };
+  }
+
+  async updateAsAdmin(id: string, dto: UpdateSupportTicketDto): Promise<AdminSupportTicketView> {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id },
+      select: { id: true, status: true, resolvedAt: true },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Esa solicitud no existe.');
+    }
+
+    const status = dto.status;
+    const resolutionNote =
+      dto.resolutionNote === undefined
+        ? undefined
+        : dto.resolutionNote === ''
+          ? null
+          : dto.resolutionNote;
+
+    if (status === undefined && resolutionNote === undefined) {
+      throw new BadRequestException('Indica un estado o una respuesta.');
+    }
+
+    const closed = status === 'RESOLVED' || status === 'CLOSED';
+    const reopened = status === 'OPEN' || status === 'IN_PROGRESS';
+
+    const updated = await this.prisma.supportTicket.update({
+      where: { id: ticket.id },
+      data: {
+        ...(status ? { status } : {}),
+        ...(resolutionNote !== undefined ? { resolutionNote } : {}),
+        ...(closed ? { resolvedAt: ticket.resolvedAt ?? new Date() } : {}),
+        ...(reopened ? { resolvedAt: null } : {}),
+      },
+      select: {
+        ...SUPPORT_SELECT,
+        userId: true,
+        user: {
+          select: {
+            email: true,
+            character: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    return this.toAdminView(updated);
+  }
+
+  private toAdminView(row: {
+    id: string;
+    category: SupportCategory;
+    body: string;
+    status: SupportStatus;
+    resolutionNote: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    resolvedAt: Date | null;
+    userId: string;
+    user: { email: string | null; character: { name: string } | null } | null;
+  }): AdminSupportTicketView {
+    return {
+      ...this.toView(row),
+      userId: row.userId,
+      userEmail: row.user?.email ?? null,
+      characterName: row.user?.character?.name ?? null,
+    };
   }
 
   private toView(row: {
