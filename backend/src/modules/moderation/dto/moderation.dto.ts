@@ -31,7 +31,7 @@ export const MODERATION_DECISIONS = ['DISMISS', 'HIDE', 'SUSPEND'] as const;
 export type ModerationDecision = (typeof MODERATION_DECISIONS)[number];
 
 /** Tipos de acción que aparecen en la auditoría. */
-export const MODERATION_ACTION_KINDS = ['DISMISS', 'HIDE', 'SUSPEND', 'RESTORE'] as const;
+export const MODERATION_ACTION_KINDS = ['DISMISS', 'HIDE', 'SUSPEND', 'RESTORE', 'DELETE'] as const;
 
 export const MODERATION_REASON_MIN_LENGTH = 5;
 export const MODERATION_REASON_MAX_LENGTH = 1000;

@@ -9,6 +9,7 @@ import { useI18n } from '@/components/providers/I18nProvider';
 import AdminShell from '@/components/admin/AdminShell';
 import AdminOverviewPanel from '@/components/admin/AdminOverview';
 import AdminUsersPanel from '@/components/admin/AdminUsers';
+import AdminContentPanel from '@/components/admin/AdminContentPanel';
 import AdminModerationPanel from '@/components/admin/AdminModeration';
 import AdminFeaturedPanel from '@/components/admin/AdminFeatured';
 import AdminTaxonomyPanel from '@/components/admin/AdminTaxonomy';
@@ -140,6 +141,7 @@ export default function AdminPage() {
     >
       {tab === 'overview' ? <AdminOverviewPanel onNavigate={changeTab} /> : null}
       {tab === 'users' ? <AdminUsersPanel currentUserId={account.id} notify={notify} /> : null}
+      {tab === 'content' ? <AdminContentPanel notify={notify} /> : null}
       {tab === 'reports' ? <AdminModerationPanel mode="reports" notify={notify} /> : null}
       {tab === 'appeals' ? <AdminModerationPanel mode="appeals" notify={notify} /> : null}
       {tab === 'history' ? <AdminModerationPanel mode="history" notify={notify} /> : null}

@@ -686,3 +686,245 @@ export function updateAdminSupportTicket(
     parseAdminSupportTicket,
   );
 }
+
+export type AdminStoryStatus =
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'HIDDEN'
+  | 'REPORTED'
+  | 'MODERATED'
+  | 'WITHDRAWN'
+  | 'DELETED';
+
+export type AdminCommentStatus = 'ACTIVE' | 'HIDDEN' | 'MODERATED' | 'DELETED';
+export type ContentVisibilityAction = 'HIDE' | 'RESTORE';
+
+export interface AdminStory {
+  id: string;
+  title: string;
+  status: AdminStoryStatus;
+  visibility: string;
+  language: string;
+  authorName: string;
+  authorEmail: string;
+  comments: number;
+  stages: number;
+  supports: number;
+  createdAt: string;
+  updatedAt: string;
+  canHide: boolean;
+  canRestore: boolean;
+  canDelete: boolean;
+}
+
+export interface AdminStoryPage {
+  items: AdminStory[];
+  nextCursor: string | null;
+}
+
+export interface AdminComment {
+  id: string;
+  content: string;
+  status: AdminCommentStatus;
+  storyId: string;
+  storyTitle: string;
+  parentId: string | null;
+  authorName: string;
+  authorEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  canHide: boolean;
+  canRestore: boolean;
+  canDelete: boolean;
+}
+
+export interface AdminCommentPage {
+  items: AdminComment[];
+  nextCursor: string | null;
+}
+
+const STORY_STATUSES: AdminStoryStatus[] = [
+  'DRAFT',
+  'PUBLISHED',
+  'HIDDEN',
+  'REPORTED',
+  'MODERATED',
+  'WITHDRAWN',
+  'DELETED',
+];
+const COMMENT_STATUSES: AdminCommentStatus[] = ['ACTIVE', 'HIDDEN', 'MODERATED', 'DELETED'];
+
+function parseStoryStatus(value: unknown): AdminStoryStatus {
+  return STORY_STATUSES.includes(value as AdminStoryStatus)
+    ? (value as AdminStoryStatus)
+    : 'DRAFT';
+}
+
+function parseCommentStatus(value: unknown): AdminCommentStatus {
+  return COMMENT_STATUSES.includes(value as AdminCommentStatus)
+    ? (value as AdminCommentStatus)
+    : 'ACTIVE';
+}
+
+function parseAdminStory(value: unknown): AdminStory | null {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const id = safeString(record.id);
+  const title = typeof record.title === 'string' ? record.title : '';
+  if (!id) return null;
+  return {
+    id,
+    title,
+    status: parseStoryStatus(record.status),
+    visibility: safeString(record.visibility) ?? 'PUBLIC',
+    language: safeString(record.language) ?? 'es',
+    authorName: safeString(record.authorName) ?? '',
+    authorEmail: safeString(record.authorEmail) ?? '',
+    comments: numberOr(record.comments),
+    stages: numberOr(record.stages),
+    supports: numberOr(record.supports),
+    createdAt: safeString(record.createdAt) ?? new Date(0).toISOString(),
+    updatedAt: safeString(record.updatedAt) ?? new Date(0).toISOString(),
+    canHide: record.canHide === true,
+    canRestore: record.canRestore === true,
+    canDelete: record.canDelete !== false,
+  };
+}
+
+function parseAdminComment(value: unknown): AdminComment | null {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const id = safeString(record.id);
+  if (!id) return null;
+  return {
+    id,
+    content: typeof record.content === 'string' ? record.content : '',
+    status: parseCommentStatus(record.status),
+    storyId: safeString(record.storyId) ?? '',
+    storyTitle: safeString(record.storyTitle) ?? '',
+    parentId: safeString(record.parentId),
+    authorName: safeString(record.authorName) ?? '',
+    authorEmail: safeString(record.authorEmail) ?? '',
+    createdAt: safeString(record.createdAt) ?? new Date(0).toISOString(),
+    updatedAt: safeString(record.updatedAt) ?? new Date(0).toISOString(),
+    canHide: record.canHide === true,
+    canRestore: record.canRestore === true,
+    canDelete: record.canDelete !== false,
+  };
+}
+
+export function listAdminStories(
+  params: {
+    search?: string;
+    status?: AdminStoryStatus;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<LoadResult<AdminStoryPage>> {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.status) query.set('status', params.status);
+  if (params.cursor) query.set('cursor', params.cursor);
+  if (params.limit) query.set('limit', String(params.limit));
+
+  return request(
+    `/admin/content/stories?${query.toString()}`,
+    { method: 'GET' },
+    'No se pudieron cargar los relatos.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const items = Array.isArray(record.items)
+        ? record.items.map(parseAdminStory).filter((item): item is AdminStory => item !== null)
+        : [];
+      return { items, nextCursor: safeString(record.nextCursor) };
+    },
+  );
+}
+
+export function setAdminStoryVisibility(
+  id: string,
+  action: ContentVisibilityAction,
+  reason: string,
+): Promise<LoadResult<{ id: string; status: string }>> {
+  return request(
+    `/admin/content/stories/${encodeURIComponent(id)}/visibility`,
+    jsonInit('PATCH', { action, reason }),
+    'No se pudo cambiar la visibilidad del relato.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const storyId = safeString(record.id);
+      if (!storyId) return null;
+      return { id: storyId, status: safeString(record.status) ?? '' };
+    },
+  );
+}
+
+export function deleteAdminStory(
+  id: string,
+  reason: string,
+): Promise<LoadResult<{ id: string }>> {
+  return request(
+    `/admin/content/stories/${encodeURIComponent(id)}`,
+    jsonInit('DELETE', { reason }),
+    'No se pudo eliminar el relato.',
+    () => ({ id }),
+  );
+}
+
+export function listAdminComments(
+  params: {
+    search?: string;
+    status?: AdminCommentStatus;
+    storyId?: string;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<LoadResult<AdminCommentPage>> {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.status) query.set('status', params.status);
+  if (params.storyId) query.set('storyId', params.storyId);
+  if (params.cursor) query.set('cursor', params.cursor);
+  if (params.limit) query.set('limit', String(params.limit));
+
+  return request(
+    `/admin/content/comments?${query.toString()}`,
+    { method: 'GET' },
+    'No se pudieron cargar los comentarios.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const items = Array.isArray(record.items)
+        ? record.items.map(parseAdminComment).filter((item): item is AdminComment => item !== null)
+        : [];
+      return { items, nextCursor: safeString(record.nextCursor) };
+    },
+  );
+}
+
+export function setAdminCommentVisibility(
+  id: string,
+  action: ContentVisibilityAction,
+  reason: string,
+): Promise<LoadResult<{ id: string; status: string }>> {
+  return request(
+    `/admin/content/comments/${encodeURIComponent(id)}/visibility`,
+    jsonInit('PATCH', { action, reason }),
+    'No se pudo cambiar la visibilidad del comentario.',
+    (body) => {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const commentId = safeString(record.id);
+      if (!commentId) return null;
+      return { id: commentId, status: safeString(record.status) ?? '' };
+    },
+  );
+}
+
+export function deleteAdminComment(
+  id: string,
+  reason: string,
+): Promise<LoadResult<{ id: string }>> {
+  return request(
+    `/admin/content/comments/${encodeURIComponent(id)}`,
+    jsonInit('DELETE', { reason }),
+    'No se pudo eliminar el comentario.',
+    () => ({ id }),
+  );
+}

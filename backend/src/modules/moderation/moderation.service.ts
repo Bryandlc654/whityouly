@@ -34,6 +34,13 @@ import {
   RevertModerationActionDto,
   UpdateReportDto,
 } from './dto/moderation.dto';
+import {
+  CONTENT_REASON_MIN_LENGTH,
+  ContentVisibilityDto,
+  DeleteContentDto,
+  ListAdminCommentsQueryDto,
+  ListAdminStoriesQueryDto,
+} from './dto/admin-content.dto';
 
 const DEFAULT_PAGE_SIZE = 30;
 const MAX_PAGE_SIZE = 50;
@@ -690,6 +697,442 @@ export class ModerationService {
     });
 
     return { id: report.id, action: dto.action };
+  }
+
+  // --- Gestión directa de contenido (SUPERADMIN) ----------------------------
+
+  /**
+   * Listado de relatos para el panel de contenido. A diferencia de la bandeja de
+   * reportes, aquí se busca el contenido directamente por título, autor o correo
+   * y se muestran también los eliminados para poder auditar qué ocurrió.
+   */
+  async listAdminStories(query: ListAdminStoriesQueryDto) {
+    const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const search = query.search?.trim();
+
+    const rows = await this.prisma.story.findMany({
+      where: {
+        ...(query.status ? { status: query.status } : {}),
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' as const } },
+                { character: { name: { contains: search, mode: 'insensitive' as const } } },
+                {
+                  character: {
+                    user: { email: { contains: search, mode: 'insensitive' as const } },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        visibility: true,
+        language: true,
+        createdAt: true,
+        updatedAt: true,
+        character: {
+          select: {
+            name: true,
+            user: { select: { email: true } },
+          },
+        },
+        _count: { select: { comments: true, updates: true, companionships: true } },
+      },
+    });
+
+    const hasMore = rows.length > take;
+    const items = hasMore ? rows.slice(0, take) : rows;
+
+    return {
+      items: items.map((row) => ({
+        id: row.id,
+        title: row.title,
+        status: row.status,
+        visibility: row.visibility,
+        language: row.language,
+        authorName: row.character.name,
+        authorEmail: row.character.user.email,
+        comments: row._count.comments,
+        stages: row._count.updates,
+        supports: row._count.companionships,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        canHide:
+          row.status === StoryStatus.PUBLISHED ||
+          row.status === StoryStatus.REPORTED ||
+          row.status === StoryStatus.MODERATED,
+        canRestore:
+          row.status === StoryStatus.HIDDEN ||
+          row.status === StoryStatus.MODERATED ||
+          row.status === StoryStatus.REPORTED,
+        canDelete: row.status !== StoryStatus.DELETED,
+      })),
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+    };
+  }
+
+  /** Listado de comentarios con su relato y autor para moderación directa. */
+  async listAdminComments(query: ListAdminCommentsQueryDto) {
+    const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const search = query.search?.trim();
+
+    const rows = await this.prisma.comment.findMany({
+      where: {
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.storyId ? { storyId: query.storyId } : {}),
+        ...(search
+          ? {
+              OR: [
+                { content: { contains: search, mode: 'insensitive' as const } },
+                { story: { title: { contains: search, mode: 'insensitive' as const } } },
+                { character: { name: { contains: search, mode: 'insensitive' as const } } },
+                {
+                  character: {
+                    user: { email: { contains: search, mode: 'insensitive' as const } },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        content: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        storyId: true,
+        parentId: true,
+        character: {
+          select: {
+            name: true,
+            user: { select: { email: true } },
+          },
+        },
+        story: { select: { title: true } },
+      },
+    });
+
+    const hasMore = rows.length > take;
+    const items = hasMore ? rows.slice(0, take) : rows;
+
+    return {
+      items: items.map((row) => ({
+        id: row.id,
+        content: row.content,
+        status: row.status,
+        storyId: row.storyId,
+        storyTitle: row.story.title,
+        parentId: row.parentId,
+        authorName: row.character.name,
+        authorEmail: row.character.user.email,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        canHide: row.status === CommentStatus.ACTIVE,
+        canRestore:
+          row.status === CommentStatus.HIDDEN || row.status === CommentStatus.MODERATED,
+        canDelete: row.status !== CommentStatus.DELETED,
+      })),
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+    };
+  }
+
+  /** Oculta o restaura un relato sin depender de que exista un reporte. */
+  async setStoryVisibility(
+    actorUserId: string,
+    storyId: string,
+    dto: ContentVisibilityDto,
+  ) {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: {
+        id: true,
+        status: true,
+        character: { select: { userId: true } },
+      },
+    });
+    if (!story) {
+      throw new NotFoundException('Ese relato no existe.');
+    }
+
+    const reason = this.normalizeContentReason(dto.reason);
+
+    if (dto.action === 'HIDE') {
+      if (story.status === StoryStatus.HIDDEN) {
+        return { id: story.id, status: story.status };
+      }
+      if (
+        story.status !== StoryStatus.PUBLISHED &&
+        story.status !== StoryStatus.REPORTED &&
+        story.status !== StoryStatus.MODERATED
+      ) {
+        throw new ConflictException('Ese relato no se puede ocultar en su estado actual.');
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.story.update({
+          where: { id: story.id },
+          data: { status: StoryStatus.HIDDEN, updatedAt: new Date() },
+        });
+        await tx.moderationAction.create({
+          data: {
+            actorUserId,
+            action: ModerationActionKind.HIDE,
+            targetType: 'STORY',
+            targetId: story.id,
+            subjectUserId: story.character.userId,
+            reason,
+          },
+        });
+      });
+
+      await this.notifyModeration(story.character.userId, actorUserId, { storyId: story.id });
+      return { id: story.id, status: StoryStatus.HIDDEN };
+    }
+
+    if (story.status === StoryStatus.PUBLISHED) {
+      return { id: story.id, status: story.status };
+    }
+    if (
+      story.status !== StoryStatus.HIDDEN &&
+      story.status !== StoryStatus.MODERATED &&
+      story.status !== StoryStatus.REPORTED
+    ) {
+      throw new ConflictException('Ese relato no está oculto por moderación.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.story.update({
+        where: { id: story.id },
+        data: { status: StoryStatus.PUBLISHED, updatedAt: new Date() },
+      });
+      await tx.moderationAction.create({
+        data: {
+          actorUserId,
+          action: ModerationActionKind.RESTORE,
+          targetType: 'STORY',
+          targetId: story.id,
+          subjectUserId: story.character.userId,
+          reason,
+        },
+      });
+    });
+
+    return { id: story.id, status: StoryStatus.PUBLISHED };
+  }
+
+  /** Baja definitiva (lógica) de un relato desde el panel de contenido. */
+  async deleteStory(actorUserId: string, storyId: string, dto: DeleteContentDto) {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: {
+        id: true,
+        status: true,
+        character: { select: { userId: true } },
+      },
+    });
+    if (!story) {
+      throw new NotFoundException('Ese relato no existe.');
+    }
+    if (story.status === StoryStatus.DELETED) {
+      return { id: story.id };
+    }
+
+    const reason = this.normalizeContentReason(dto.reason);
+
+    await this.prisma.$transaction(async (tx) => {
+      const attached = await tx.storyUpdate.findMany({
+        where: {
+          storyId: story.id,
+          OR: [{ mediaAssetId: { not: null } }, { audioAssetId: { not: null } }],
+        },
+        select: { mediaAssetId: true, audioAssetId: true },
+      });
+
+      await tx.storyUpdate.updateMany({
+        where: { storyId: story.id },
+        data: { mediaAssetId: null, audioAssetId: null },
+      });
+
+      const assetIds = attached
+        .flatMap((row) => [row.mediaAssetId, row.audioAssetId])
+        .filter((id): id is string => Boolean(id));
+      if (assetIds.length > 0) {
+        await tx.mediaAsset.updateMany({
+          where: { id: { in: assetIds } },
+          data: { entityType: 'NONE', entityId: null },
+        });
+      }
+
+      await tx.story.update({
+        where: { id: story.id },
+        data: {
+          status: StoryStatus.DELETED,
+          withdrawnAt: null,
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.moderationAction.create({
+        data: {
+          actorUserId,
+          action: ModerationActionKind.DELETE,
+          targetType: 'STORY',
+          targetId: story.id,
+          subjectUserId: story.character.userId,
+          reason,
+        },
+      });
+    });
+
+    await this.notifyModeration(story.character.userId, actorUserId, { storyId: story.id });
+    return { id: story.id };
+  }
+
+  /** Oculta o restaura un comentario de forma directa. */
+  async setCommentVisibility(
+    actorUserId: string,
+    commentId: string,
+    dto: ContentVisibilityDto,
+  ) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: {
+        id: true,
+        status: true,
+        storyId: true,
+        character: { select: { userId: true } },
+      },
+    });
+    if (!comment) {
+      throw new NotFoundException('Ese comentario no existe.');
+    }
+
+    const reason = this.normalizeContentReason(dto.reason);
+
+    if (dto.action === 'HIDE') {
+      if (comment.status === CommentStatus.HIDDEN) {
+        return { id: comment.id, status: comment.status };
+      }
+      if (comment.status !== CommentStatus.ACTIVE) {
+        throw new ConflictException('Ese comentario no se puede ocultar en su estado actual.');
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.comment.update({
+          where: { id: comment.id },
+          data: { status: CommentStatus.HIDDEN },
+        });
+        await tx.moderationAction.create({
+          data: {
+            actorUserId,
+            action: ModerationActionKind.HIDE,
+            targetType: 'COMMENT',
+            targetId: comment.id,
+            subjectUserId: comment.character.userId,
+            reason,
+          },
+        });
+      });
+
+      await this.notifyModeration(comment.character.userId, actorUserId, {
+        storyId: comment.storyId,
+      });
+      return { id: comment.id, status: CommentStatus.HIDDEN };
+    }
+
+    if (comment.status === CommentStatus.ACTIVE) {
+      return { id: comment.id, status: comment.status };
+    }
+    if (
+      comment.status !== CommentStatus.HIDDEN &&
+      comment.status !== CommentStatus.MODERATED
+    ) {
+      throw new ConflictException('Ese comentario no está oculto por moderación.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.comment.update({
+        where: { id: comment.id },
+        data: { status: CommentStatus.ACTIVE },
+      });
+      await tx.moderationAction.create({
+        data: {
+          actorUserId,
+          action: ModerationActionKind.RESTORE,
+          targetType: 'COMMENT',
+          targetId: comment.id,
+          subjectUserId: comment.character.userId,
+          reason,
+        },
+      });
+    });
+
+    return { id: comment.id, status: CommentStatus.ACTIVE };
+  }
+
+  /** Baja definitiva (lógica) de un comentario; se borra su texto. */
+  async deleteComment(actorUserId: string, commentId: string, dto: DeleteContentDto) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: {
+        id: true,
+        status: true,
+        storyId: true,
+        character: { select: { userId: true } },
+      },
+    });
+    if (!comment) {
+      throw new NotFoundException('Ese comentario no existe.');
+    }
+    if (comment.status === CommentStatus.DELETED) {
+      return { id: comment.id };
+    }
+
+    const reason = this.normalizeContentReason(dto.reason);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.comment.update({
+        where: { id: comment.id },
+        data: { status: CommentStatus.DELETED, content: '' },
+      });
+      await tx.moderationAction.create({
+        data: {
+          actorUserId,
+          action: ModerationActionKind.DELETE,
+          targetType: 'COMMENT',
+          targetId: comment.id,
+          subjectUserId: comment.character.userId,
+          reason,
+        },
+      });
+    });
+
+    await this.notifyModeration(comment.character.userId, actorUserId, {
+      storyId: comment.storyId,
+    });
+    return { id: comment.id };
+  }
+
+  private normalizeContentReason(reason: string): string {
+    const value = reason.trim();
+    if (value.length < CONTENT_REASON_MIN_LENGTH) {
+      throw new BadRequestException(
+        `Explica el motivo (mínimo ${CONTENT_REASON_MIN_LENGTH} caracteres).`,
+      );
+    }
+    return value;
   }
 
   // --- Revisión de apelaciones (administración) -----------------------------

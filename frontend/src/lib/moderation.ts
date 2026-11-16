@@ -28,7 +28,7 @@ export type AppealTarget = (typeof APPEAL_TARGETS)[number];
 export type AppealStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 export type ReportStatus = 'PENDING' | 'IN_REVIEW' | 'RESOLVED' | 'REJECTED';
 export type ModerationDecision = 'DISMISS' | 'HIDE' | 'SUSPEND';
-export type ModerationActionKind = 'DISMISS' | 'HIDE' | 'SUSPEND' | 'RESTORE';
+export type ModerationActionKind = 'DISMISS' | 'HIDE' | 'SUSPEND' | 'RESTORE' | 'DELETE';
 
 export interface AppealTargetSummary {
   id: string;
@@ -268,7 +268,8 @@ function parseAction(value: unknown): ModerationAction | null {
     (rawAction !== 'DISMISS' &&
       rawAction !== 'HIDE' &&
       rawAction !== 'SUSPEND' &&
-      rawAction !== 'RESTORE')
+      rawAction !== 'RESTORE' &&
+      rawAction !== 'DELETE')
   ) {
     return null;
   }

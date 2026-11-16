@@ -298,6 +298,7 @@ export default function AdminModerationPanel({
     { id: 'HIDE', label: t('admin.mod.action.HIDE') },
     { id: 'SUSPEND', label: t('admin.mod.action.SUSPEND') },
     { id: 'RESTORE', label: t('admin.mod.action.RESTORE') },
+    { id: 'DELETE', label: t('admin.mod.action.DELETE') },
   ];
 
   return (

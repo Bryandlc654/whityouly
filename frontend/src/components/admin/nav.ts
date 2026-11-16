@@ -5,6 +5,7 @@ import type { AdminTab } from './types';
 export const ADMIN_TABS: Array<{ id: AdminTab; labelKey: string; icon: IconName }> = [
   { id: 'overview', labelKey: 'admin.tab.overview', icon: 'pulse' },
   { id: 'users', labelKey: 'admin.tab.users', icon: 'users' },
+  { id: 'content', labelKey: 'admin.tab.content', icon: 'book' },
   { id: 'reports', labelKey: 'admin.tab.reports', icon: 'shield' },
   { id: 'appeals', labelKey: 'admin.tab.appeals', icon: 'restore' },
   { id: 'history', labelKey: 'admin.tab.history', icon: 'clock' },

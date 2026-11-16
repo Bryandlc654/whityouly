@@ -305,3 +305,12 @@
   .wy .admin-brand img{width:112px}
   .wy .admin-topbar-actions .lang-switch{max-width:88px}
 }
+.wy .admin-content-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wy .admin-content-head h2{margin:0;font-size:17px}
+.wy .admin-content-card{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.wy .admin-content-card h2{margin:6px 0;font-size:16px;overflow-wrap:anywhere}
+.wy .admin-content-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:0 0 auto}
+.wy .admin-content-actions .text-link{font-size:12px}
+.wy .admin-content-meta{font-size:11px}
+.wy .admin-content-comment{margin:6px 0 8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px;line-height:1.6;color:#2C2937;max-height:180px;overflow:auto}
+@media(max-width:720px){.wy .admin-content-actions{width:100%}.wy .admin-content-actions button{flex:1 1 auto}}
