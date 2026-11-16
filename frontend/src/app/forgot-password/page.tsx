@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { API_URL, extractErrorMessage } from '@/lib/api';
 import Icon from '@/components/wy/Icon';
 import { useI18n } from '@/components/providers/I18nProvider';
-import LanguageSwitcher from '@/components/wy/LanguageSwitcher';
+import AuthCard from '@/components/wy/AuthCard';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -42,52 +42,61 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="wy">
-      <div className="auth-lang"><LanguageSwitcher compact /></div>
-      <section className="onboarding-stage">
-        <button
-          className="auth-brand onboarding-brand"
-          type="button"
-          onClick={() => router.push('/')}
-          aria-label={t('nav.goHome')}
-        >
-          <span className="brand-crop" />
+    <AuthCard
+      variant="reference"
+      image="/assets/withyouly-login.webp"
+      imageAlt={t('auth.login.imageAlt')}
+      imageCaption={
+        <>
+          <h2>
+            {t('auth.login.visualTitle')} <em>{t('auth.login.visualAccent')}</em>
+          </h2>
+          <p>{t('auth.login.visualText')}</p>
+        </>
+      }
+    >
+      <form className="reference-form" onSubmit={handleSubmit}>
+        <h1>{t('auth.forgot.title')}</h1>
+        <p>{t('auth.forgot.subtitle')}</p>
+
+        {error ? <div className="auth-error">{error}</div> : null}
+        {success ? <div className="auth-success">{success}</div> : null}
+
+        <label htmlFor="forgotEmail">{t('auth.email')}</label>
+        <div className="input-with-icon">
+          <Icon name="mail" />
+          <input
+            id="forgotEmail"
+            name="email"
+            type="email"
+            placeholder="tu@correo.com"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <button className="primary reference-submit" type="submit" disabled={loading}>
+          {loading ? t('auth.login.submitting') : t('auth.forgot.submit')}
         </button>
 
-        <form className="recovery-card card" onSubmit={handleSubmit}>
-          <span className="recovery-icon">
-            <Icon name="mail" />
-          </span>
-          <h1>{t('auth.forgot.title')}</h1>
-          <p>{t('auth.forgot.subtitle')}</p>
-
-          {error ? <div className="auth-error">{error}</div> : null}
-          {success ? <div className="auth-success">{success}</div> : null}
-
-          <label htmlFor="forgotEmail">{t('auth.email')}</label>
-          <div className="input-with-icon">
-            <Icon name="mail" />
-            <input
-              id="forgotEmail"
-              name="email"
-              type="email"
-              placeholder="tu@correo.com"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <button className="primary auth-submit" type="submit" disabled={loading}>
-            {loading ? t('auth.login.submitting') : t('auth.forgot.submit')}
-          </button>
-
-          <button className="ghost back-login" type="button" onClick={() => router.push('/login')}>
+        <div className="create-account-line">
+          <button type="button" onClick={() => router.push('/login')}>
             {t('auth.forgot.back')}
           </button>
-        </form>
-      </section>
-    </div>
+        </div>
+
+        <div className="reference-legal">
+          <button type="button" onClick={() => router.push('/ayuda/privacidad')}>
+            {t('auth.privacy')}
+          </button>
+          <span>·</span>
+          <button type="button" onClick={() => router.push('/ayuda')}>
+            {t('auth.help')}
+          </button>
+        </div>
+      </form>
+    </AuthCard>
   );
 }
