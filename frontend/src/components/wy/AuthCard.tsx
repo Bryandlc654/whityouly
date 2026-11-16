@@ -49,7 +49,17 @@ export default function AuthCard({
             </div>
           </div>
 
-          <aside className="login-aside" aria-label={imageAlt}>
+          <aside
+            className={`login-aside${image ? ' login-aside-photo' : ''}`}
+            aria-label={imageAlt}
+            style={
+              image
+                ? {
+                    backgroundImage: `linear-gradient(to top, rgba(17,17,55,.84), rgba(17,17,55,.06) 64%), url('${image}')`,
+                  }
+                : undefined
+            }
+          >
             <div className="login-aside-inner">{imageCaption}</div>
           </aside>
         </section>

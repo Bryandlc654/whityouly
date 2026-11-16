@@ -316,7 +316,7 @@
 @media(max-width:720px){.wy .admin-content-actions{width:100%}.wy .admin-content-actions button{flex:1 1 auto}}
 
 /* Acceso limpio: formulario minimalista + panel informativo suave. */
-.wy .login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(460px,1fr) minmax(420px,.95fr);background:#FBFBFD}
+.wy .login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(440px,40%) 1fr;background:#FBFBFD}
 .wy .login-panel{display:flex;flex-direction:column;min-width:0;padding:26px clamp(24px,5vw,72px);background:#FFF}
 .wy .login-panel-inner{width:min(420px,100%);margin:auto;display:flex;flex-direction:column;min-height:calc(100vh - 52px)}
 .wy .login-brand{display:inline-flex;width:max-content;max-width:100%;margin-bottom:28px;text-decoration:none}
@@ -377,3 +377,11 @@
   .wy .login-brand img{width:126px}
   .wy .login-shell .reference-form h1{font-size:28px}
 }
+/* Panel derecho del login: imagen y texto originales sobre el formulario limpio. */
+.wy .login-aside-photo{display:flex;align-items:flex-end;justify-content:flex-start;background-size:cover;background-position:65% center;background-repeat:no-repeat;padding:64px clamp(36px,5vw,80px)}
+.wy .login-aside-photo:before,.wy .login-aside-photo:after{display:none}
+.wy .login-aside-photo .login-aside-inner{max-width:760px;padding:0 0 10vh}
+.wy .login-aside-photo h2{color:#FFF;font-size:clamp(40px,4.3vw,76px);line-height:1.04;letter-spacing:-.035em;font-weight:800;margin:0;text-shadow:0 2px 22px rgba(0,0,0,.28)}
+.wy .login-aside-photo h2 em{font-style:normal;color:#FF8F80}
+.wy .login-aside-photo p{color:rgba(255,255,255,.92);font-size:clamp(17px,1.5vw,22px);line-height:1.45;max-width:34ch;margin:18px 0 0;text-shadow:0 1px 14px rgba(0,0,0,.32)}
+@media(max-width:980px){.wy .login-aside-photo{display:none}}
