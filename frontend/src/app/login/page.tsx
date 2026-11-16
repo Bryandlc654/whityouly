@@ -94,14 +94,25 @@ export default function LoginPage() {
   return (
     <AuthCard
       variant="reference"
-      image="/assets/withyouly-login.webp"
       imageAlt={t('auth.login.imageAlt')}
       imageCaption={
         <>
+          <span className="login-aside-kicker">{t('auth.login.asideKicker')}</span>
           <h2>
             {t('auth.login.visualTitle')} <em>{t('auth.login.visualAccent')}</em>
           </h2>
           <p>{t('auth.login.visualText')}</p>
+          <ul className="login-aside-points">
+            <li>
+              <Icon name="shield" /> {t('auth.login.point1')}
+            </li>
+            <li>
+              <Icon name="lock" /> {t('auth.login.point2')}
+            </li>
+            <li>
+              <Icon name="heart" /> {t('auth.login.point3')}
+            </li>
+          </ul>
         </>
       }
     >
