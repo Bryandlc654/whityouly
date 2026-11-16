@@ -7,7 +7,7 @@ import { tokenStorage } from '@/lib/auth';
 import Icon from '@/components/wy/Icon';
 import VerifyCodeForm from '@/components/wy/VerifyCodeForm';
 import { useI18n } from '@/components/providers/I18nProvider';
-import LanguageSwitcher from '@/components/wy/LanguageSwitcher';
+import AuthCard from '@/components/wy/AuthCard';
 
 // Reglas que exige el backend (auth.dto.ts): 8+ caracteres, mayúscula,
 // minúscula y número.
@@ -114,51 +114,49 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="wy">
-      <div className="auth-lang"><LanguageSwitcher compact /></div>
-      <section className="auth-layout signup-layout">
-        <div className="auth-pane">
-          <button
-            className="auth-brand"
-            type="button"
-            onClick={() => router.push('/')}
-            aria-label={t('nav.goHome')}
-          >
-            <span className="brand-crop" />
-          </button>
-
-          {step === 'verify' ? (
-            <div className="auth-form">
-              <div className="step-line" aria-hidden="true">
-                <span className="active">1</span>
-                <i />
-                <span>2</span>
-                <i />
-                <span>3</span>
-              </div>
-              <span className="auth-kicker">{t('auth.verify.kicker')}</span>
-              <h1>{t('auth.verify.title')}</h1>
-              <VerifyCodeForm
-                email={email}
-                onVerified={signInAfterVerify}
-                onChangeEmail={() => {
-                  setStep('account');
-                  setSuccess(false);
-                }}
-              />
-            </div>
-          ) : (
-          <form className="auth-form" onSubmit={handleRegister}>
-            <div className="step-line" aria-hidden="true">
-              <span className="active">1</span>
-              <i />
-              <span>2</span>
-              <i />
-              <span>3</span>
-            </div>
-            <span className="auth-kicker">{t('auth.register.kicker')}</span>
-            <h1>{t('auth.register.title')}</h1>
-            <p>{t('auth.register.subtitle')}</p>
+    <AuthCard
+      variant="reference"
+      image="/assets/withyouly-login.webp"
+      imageAlt={t('auth.login.imageAlt')}
+      imageCaption={
+        <>
+          <h2>
+            {t('auth.login.visualTitle')} <em>{t('auth.login.visualAccent')}</em>
+          </h2>
+          <p>{t('auth.login.visualText')}</p>
+        </>
+      }
+    >
+      {step === 'verify' ? (
+        <div className="reference-form auth-form">
+          <div className="step-line" aria-hidden="true">
+            <span className="active">1</span>
+            <i />
+            <span>2</span>
+            <i />
+            <span>3</span>
+          </div>
+          <h1>{t('auth.verify.title')}</h1>
+          <VerifyCodeForm
+            email={email}
+            onVerified={signInAfterVerify}
+            onChangeEmail={() => {
+              setStep('account');
+              setSuccess(false);
+            }}
+          />
+        </div>
+      ) : (
+        <form className="reference-form auth-form" onSubmit={handleRegister}>
+          <div className="step-line" aria-hidden="true">
+            <span className="active">1</span>
+            <i />
+            <span>2</span>
+            <i />
+            <span>3</span>
+          </div>
+          <h1>{t('auth.register.title')}</h1>
+          <p>{t('auth.register.subtitle')}</p>
 
             {error ? <div className="auth-error">{error}</div> : null}
             {success ? <div className="auth-success">{t('auth.register.submit')}</div> : null}
@@ -196,7 +194,7 @@ export default function RegisterPage() {
                 id="signupPassword"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder={t('auth.register.hint')}
+                placeholder={t('auth.register.passwordPlaceholder')}
                 autoComplete="new-password"
                 required
                 minLength={8}
@@ -230,16 +228,10 @@ export default function RegisterPage() {
 
             <label className="consent-row">
               <input type="checkbox" required />
-              <span>
-                {t('auth.register.consent')}{' '}
-                <button type="button" onClick={() => router.push('/ayuda/normas')}>
-                  {t('auth.privacy')}
-                </button>
-                .
-              </span>
+              <span>{t('auth.register.consent')}</span>
             </label>
 
-            <button className="primary auth-submit" type="submit" disabled={loading || success}>
+            <button className="primary reference-submit" type="submit" disabled={loading || success}>
               {loading && !success
                 ? t('auth.login.submitting')
                 : success
@@ -247,36 +239,23 @@ export default function RegisterPage() {
                   : t('auth.register.submit')}
             </button>
 
-            <div className="auth-links single">
+            <div className="create-account-line">
               <button type="button" onClick={() => router.push('/login')}>
                 {t('auth.register.haveAccount')}
               </button>
             </div>
-          </form>
-          )}
-        </div>
 
-        <aside className="signup-benefits">
-          <div className="benefit-copy">
-            <span className="eyebrow">{t('auth.register.benefitKicker')}</span>
-            <h2>{t('auth.register.benefitTitle')}</h2>
-            <ul>
-              <li>
-                <Icon name="check" /> {t('auth.register.benefit1')}
-              </li>
-              <li>
-                <Icon name="check" /> {t('auth.register.benefit2')}
-              </li>
-              <li>
-                <Icon name="check" /> {t('auth.register.benefit3')}
-              </li>
-              <li>
-                <Icon name="check" /> {t('auth.register.benefit4')}
-              </li>
-            </ul>
-          </div>
-        </aside>
-      </section>
-    </div>
+            <div className="reference-legal">
+              <button type="button" onClick={() => router.push('/ayuda/privacidad')}>
+                {t('auth.privacy')}
+              </button>
+              <span>·</span>
+              <button type="button" onClick={() => router.push('/ayuda')}>
+                {t('auth.help')}
+              </button>
+            </div>
+          </form>
+      )}
+    </AuthCard>
   );
 }
