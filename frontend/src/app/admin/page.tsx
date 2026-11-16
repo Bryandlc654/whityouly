@@ -2,16 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_URL } from '@/lib/api';
 import { fetchAccount, type Account } from '@/lib/account';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
-import type { CharacterSummary } from '@/components/feed/types';
-import WyFrame, { type WyRoute } from '@/components/wy/Shell';
-import RightRail from '@/components/wy/RightRail';
+import { logout as endSession, tokenStorage } from '@/lib/auth';
 import Icon from '@/components/wy/Icon';
-import type { IconName } from '@/components/wy/icons';
-import { Sheet, type SheetRow } from '@/components/wy/Overlays';
 import { useI18n } from '@/components/providers/I18nProvider';
+import AdminShell from '@/components/admin/AdminShell';
 import AdminOverviewPanel from '@/components/admin/AdminOverview';
 import AdminUsersPanel from '@/components/admin/AdminUsers';
 import AdminModerationPanel from '@/components/admin/AdminModeration';
@@ -19,46 +14,20 @@ import AdminFeaturedPanel from '@/components/admin/AdminFeatured';
 import AdminTaxonomyPanel from '@/components/admin/AdminTaxonomy';
 import AdminFilesPanel from '@/components/admin/AdminFiles';
 import AdminSupportPanel from '@/components/admin/AdminSupport';
+import { ADMIN_TAB_IDS } from '@/components/admin/nav';
 import type { AdminTab } from '@/components/admin/types';
-
-const TABS: Array<{ id: AdminTab; labelKey: string; icon: IconName }> = [
-  { id: 'overview', labelKey: 'admin.tab.overview', icon: 'pulse' },
-  { id: 'users', labelKey: 'admin.tab.users', icon: 'users' },
-  { id: 'reports', labelKey: 'admin.tab.reports', icon: 'shield' },
-  { id: 'appeals', labelKey: 'admin.tab.appeals', icon: 'restore' },
-  { id: 'history', labelKey: 'admin.tab.history', icon: 'clock' },
-  { id: 'featured', labelKey: 'admin.tab.featured', icon: 'book' },
-  { id: 'taxonomy', labelKey: 'admin.tab.taxonomy', icon: 'settings' },
-  { id: 'files', labelKey: 'admin.tab.files', icon: 'image' },
-  { id: 'support', labelKey: 'admin.tab.support', icon: 'help' },
-];
-
-const VALID_TABS = new Set<AdminTab>(TABS.map((tab) => tab.id));
-
-function initialsOf(name?: string | null): string {
-  if (!name) return 'WY';
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
-}
 
 export default function AdminPage() {
   const router = useRouter();
   const { t } = useI18n();
 
   const [account, setAccount] = useState<Account | null>(null);
-  const [character, setCharacter] = useState<CharacterSummary | null>(null);
   const [checking, setChecking] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [fatal, setFatal] = useState('');
   const [tab, setTab] = useState<AdminTab>('overview');
 
-  const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
-  const [summaryHidden, setSummaryHidden] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const notify = useCallback((message: string) => {
@@ -76,7 +45,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get('tab');
-    if (requested && VALID_TABS.has(requested as AdminTab)) {
+    if (requested && ADMIN_TAB_IDS.has(requested as AdminTab)) {
       setTab(requested as AdminTab);
     }
   }, []);
@@ -90,10 +59,7 @@ export default function AdminPage() {
         return;
       }
 
-      const [accountResult, meResponse] = await Promise.all([
-        fetchAccount(),
-        authFetch(`${API_URL}/characters/me`).catch(() => null),
-      ]);
+      const accountResult = await fetchAccount();
 
       if (!active) return;
 
@@ -110,15 +76,6 @@ export default function AdminPage() {
       }
 
       setAccount(accountResult.data);
-
-      if (meResponse?.ok) {
-        try {
-          setCharacter(await meResponse.json());
-        } catch {
-          /* el marco funciona sin avatar */
-        }
-      }
-
       setChecking(false);
     };
 
@@ -134,50 +91,6 @@ export default function AdminPage() {
     router.push('/login');
   }, [router]);
 
-  const openAccount = () => {
-    const rows: SheetRow[] = [
-      { label: t('admin.sheet.feed'), icon: 'home', onClick: () => router.push('/feed') },
-      { label: t('admin.sheet.moderation'), icon: 'shield', onClick: () => router.push('/moderacion') },
-      { label: t('admin.sheet.account'), icon: 'settings', onClick: () => router.push('/cuenta') },
-      { label: t('admin.sheet.logout'), icon: 'user', danger: true, onClick: () => void logout() },
-    ];
-    setSheet({ title: t('admin.sheet.title'), rows });
-  };
-
-  const navigate = (route: WyRoute) => {
-    switch (route) {
-      case 'home':
-        router.push('/feed');
-        break;
-      case 'explore':
-        router.push('/explorar');
-        break;
-      case 'my-stories':
-        router.push('/mis-relatos');
-        break;
-      case 'following':
-        router.push('/siguiendo');
-        break;
-      case 'profile':
-        router.push('/cuenta');
-        break;
-      case 'mood':
-        router.push('/mi-diario');
-        break;
-      case 'pulso':
-        router.push('/pulso');
-        break;
-      case 'tree':
-        router.push('/mi-arbol');
-        break;
-      case 'help':
-        router.push('/ayuda');
-        break;
-      default:
-        notify(t('admin.sheet.comingSoon'));
-    }
-  };
-
   const changeTab = (next: AdminTab) => {
     setTab(next);
     const url = new URL(window.location.href);
@@ -185,91 +98,55 @@ export default function AdminPage() {
     window.history.replaceState(null, '', url.toString());
   };
 
-  return (
-    <WyFrame
-      characterInitials={initialsOf(character?.name)}
-      avatarUrl={character?.avatarUrl}
-      activeRoute="profile"
-      onNavigate={navigate}
-      onOpenAccount={openAccount}
-      toast={toast}
-      sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
-      rightRail={
-        <RightRail
-          summaryHidden={summaryHidden}
-          onToggleSummary={() => setSummaryHidden((value) => !value)}
-          onMood={() => router.push('/mi-estado')}
-        />
-      }
-    >
-      <section className="screen admin-page">
-        <div className="welcome-row">
-          <div>
-            <span className="micro-label">{t('admin.kicker')}</span>
-            <h1>{t('admin.title')}</h1>
-            <p className="muted small">{t('admin.subtitle')}</p>
-          </div>
-          {account ? (
-            <span className="account-badge">
-              <Icon name="shield" /> {account.role}
-            </span>
-          ) : null}
-        </div>
+  if (checking) {
+    return (
+      <div className="wy admin-gate">
+        <p className="muted small">{t('admin.checking')}</p>
+      </div>
+    );
+  }
 
-        {checking ? <p className="muted small">{t('admin.checking')}</p> : null}
-
-        {!checking && fatal ? (
-          <div className="auth-error" role="alert">
-            {fatal}
-            <button className="text-link" type="button" style={{ marginLeft: 8 }} onClick={() => router.push('/feed')}>
-              {t('admin.backToFeed')}
-            </button>
-          </div>
-        ) : null}
-
-        {!checking && forbidden ? (
-          <div className="empty card">
-            <div className="empty-icon">
-              <Icon name="lock" />
-            </div>
-            <h2>{t('admin.forbiddenTitle')}</h2>
-            <p>{t('admin.forbiddenCopy')}</p>
+  if (fatal || forbidden || !account) {
+    return (
+      <div className="wy admin-gate">
+        <div className="card pad admin-gate-card">
+          <span className="admin-gate-icon">
+            <Icon name={forbidden ? 'lock' : 'shield'} />
+          </span>
+          <h1>{forbidden ? t('admin.forbiddenTitle') : t('admin.errorTitle')}</h1>
+          <p className="muted">
+            {forbidden ? t('admin.forbiddenCopy') : fatal || t('admin.errorCopy')}
+          </p>
+          <div className="admin-gate-actions">
             <button className="primary" type="button" onClick={() => router.push('/feed')}>
               {t('admin.backToFeed')}
             </button>
+            <button className="ghost" type="button" onClick={() => void logout()}>
+              {t('admin.sidebar.logout')}
+            </button>
           </div>
-        ) : null}
+        </div>
+      </div>
+    );
+  }
 
-        {!checking && !forbidden && !fatal && account ? (
-          <>
-            <div className="admin-tabs" role="tablist" aria-label={t('admin.tabsAria')}>
-              {TABS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === item.id}
-                  className={tab === item.id ? 'active' : undefined}
-                  onClick={() => changeTab(item.id)}
-                >
-                  <Icon name={item.icon} />
-                  <span>{t(item.labelKey)}</span>
-                </button>
-              ))}
-            </div>
-
-            {tab === 'overview' ? <AdminOverviewPanel onNavigate={changeTab} /> : null}
-            {tab === 'users' ? <AdminUsersPanel currentUserId={account.id} notify={notify} /> : null}
-            {tab === 'reports' ? <AdminModerationPanel mode="reports" notify={notify} /> : null}
-            {tab === 'appeals' ? <AdminModerationPanel mode="appeals" notify={notify} /> : null}
-            {tab === 'history' ? <AdminModerationPanel mode="history" notify={notify} /> : null}
-            {tab === 'featured' ? <AdminFeaturedPanel notify={notify} /> : null}
-            {tab === 'taxonomy' ? <AdminTaxonomyPanel notify={notify} /> : null}
-            {tab === 'files' ? <AdminFilesPanel notify={notify} /> : null}
-            {tab === 'support' ? <AdminSupportPanel notify={notify} /> : null}
-          </>
-        ) : null}
-      </section>
-    </WyFrame>
+  return (
+    <AdminShell
+      account={account}
+      activeTab={tab}
+      onTab={changeTab}
+      onLogout={() => void logout()}
+      toast={toast}
+    >
+      {tab === 'overview' ? <AdminOverviewPanel onNavigate={changeTab} /> : null}
+      {tab === 'users' ? <AdminUsersPanel currentUserId={account.id} notify={notify} /> : null}
+      {tab === 'reports' ? <AdminModerationPanel mode="reports" notify={notify} /> : null}
+      {tab === 'appeals' ? <AdminModerationPanel mode="appeals" notify={notify} /> : null}
+      {tab === 'history' ? <AdminModerationPanel mode="history" notify={notify} /> : null}
+      {tab === 'featured' ? <AdminFeaturedPanel notify={notify} /> : null}
+      {tab === 'taxonomy' ? <AdminTaxonomyPanel notify={notify} /> : null}
+      {tab === 'files' ? <AdminFilesPanel notify={notify} /> : null}
+      {tab === 'support' ? <AdminSupportPanel notify={notify} /> : null}
+    </AdminShell>
   );
 }
