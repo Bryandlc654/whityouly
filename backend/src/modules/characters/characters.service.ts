@@ -1,10 +1,17 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma, Character } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateCharacterDto, PrivacySettingsDto, UpdateCharacterDto } from './dto/character.dto';
+import { CreateCharacterDto, UpdateCharacterDto } from './dto/character.dto';
+import {
+  resolvePrivacySettings,
+  type ResolvedPrivacy,
+} from '../../common/privacy/character-privacy';
+
+export { resolvePrivacySettings, type ResolvedPrivacy } from '../../common/privacy/character-privacy';
 import { env } from '../../config/env';
 import { isOwnMediaUrl } from '../../common/storage/media-keys';
 import { isAvatarCatalogUrl } from './avatar-presets';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
 
 // Vista del propietario: incluye sus ajustes de privacidad pero nunca `userId`.
 const OWNER_CHARACTER_SELECT = {
@@ -40,38 +47,10 @@ const RESERVED_NAMES = new Set([
   'ayuda',
 ]);
 
-export interface ResolvedPrivacy {
-  profileVisibility: 'PUBLIC' | 'PRIVATE';
-  showAvatar: boolean;
-  showBio: boolean;
-  showFollowing: boolean;
-}
-
-const DEFAULT_PRIVACY: ResolvedPrivacy = {
-  profileVisibility: 'PUBLIC',
-  showAvatar: true,
-  showBio: true,
-  // Por defecto la lista de "a quién sigo" es privada; solo se comparte si la
-  // persona lo activa. Los seguidores sí son públicos en perfiles públicos.
-  showFollowing: false,
-};
-
 /**
- * Normaliza los ajustes de privacidad guardados como JSON. Se exporta para que
- * otros módulos (por ejemplo, seguidores) apliquen exactamente el mismo
- * criterio sin duplicar reglas.
+ * Normaliza los ajustes de privacidad guardados como JSON. Se reexporta desde
+ * `common/privacy` para que todos los módulos apliquen el mismo criterio.
  */
-export function resolvePrivacySettings(settings: unknown): ResolvedPrivacy {
-  const source = (settings ?? {}) as Partial<PrivacySettingsDto>;
-
-  return {
-    profileVisibility: source.profileVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
-    showAvatar: typeof source.showAvatar === 'boolean' ? source.showAvatar : DEFAULT_PRIVACY.showAvatar,
-    showBio: typeof source.showBio === 'boolean' ? source.showBio : DEFAULT_PRIVACY.showBio,
-    showFollowing:
-      typeof source.showFollowing === 'boolean' ? source.showFollowing : DEFAULT_PRIVACY.showFollowing,
-  };
-}
 
 const MAX_BIO_LENGTH = 500;
 const MAX_TAGLINE_LENGTH = 120;
@@ -139,7 +118,10 @@ export function sanitizeTagline(tagline: string | null | undefined): string | nu
 
 @Injectable()
 export class CharactersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly contentPreferences: ContentPreferencesService,
+  ) {}
 
   async create(userId: string, data: CreateCharacterDto) {
     const name = normalizeCharacterName(data.name);
@@ -273,7 +255,7 @@ export class CharactersService {
    * ajustes de privacidad. Los perfiles privados no se distinguen de los
    * inexistentes (404) para no filtrar su existencia.
    */
-  async getPublicProfile(name: string) {
+  async getPublicProfile(name: string, viewerUserId?: string) {
     const normalized = normalizeCharacterName(name);
 
     if (!normalized || normalized.length > 30) {
@@ -293,6 +275,7 @@ export class CharactersService {
       where: { id: match.id },
       select: {
         id: true,
+        userId: true,
         name: true,
         tagline: true,
         avatarUrl: true,
@@ -307,6 +290,22 @@ export class CharactersService {
 
     if (!character || privacy.profileVisibility !== 'PUBLIC') {
       throw new NotFoundException('Personaje no encontrado.');
+    }
+
+    if (viewerUserId && viewerUserId !== character.userId) {
+      const viewer = await this.prisma.character.findUnique({
+        where: { userId: viewerUserId },
+        select: { id: true },
+      });
+      const blocked = await this.contentPreferences.blockedRelation(
+        viewerUserId,
+        viewer?.id,
+        character.userId,
+        character.id,
+      );
+      if (blocked) {
+        throw new NotFoundException('Personaje no encontrado.');
+      }
     }
 
     // El lema y los intereses son información del perfil: se ocultan juntos con
@@ -329,15 +328,28 @@ export class CharactersService {
           },
         }),
         this.prisma.companionship.count({ where: { targetCharacterId: character.id } }),
-        this.prisma.story.count({ where: { characterId: character.id, status: 'PUBLISHED' } }),
+        this.prisma.story.count({
+          where: { characterId: character.id, status: 'PUBLISHED', guestReadable: true },
+        }),
         this.prisma.story.findMany({
-          where: { characterId: character.id, status: 'PUBLISHED', visibility: 'PUBLIC', featuredAt: { not: null } },
+          where: {
+            characterId: character.id,
+            status: 'PUBLISHED',
+            visibility: 'PUBLIC',
+            guestReadable: true,
+            featuredAt: { not: null },
+          },
           orderBy: { featuredAt: 'desc' },
           take: 6,
           select: PUBLIC_STORY_SELECT,
         }),
         this.prisma.story.findMany({
-          where: { characterId: character.id, status: 'PUBLISHED', visibility: 'PUBLIC' },
+          where: {
+            characterId: character.id,
+            status: 'PUBLISHED',
+            visibility: 'PUBLIC',
+            guestReadable: true,
+          },
           orderBy: { createdAt: 'desc' },
           take: 5,
           select: PUBLIC_STORY_SELECT,
@@ -422,7 +434,9 @@ export class CharactersService {
           name: character.name,
           tagline: privacy.showBio ? sanitizeTagline(character.tagline) : null,
           avatarUrl: privacy.showAvatar ? character.avatarUrl : null,
-          interests: character.interests.map(({ interest }) => interest.name),
+          interests: privacy.showBio
+            ? character.interests.map(({ interest }) => interest.name)
+            : [],
           stories: storyCountMap.get(character.id) ?? 0,
           followers: character._count.followers,
         };

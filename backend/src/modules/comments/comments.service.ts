@@ -9,6 +9,8 @@ import {
 import { Prisma, CommentStatus, TreePath } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
+import { visibleAvatar } from '../../common/privacy/character-privacy';
 import { TreeService } from '../tree/tree.service';
 import { sanitizeCommentContent } from './comment-sanitize';
 import {
@@ -32,7 +34,7 @@ const COMMENT_SELECT = {
   characterId: true,
   createdAt: true,
   updatedAt: true,
-  character: { select: { name: true, avatarUrl: true } },
+  character: { select: { name: true, avatarUrl: true, privacySettings: true } },
   _count: { select: { helpfulMarks: true } },
 } satisfies Prisma.CommentSelect;
 
@@ -45,7 +47,7 @@ interface CommentRow {
   characterId: string;
   createdAt: Date;
   updatedAt: Date;
-  character: { name: string; avatarUrl: string | null };
+  character: { name: string; avatarUrl: string | null; privacySettings?: unknown };
   _count?: { helpfulMarks: number } | null;
 }
 
@@ -58,6 +60,7 @@ export class CommentsService {
     private readonly storiesService: StoriesService,
     private readonly notifications: NotificationsService,
     private readonly tree: TreeService,
+    private readonly contentPreferences: ContentPreferencesService,
   ) {}
 
   /** Borrador privado del compositor. Solo su autor puede leerlo o escribirlo. */
@@ -136,6 +139,7 @@ export class CommentsService {
           id: true,
           parentId: true,
           status: true,
+          characterId: true,
           character: { select: { userId: true } },
         },
       });
@@ -145,6 +149,16 @@ export class CommentsService {
         throw new BadRequestException('Solo se puede responder a un comentario de primer nivel.');
       }
       if (parent.status !== CommentStatus.ACTIVE) {
+        throw new NotFoundException('El comentario al que respondes ya no está disponible.');
+      }
+      if (
+        await this.contentPreferences.blockedRelation(
+          userId,
+          character.id,
+          parent.character.userId,
+          parent.characterId,
+        )
+      ) {
         throw new NotFoundException('El comentario al que respondes ya no está disponible.');
       }
       parentId = parent.id;
@@ -233,6 +247,7 @@ export class CommentsService {
     });
 
     const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const blockedIds = await this.contentPreferences.blockedEitherWayCharacterIds(userId);
 
     // Los comentarios moderados/ocultos no se devuelven; los borrados se
     // muestran como "comentario eliminado" para no romper la jerarquía.
@@ -241,6 +256,7 @@ export class CommentsService {
         storyId,
         ...(query.updateId ? { storyUpdateId: query.updateId } : {}),
         status: { in: [CommentStatus.ACTIVE, CommentStatus.DELETED] },
+        ...(blockedIds.length > 0 ? { characterId: { notIn: blockedIds } } : {}),
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: take + 1,
@@ -255,6 +271,7 @@ export class CommentsService {
         storyId,
         ...(query.updateId ? { storyUpdateId: query.updateId } : {}),
         status: CommentStatus.ACTIVE,
+        ...(blockedIds.length > 0 ? { characterId: { notIn: blockedIds } } : {}),
       },
     });
 
@@ -280,13 +297,28 @@ export class CommentsService {
 
     const comment = await this.prisma.comment.findFirst({
       where: { id: commentId, status: CommentStatus.ACTIVE },
-      select: { id: true, characterId: true },
+      select: {
+        id: true,
+        characterId: true,
+        character: { select: { userId: true } },
+      },
     });
     if (!comment) {
       throw new NotFoundException('Ese comentario no existe o ya no está disponible.');
     }
     if (comment.characterId === character.id) {
       throw new BadRequestException('No puedes marcar tu propio comentario como "me ayudó".');
+    }
+    if (
+      comment.character?.userId &&
+      (await this.contentPreferences.blockedRelation(
+        userId,
+        character.id,
+        comment.character.userId,
+        comment.characterId,
+      ))
+    ) {
+      throw new NotFoundException('Ese comentario no existe o ya no está disponible.');
     }
 
     const existing = await this.prisma.commentHelpful.findUnique({
@@ -445,7 +477,10 @@ export class CommentsService {
       deleted,
       parentId: row.parentId,
       storyUpdateId: row.storyUpdateId ?? null,
-      author: { name: row.character.name, avatarUrl: row.character.avatarUrl },
+      author: {
+        name: row.character.name,
+        avatarUrl: visibleAvatar(row.character),
+      },
       isOwn: row.characterId === viewerCharacterId,
       helpfulCount: row._count?.helpfulMarks ?? 0,
       helpfulByMe: helpfulByMe.has(row.id),

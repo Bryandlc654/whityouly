@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { visibleAvatar } from '../../common/privacy/character-privacy';
 
 export interface SavedStory {
   id: string;
@@ -80,7 +81,7 @@ export class BookmarksService {
         id: true,
         title: true,
         visibility: true,
-        character: { select: { name: true, avatarUrl: true } },
+        character: { select: { name: true, avatarUrl: true, privacySettings: true } },
         updates: {
           orderBy: { stageOrder: 'asc' },
           take: 1,
@@ -106,7 +107,7 @@ export class BookmarksService {
           title: story.title,
           visibility: story.visibility,
           author: story.character
-            ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
+            ? { name: story.character.name, avatarUrl: visibleAvatar(story.character) }
             : null,
           opening: opening
             ? {

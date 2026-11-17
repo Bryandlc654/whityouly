@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NotificationStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
+import { visibleAvatar } from '../../common/privacy/character-privacy';
 import {
   NOTIFICATION_ENTITY,
   NOTIFICATION_TYPES,
@@ -90,7 +92,10 @@ export class NotificationsService {
   private readonly queue: Prisma.NotificationCreateManyInput[][] = [];
   private processing = false;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly contentPreferences: ContentPreferencesService,
+  ) {}
 
   // --- Escritura ------------------------------------------------------------
 
@@ -298,11 +303,22 @@ export class NotificationsService {
 
   async list(userId: string, query: ListNotificationsQueryDto) {
     const take = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const blockedIds = await this.contentPreferences.blockedEitherWayCharacterIds(userId);
+    const visibleFilter =
+      blockedIds.length > 0
+        ? {
+            OR: [
+              { actorCharacterId: null },
+              { actorCharacterId: { notIn: blockedIds } },
+            ],
+          }
+        : {};
 
     const rows = await this.prisma.notification.findMany({
       where: {
         userId,
         ...(query.unreadOnly ? { status: NotificationStatus.UNREAD } : {}),
+        ...visibleFilter,
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
@@ -313,22 +329,36 @@ export class NotificationsService {
     const hasMore = rows.length > take;
     const page = hasMore ? rows.slice(0, take) : rows;
 
-    const [actors, stories, unreadCount] = await Promise.all([
+    const [actors, stories, unread] = await Promise.all([
       this.resolveActors(page),
       this.resolveStories(page),
-      this.unreadCount(userId),
+      this.unreadCount(userId, blockedIds),
     ]);
 
     return {
       items: page.map((row) => this.toView(row, actors, stories)),
       nextCursor: hasMore ? page[page.length - 1].id : null,
-      unreadCount,
+      unreadCount: unread,
     };
   }
 
-  async unreadCount(userId: string): Promise<number> {
+  async unreadCount(userId: string, blockedIds?: string[]): Promise<number> {
+    const ids =
+      blockedIds ?? (await this.contentPreferences.blockedEitherWayCharacterIds(userId));
+
     return this.prisma.notification.count({
-      where: { userId, status: NotificationStatus.UNREAD },
+      where: {
+        userId,
+        status: NotificationStatus.UNREAD,
+        ...(ids.length > 0
+          ? {
+              OR: [
+                { actorCharacterId: null },
+                { actorCharacterId: { notIn: ids } },
+              ],
+            }
+          : {}),
+      },
     });
   }
 
@@ -378,13 +408,13 @@ export class NotificationsService {
 
     const characters = await this.prisma.character.findMany({
       where: { id: { in: ids } },
-      select: { id: true, name: true, avatarUrl: true },
+      select: { id: true, name: true, avatarUrl: true, privacySettings: true },
     });
 
     return new Map(
       characters.map((character) => [
         character.id,
-        { name: character.name, avatarUrl: character.avatarUrl },
+        { name: character.name, avatarUrl: visibleAvatar(character) },
       ]),
     );
   }
@@ -407,7 +437,7 @@ export class NotificationsService {
       select: {
         id: true,
         title: true,
-        character: { select: { name: true, avatarUrl: true } },
+        character: { select: { name: true, avatarUrl: true, privacySettings: true } },
       },
     });
 
@@ -418,7 +448,7 @@ export class NotificationsService {
           id: story.id,
           title: story.title,
           author: story.character
-            ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
+            ? { name: story.character.name, avatarUrl: visibleAvatar(story.character) }
             : null,
         },
       ]),

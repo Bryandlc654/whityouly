@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { TreeService } from '../tree/tree.service.js';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service.js';
 
 function commentRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -72,6 +73,13 @@ describe('CommentsService', () => {
         { provide: StoriesService, useValue: storiesService },
         { provide: NotificationsService, useValue: notifications },
         { provide: TreeService, useValue: { award: vi.fn().mockResolvedValue(true) } },
+        {
+          provide: ContentPreferencesService,
+          useValue: {
+            blockedEitherWayCharacterIds: vi.fn().mockResolvedValue([]),
+            blockedRelation: vi.fn().mockResolvedValue(false),
+          },
+        },
       ],
     }).compile();
 

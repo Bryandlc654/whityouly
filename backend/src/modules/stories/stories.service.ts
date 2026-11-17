@@ -36,6 +36,7 @@ import {
 } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
 import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
+import { visibleAvatar } from '../../common/privacy/character-privacy';
 import { translateStory } from '../../common/translation/translate';
 
 const MAX_PAGE_SIZE = 50;
@@ -112,7 +113,7 @@ const STORY_DETAIL_SELECT = {
   commentsPaused: true,
   createdAt: true,
   updatedAt: true,
-  character: { select: { name: true, avatarUrl: true } },
+  character: { select: { name: true, avatarUrl: true, privacySettings: true } },
   categories: { select: { category: { select: { name: true } } } },
   emotions: { select: { emotion: { select: { name: true, colorHex: true } } } },
   tags: { select: { tag: { select: { name: true } } } },
@@ -964,6 +965,7 @@ export class StoriesService {
       where: {
         status: StoryStatus.PUBLISHED,
         visibility: 'PUBLIC',
+        guestReadable: true,
         ...(query.countryCode ? { countryCode: query.countryCode } : {}),
         ...(query.q
           ? {
@@ -1045,7 +1047,7 @@ export class StoriesService {
     }
 
     const rows = await this.prisma.story.findMany({
-      where: { id: { in: ids }, status: StoryStatus.PUBLISHED, visibility: 'PUBLIC' },
+      where: { id: { in: ids }, status: StoryStatus.PUBLISHED, visibility: 'PUBLIC', guestReadable: true },
       select: STORY_LIST_SELECT_WITH_AUTHOR,
     });
 
@@ -1064,8 +1066,10 @@ export class StoriesService {
    * uno inexistente, para no revelar que existe.
    */
   async getViewable(userId: string, storyId: string) {
+    let isOwner = false;
     try {
-      await this.assertStoryVisible(userId, storyId);
+      const scope = await this.assertStoryVisible(userId, storyId);
+      isOwner = scope.isOwner;
     } catch (error) {
       // Un relato retirado ya no se puede comentar ni seguir, pero quien lo
       // tenía en un enlace debe ver el aviso de retiro, sin su contenido.
@@ -1084,7 +1088,7 @@ export class StoriesService {
       throw new NotFoundException('Ese relato no existe o no es visible para ti.');
     }
 
-    return this.toOwnerView(story);
+    return this.toOwnerView(story, isOwner);
   }
 
   /**
@@ -1102,7 +1106,7 @@ export class StoriesService {
         withdrawnAt: true,
         createdAt: true,
         updatedAt: true,
-        character: { select: { name: true, avatarUrl: true } },
+        character: { select: { name: true, avatarUrl: true, privacySettings: true } },
       },
     });
 
@@ -1164,6 +1168,22 @@ export class StoriesService {
     const isOwner = scope.character.userId === userId;
 
     if (!isOwner) {
+      // El bloqueo corta en ambas direcciones: quien bloqueó no ve el contenido
+      // del otro y viceversa. Se responde 404 para no revelar la existencia.
+      const viewer = await this.prisma.character.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      const blocked = await this.contentPreferences.blockedRelation(
+        userId,
+        viewer?.id,
+        scope.character.userId,
+        scope.characterId,
+      );
+      if (blocked) {
+        throw new NotFoundException('Ese relato no existe o no es visible para ti.');
+      }
+
       if (scope.status !== StoryStatus.PUBLISHED) {
         throw new NotFoundException('Ese relato no existe o no es visible para ti.');
       }
@@ -1246,12 +1266,21 @@ export class StoriesService {
    * aún no tiene señales, cae a popularidad + frescura.
    */
   async getFeed(userId: string) {
-    const hiddenAuthors = await this.contentPreferences.hiddenAuthorNames(userId);
+    const [hiddenAuthors, hiddenCharacterIds, blockedByCharacterIds] = await Promise.all([
+      this.contentPreferences.hiddenAuthorNames(userId),
+      this.contentPreferences.hiddenCharacterIds(userId),
+      this.contentPreferences.blockedByCharacterIds(userId),
+    ]);
+    const excludedCharacterIds = [...new Set([...hiddenCharacterIds, ...blockedByCharacterIds])];
+
     const baseWhere = {
       status: StoryStatus.PUBLISHED,
       visibility: 'PUBLIC' as const,
       ...(hiddenAuthors.length > 0
         ? { character: { name: { notIn: hiddenAuthors } } }
+        : {}),
+      ...(excludedCharacterIds.length > 0
+        ? { characterId: { notIn: excludedCharacterIds } }
         : {}),
     };
 
@@ -1297,6 +1326,9 @@ export class StoriesService {
               visibility: { in: ['PUBLIC', 'FOLLOWERS'] },
               ...(hiddenAuthors.length > 0
                 ? { character: { name: { notIn: hiddenAuthors } } }
+                : {}),
+              ...(excludedCharacterIds.length > 0
+                ? { characterId: { notIn: excludedCharacterIds } }
                 : {}),
             },
             orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -1694,7 +1726,7 @@ export class StoriesService {
       featuredAt: null,
       withdrawnAt: story.withdrawnAt ?? null,
       author: story.character
-        ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
+        ? { name: story.character.name, avatarUrl: visibleAvatar(story.character) }
         : null,
       categories: [],
       emotions: [],
@@ -1741,13 +1773,13 @@ export class StoriesService {
     commentsPaused?: boolean;
     createdAt: Date;
     updatedAt: Date;
-    character?: { name: string; avatarUrl: string | null } | null;
+    character?: { name: string; avatarUrl: string | null; privacySettings?: unknown } | null;
     categories: { category: { name: string } }[];
     emotions: { emotion: { name: string; colorHex: string | null } }[];
     tags: { tag: { name: string } }[];
     updates: StageRow[];
     _count: { comments: number; companionships: number; followers: number };
-  }) {
+  }, viewerIsOwner = true) {
     return {
       id: story.id,
       title: story.title,
@@ -1766,7 +1798,12 @@ export class StoriesService {
       withdrawnAt: story.withdrawnAt ?? null,
       commentsPaused: story.commentsPaused === true,
       author: story.character
-        ? { name: story.character.name, avatarUrl: story.character.avatarUrl }
+        ? {
+            name: story.character.name,
+            avatarUrl: viewerIsOwner
+              ? story.character.avatarUrl
+              : visibleAvatar(story.character),
+          }
         : null,
       categories: story.categories.map(({ category }) => category.name),
       emotions: story.emotions.map(({ emotion }) => ({
@@ -1857,7 +1894,7 @@ export class StoriesService {
     status: StoryStatus;
     createdAt: Date;
     updatedAt: Date;
-    character?: { name: string; avatarUrl: string | null } | null;
+    character?: { name: string; avatarUrl: string | null; privacySettings?: unknown } | null;
     categories: { category: { name: string } }[];
     emotions: { emotion: { name: string; colorHex: string | null } }[];
     tags: { tag: { name: string } }[];
@@ -1865,7 +1902,7 @@ export class StoriesService {
     _count: { comments: number; companionships: number; followers: number };
   }) {
     return {
-      ...this.toOwnerView(story),
+      ...this.toOwnerView(story, false),
       status: 'PUBLISHED' as const,
     };
   }
@@ -1886,7 +1923,7 @@ export class StoriesService {
     commentsPaused?: boolean;
     createdAt: Date;
     updatedAt: Date;
-    character: { name: string; avatarUrl: string | null };
+    character: { name: string; avatarUrl: string | null; privacySettings?: unknown };
     categories: { category: { name: string } }[];
     emotions: { emotion: { name: string; colorHex: string | null } }[];
     tags: { tag: { name: string } }[];
@@ -1906,7 +1943,7 @@ export class StoriesService {
       accompaniment: story.accompaniment ?? null,
       externalShare: story.externalShare !== false,
       guestReadable: story.guestReadable !== false,
-      author: { name: story.character.name, avatarUrl: story.character.avatarUrl },
+      author: { name: story.character.name, avatarUrl: visibleAvatar(story.character) },
       commentsPaused: story.commentsPaused === true,
       categories: story.categories.map(({ category }) => category.name),
       emotions: story.emotions.map(({ emotion }) => ({
@@ -1929,7 +1966,7 @@ const STORY_LIST_SELECT_WITH_AUTHOR = {
   // `characterId` alimenta la recomendación (afinidad con autores seguidos) sin
   // exponerse en la respuesta: los mappers la ignoran.
   characterId: true,
-  character: { select: { name: true, avatarUrl: true } },
+  character: { select: { name: true, avatarUrl: true, privacySettings: true } },
 } satisfies Prisma.StorySelect;
 
 /** Vista completa de una fila del feed (para mostrarla). */

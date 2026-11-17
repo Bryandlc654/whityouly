@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
 import { env } from '../../config/env';
 import { UpsertFeaturedDto } from './dto/discovery.dto';
 
@@ -56,6 +57,7 @@ export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
+    private readonly contentPreferences: ContentPreferencesService,
   ) {}
 
   // --- Caché en memoria -----------------------------------------------------
@@ -161,7 +163,7 @@ export class DiscoveryService {
     }
 
     const featuredByAuthors = await this.prisma.story.findMany({
-      where: { status: 'PUBLISHED', visibility: 'PUBLIC', featuredAt: { not: null } },
+      where: { status: 'PUBLISHED', visibility: 'PUBLIC', guestReadable: true, featuredAt: { not: null } },
       orderBy: [{ featuredAt: 'desc' }, { id: 'desc' }],
       take,
       select: { id: true },
@@ -269,6 +271,9 @@ export class DiscoveryService {
             this.popularCharacterIds(),
           );
 
+    // Los bloqueos se aplican en ambos sentidos y también a las recomendaciones.
+    const blockedIds = new Set(await this.contentPreferences.blockedEitherWayCharacterIds(userId));
+
     // Los detalles se descargan de la piscina elegida y se vuelve a excluir el
     // propio personaje y a los seguidos (defensa en profundidad: el estado pudo
     // cambiar entre la lectura y el cálculo).
@@ -288,7 +293,12 @@ export class DiscoveryService {
                 _count: { select: { followers: true } },
               },
             })
-          ).filter((candidate) => candidate.id !== ownId && !followedIds.has(candidate.id))
+          ).filter(
+            (candidate) =>
+              candidate.id !== ownId &&
+              !followedIds.has(candidate.id) &&
+              !blockedIds.has(candidate.id),
+          )
         : [];
 
     if (candidates.length === 0) {
@@ -329,7 +339,9 @@ export class DiscoveryService {
         name: candidate.name,
         tagline: privacy.showBio ? candidate.tagline : null,
         avatarUrl: privacy.showAvatar ? candidate.avatarUrl : null,
-        interests: candidate.interests.map((row) => row.interest.name),
+        interests: privacy.showBio
+          ? candidate.interests.map((row) => row.interest.name)
+          : [],
         stories,
         followers,
         sharedInterests: shared,

@@ -98,7 +98,12 @@ describe('StoriesService', () => {
         { provide: QuotaService, useValue: quota },
         { provide: NotificationsService, useValue: notifications },
         { provide: TreeService, useValue: { award: vi.fn().mockResolvedValue(true) } },
-        { provide: ContentPreferencesService, useValue: { hiddenAuthorNames: vi.fn().mockResolvedValue([]) } },
+        { provide: ContentPreferencesService, useValue: {
+          hiddenAuthorNames: vi.fn().mockResolvedValue([]),
+          hiddenCharacterIds: vi.fn().mockResolvedValue([]),
+          blockedByCharacterIds: vi.fn().mockResolvedValue([]),
+          blockedRelation: vi.fn().mockResolvedValue(false),
+        } },
       ],
     }).compile();
 
@@ -837,6 +842,25 @@ describe('StoriesService', () => {
         }),
       });
       expect(result).toEqual({ reported: true });
+    });
+  });
+
+  it('los listados públicos excluyen relatos no legibles por invitados', async () => {
+    prisma.story.findMany.mockResolvedValue([]);
+
+    await service.listPublic({ limit: 5 } as any);
+    expect(prisma.story.findMany.mock.calls[0][0].where).toMatchObject({
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+      guestReadable: true,
+    });
+
+    await service.listPublicByIds(['story-1']);
+    const lastCall = prisma.story.findMany.mock.calls.at(-1)?.[0];
+    expect(lastCall?.where).toMatchObject({
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+      guestReadable: true,
     });
   });
 });

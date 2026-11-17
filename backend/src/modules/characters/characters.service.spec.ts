@@ -8,6 +8,7 @@ import {
   sanitizeTagline,
 } from './characters.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service.js';
 
 describe('CharactersService', () => {
   let service: CharactersService;
@@ -75,7 +76,14 @@ describe('CharactersService', () => {
     );
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [CharactersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        CharactersService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: ContentPreferencesService,
+          useValue: { blockedRelation: vi.fn().mockResolvedValue(false) },
+        },
+      ],
     }).compile();
 
     service = module.get<CharactersService>(CharactersService);

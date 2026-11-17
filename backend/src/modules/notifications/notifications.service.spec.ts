@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NotificationsService } from './notifications.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { NOTIFICATION_TYPES } from './notification-types.js';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service.js';
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
@@ -45,6 +46,12 @@ describe('NotificationsService', () => {
       providers: [
         NotificationsService,
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: ContentPreferencesService,
+          useValue: {
+            blockedEitherWayCharacterIds: vi.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 

@@ -13,6 +13,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
 import { normalizeCharacterName } from '../characters/characters.service';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
 
 /**
  * Acompañamiento ("Estoy contigo"): un personaje acompaña una vez a cada relato
@@ -28,6 +29,7 @@ export class CompanionshipsService {
     private readonly storiesService: StoriesService,
     private readonly notifications: NotificationsService,
     private readonly tree: TreeService,
+    private readonly contentPreferences: ContentPreferencesService,
   ) {}
 
   async supportStory(userId: string, storyId: string): Promise<{ supporting: true; count: number }> {
@@ -113,6 +115,17 @@ export class CompanionshipsService {
 
     if (target.id === character.id) {
       throw new BadRequestException('No puedes acompañarte a ti mismo.');
+    }
+
+    if (
+      await this.contentPreferences.blockedRelation(
+        userId,
+        character.id,
+        target.userId,
+        target.id,
+      )
+    ) {
+      throw new NotFoundException('Personaje no encontrado.');
     }
 
     const existing = await this.prisma.companionship.findFirst({

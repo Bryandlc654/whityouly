@@ -1050,6 +1050,9 @@ model AuthorPreference {
   id         String                 @id @default(uuid())
   userId     String
   authorName String
+  // Personaje al que apunta la preferencia. Se guarda el id para que el
+  // bloqueo siga funcionando aunque la persona cambie de seudónimo.
+  characterId String?
   kind       AuthorPreferenceKind
   createdAt  DateTime               @default(now())
 
@@ -1057,5 +1060,6 @@ model AuthorPreference {
 
   @@unique([userId, authorName, kind])
   @@index([userId, kind])
+  @@index([userId, kind, characterId])
   @@map("author_preferences")
 }

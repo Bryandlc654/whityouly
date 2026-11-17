@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DiscoveryService } from './discovery.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service.js';
 
 function featuredRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -69,6 +70,12 @@ describe('DiscoveryService', () => {
         DiscoveryService,
         { provide: PrismaService, useValue: prisma },
         { provide: StoriesService, useValue: storiesService },
+        {
+          provide: ContentPreferencesService,
+          useValue: {
+            blockedEitherWayCharacterIds: vi.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 

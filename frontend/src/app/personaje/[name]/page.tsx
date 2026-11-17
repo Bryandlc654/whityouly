@@ -5,6 +5,7 @@ import { fetchPublicProfile, formatJoinDate } from '@/lib/characters';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
 import ProfileShell from '@/components/wy/ProfileShell';
+import ProfileAccessGuard from '@/components/profile/ProfileAccessGuard';
 
 interface PageProps {
   params: Promise<{ name: string }>;
@@ -74,8 +75,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   return (
     <ProfileShell>
-      <section className="screen">
-        <section className="profile-card card">
+      <ProfileAccessGuard authorName={profile.name}>
+        <section className="screen">
+          <section className="profile-card card">
           <div className="profile-top">
             <Avatar
               initials={profile.name.trim().charAt(0).toUpperCase()}
@@ -185,7 +187,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <Icon name="lock" /> En Withyouly se escribe bajo un seudónimo. Nunca se muestra el correo
           ni ningún dato que vincule este perfil con una identidad real.
         </p>
-      </section>
+        </section>
+      </ProfileAccessGuard>
     </ProfileShell>
   );
 }

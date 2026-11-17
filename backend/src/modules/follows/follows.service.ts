@@ -5,6 +5,8 @@ import { StoriesService } from '../stories/stories.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPES } from '../notifications/notification-types';
 import { STORY_FOLLOW_LEVEL } from './follow-levels';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
+import { visibleAvatar } from '../../common/privacy/character-privacy';
 import {
   normalizeCharacterName,
   resolvePrivacySettings,
@@ -57,6 +59,7 @@ export class FollowsService {
     private readonly prisma: PrismaService,
     private readonly storiesService: StoriesService,
     private readonly notifications: NotificationsService,
+    private readonly contentPreferences: ContentPreferencesService,
   ) {}
 
   async follow(userId: string, rawName: string): Promise<{ following: true }> {
@@ -65,6 +68,18 @@ export class FollowsService {
 
     if (target.id === follower.id) {
       throw new BadRequestException('No puedes seguirte a ti mismo.');
+    }
+
+    if (
+      await this.contentPreferences.blockedRelation(
+        userId,
+        follower.id,
+        target.userId,
+        target.id,
+      )
+    ) {
+      // Mismo mensaje que un perfil inexistente: el bloqueo no se revela.
+      throw new NotFoundException('Personaje no encontrado.');
     }
 
     // Idempotente: seguir dos veces no crea una fila de más. Se evita así que el
@@ -114,18 +129,34 @@ export class FollowsService {
       return { items: [] };
     }
 
+    const blockedIds = await this.contentPreferences.blockedEitherWayCharacterIds(userId);
+
     const rows = await this.prisma.follower.findMany({
-      where: { followerId: character.id, followingCharacter: { isNot: null } },
+      where: {
+        followerId: character.id,
+        followingCharacter: { isNot: null },
+        ...(blockedIds.length > 0 ? { followingCharacterId: { notIn: blockedIds } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       select: {
-        followingCharacter: { select: { name: true, tagline: true, avatarUrl: true } },
+        followingCharacter: {
+          select: { name: true, tagline: true, avatarUrl: true, privacySettings: true },
+        },
       },
     });
 
     return {
       items: rows
         .map((row) => row.followingCharacter)
-        .filter((row): row is FollowedCharacter => row !== null),
+        .filter((row): row is NonNullable<typeof row> => row !== null)
+        .map((row) => {
+          const privacy = resolvePrivacySettings(row.privacySettings);
+          return {
+            name: row.name,
+            tagline: privacy.showBio ? row.tagline : null,
+            avatarUrl: visibleAvatar(row),
+          };
+        }),
     };
   }
 
@@ -141,12 +172,14 @@ export class FollowsService {
   ): Promise<SocialConnectionPage> {
     const target = await this.resolveSocialTarget(rawName, viewerUserId);
     const limit = this.pageSize(query.limit);
+    const blockedIds = await this.contentPreferences.blockedEitherWayCharacterIds(viewerUserId);
 
-    const [rows, total, viewer] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.follower.findMany({
         where: {
           followingCharacterId: target.id,
           follower: { is: { user: { is: { status: 'ACTIVE' } } } },
+          ...(blockedIds.length > 0 ? { followerId: { notIn: blockedIds } } : {}),
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit + 1,
@@ -162,11 +195,8 @@ export class FollowsService {
         where: {
           followingCharacterId: target.id,
           follower: { is: { user: { is: { status: 'ACTIVE' } } } },
+          ...(blockedIds.length > 0 ? { followerId: { notIn: blockedIds } } : {}),
         },
-      }),
-      this.prisma.character.findUnique({
-        where: { userId: viewerUserId },
-        select: { id: true, name: true },
       }),
     ]);
 
@@ -174,7 +204,7 @@ export class FollowsService {
       rows: rows.map((row) => ({ id: row.id, character: row.follower })),
       limit,
       total,
-      viewer,
+      viewer: target.viewer,
       showFollowing: target.privacy.showFollowing,
     });
   }
@@ -197,12 +227,14 @@ export class FollowsService {
     }
 
     const limit = this.pageSize(query.limit);
+    const blockedIds = await this.contentPreferences.blockedEitherWayCharacterIds(viewerUserId);
     const where: Prisma.FollowerWhereInput = {
       followerId: target.id,
       followingCharacter: { is: { user: { is: { status: 'ACTIVE' } } } },
+      ...(blockedIds.length > 0 ? { followingCharacterId: { notIn: blockedIds } } : {}),
     };
 
-    const [rows, total, viewer] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.follower.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -216,10 +248,6 @@ export class FollowsService {
         },
       }),
       this.prisma.follower.count({ where }),
-      this.prisma.character.findUnique({
-        where: { userId: viewerUserId },
-        select: { id: true, name: true },
-      }),
     ]);
 
     return this.buildConnectionsPage({
@@ -228,7 +256,7 @@ export class FollowsService {
         .map((row) => ({ id: row.id, character: row.followingCharacter! })),
       limit,
       total,
-      viewer,
+      viewer: target.viewer,
       showFollowing: target.privacy.showFollowing,
     });
   }
@@ -291,11 +319,18 @@ export class FollowsService {
       return [];
     }
 
+    const blockedIds = await this.contentPreferences.blockedEitherWayCharacterIds(userId);
+
     const rows = await this.prisma.follower.findMany({
       where: {
         followerId: character.id,
         followingStoryId: { not: null },
-        followingStory: { is: { status: StoryStatus.PUBLISHED } },
+        followingStory: {
+          is: {
+            status: StoryStatus.PUBLISHED,
+            ...(blockedIds.length > 0 ? { characterId: { notIn: blockedIds } } : {}),
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -305,7 +340,7 @@ export class FollowsService {
             title: true,
             createdAt: true,
             updatedAt: true,
-            character: { select: { name: true, avatarUrl: true } },
+            character: { select: { name: true, avatarUrl: true, privacySettings: true } },
           },
         },
       },
@@ -322,7 +357,7 @@ export class FollowsService {
           updatedAt: story.updatedAt,
           author: {
             name: story.character.name,
-            avatarUrl: story.character.avatarUrl,
+            avatarUrl: visibleAvatar(story.character),
           },
         };
       })
@@ -412,7 +447,12 @@ export class FollowsService {
   private async resolveSocialTarget(
     rawName: string,
     viewerUserId: string,
-  ): Promise<{ id: string; userId: string; privacy: ResolvedPrivacy }> {
+  ): Promise<{
+    id: string;
+    userId: string;
+    privacy: ResolvedPrivacy;
+    viewer: { id: string; name: string } | null;
+  }> {
     const name = normalizeCharacterName(rawName);
 
     if (!name || name.length > 30) {
@@ -428,15 +468,21 @@ export class FollowsService {
       throw new NotFoundException('Personaje no encontrado.');
     }
 
-    const character = await this.prisma.character.findUnique({
-      where: { id: match.id },
-      select: {
-        id: true,
-        userId: true,
-        privacySettings: true,
-        user: { select: { status: true } },
-      },
-    });
+    const [character, viewer] = await Promise.all([
+      this.prisma.character.findUnique({
+        where: { id: match.id },
+        select: {
+          id: true,
+          userId: true,
+          privacySettings: true,
+          user: { select: { status: true } },
+        },
+      }),
+      this.prisma.character.findUnique({
+        where: { userId: viewerUserId },
+        select: { id: true, name: true },
+      }),
+    ]);
 
     if (!character || character.user.status !== 'ACTIVE') {
       throw new NotFoundException('Personaje no encontrado.');
@@ -449,7 +495,20 @@ export class FollowsService {
       throw new NotFoundException('Personaje no encontrado.');
     }
 
-    return { id: character.id, userId: character.userId, privacy };
+    if (!isOwner) {
+      if (
+        await this.contentPreferences.blockedRelation(
+          viewerUserId,
+          viewer?.id,
+          character.userId,
+          character.id,
+        )
+      ) {
+        throw new NotFoundException('Personaje no encontrado.');
+      }
+    }
+
+    return { id: character.id, userId: character.userId, privacy, viewer };
   }
 
   private isUniqueError(error: unknown): boolean {

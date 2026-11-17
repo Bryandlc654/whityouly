@@ -4,6 +4,7 @@ import { FollowsService } from './follows.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { ContentPreferencesService } from '../content-preferences/content-preferences.service.js';
 
 describe('FollowsService', () => {
   let service: FollowsService;
@@ -39,6 +40,13 @@ describe('FollowsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: StoriesService, useValue: storiesService },
         { provide: NotificationsService, useValue: notifications },
+        {
+          provide: ContentPreferencesService,
+          useValue: {
+            blockedRelation: vi.fn().mockResolvedValue(false),
+            blockedEitherWayCharacterIds: vi.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 
