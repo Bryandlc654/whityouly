@@ -10,7 +10,7 @@ import {
   VerifyEmailCodeDto,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
-import { MailerService } from '@nestjs-modules/mailer';
+import { MailService } from '../../common/mail/mail.service';
 import { User } from '@prisma/client';
 import { createHash, randomInt, randomUUID, timingSafeEqual } from 'crypto';
 import { env } from '../../config/env';
@@ -55,7 +55,7 @@ export class AuthService {
     private usersService: UsersService,
     private sessionsService: SessionsService,
     private jwtService: JwtService,
-    private mailerService: MailerService,
+    private mailService: MailService,
     private passwordBreachService: PasswordBreachService,
     private loginAttemptsService: LoginAttemptsService,
     private auditService: AuthAuditService,
@@ -493,7 +493,7 @@ export class AuthService {
     );
 
     try {
-      await this.mailerService.sendMail({
+      await this.mailService.sendMail({
         to: user.email,
         subject: `${code} es tu código de verificación de Withyouly`,
         text:
@@ -559,7 +559,7 @@ export class AuthService {
     message: { to: string; subject: string; text: string; html: string },
     label: string,
   ): void {
-    void this.mailerService.sendMail(message).catch((error: Error) => {
+    void this.mailService.sendMail(message).catch((error: Error) => {
       console.error(`Error enviando ${label}:`, error.message);
     });
   }

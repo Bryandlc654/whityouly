@@ -168,7 +168,7 @@ export default function ExplorePage() {
   const [summaryHidden, setSummaryHidden] = useState(false);
   const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
   const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const term = q.trim();
   const searchMode = Boolean(term || selCat || selEmo || selScope || selKind || selSort);

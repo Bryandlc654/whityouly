@@ -29,7 +29,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('overview');
 
   const [toast, setToast] = useState('');
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);

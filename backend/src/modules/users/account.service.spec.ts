@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MailerService } from '@nestjs-modules/mailer';
+import { MailService } from '../../common/mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import { AccountService } from './account.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -75,7 +75,7 @@ describe('AccountService', () => {
         { provide: SessionsService, useValue: sessions },
         { provide: PasswordBreachService, useValue: breach },
         { provide: JwtService, useValue: jwt },
-        { provide: MailerService, useValue: mailer },
+        { provide: MailService, useValue: mailer },
       ],
     }).compile();
 

@@ -7,11 +7,12 @@ import Icon from '@/components/wy/Icon';
 import ProfileShell from '@/components/wy/ProfileShell';
 
 interface PageProps {
-  params: { name: string };
+  params: Promise<{ name: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const result = await fetchPublicProfile(params.name);
+  const { name } = await params;
+  const result = await fetchPublicProfile(name);
 
   if (result.status === 'found') {
     const { profile } = result;
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PublicProfilePage({ params }: PageProps) {
-  const result = await fetchPublicProfile(params.name);
+  const { name } = await params;
+  const result = await fetchPublicProfile(name);
 
   // Un perfil privado responde igual que uno inexistente: el mensaje no revela
   // si ese seudónimo está registrado.
@@ -55,7 +57,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
               en un momento.
             </p>
             <a
-              href={`/personaje/${encodeURIComponent(params.name)}`}
+              href={`/personaje/${encodeURIComponent(name)}`}
               className="primary"
               style={{ display: 'grid', placeItems: 'center', textDecoration: 'none' }}
             >

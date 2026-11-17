@@ -60,7 +60,7 @@ export default function StoryPage() {
   const [supportCount, setSupportCount] = useState(0);
   const [followingStory, setFollowingStory] = useState(false);
   const [busyAction, setBusyAction] = useState(false);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);

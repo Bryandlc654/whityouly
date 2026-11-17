@@ -227,7 +227,7 @@ export default function EmotionalMapPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);

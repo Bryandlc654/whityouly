@@ -9,7 +9,7 @@ import { LoginAttemptsService } from './login-attempts.service.js';
 import { AuthAuditService } from './auth-audit.service.js';
 import { CooldownService } from '../../common/cooldown/cooldown.service.js';
 import { JwtService } from '@nestjs/jwt';
-import { MailerService } from '@nestjs-modules/mailer';
+import { MailService } from '../../common/mail/mail.service.js';
 
 interface Mocks {
   usersService: {
@@ -120,7 +120,7 @@ describe('AuthService', () => {
         { provide: AuthAuditService, useValue: mocks.auditService },
         { provide: CooldownService, useValue: mocks.cooldownService },
         { provide: JwtService, useValue: mocks.jwtService },
-        { provide: MailerService, useValue: mocks.mailerService },
+        { provide: MailService, useValue: mocks.mailerService },
       ],
     }).compile();
 

@@ -30,17 +30,14 @@ export const metadata: Metadata = {
   description: "Refugio anónimo",
 };
 
-function initialLanguage(): Language {
-  const value = cookies().get("withyouly-language")?.value?.toLowerCase().slice(0, 2);
-  return value === "en" ? "en" : DEFAULT_LANGUAGE;
-}
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const language = initialLanguage();
+  const store = await cookies();
+  const value = store.get("withyouly-language")?.value?.toLowerCase().slice(0, 2);
+  const language: Language = value === "en" ? "en" : DEFAULT_LANGUAGE;
 
   return (
     <html lang={language}>

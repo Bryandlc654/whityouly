@@ -152,7 +152,7 @@ export default function FeedPage() {
   const [summaryHidden, setSummaryHidden] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);

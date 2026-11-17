@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MailerService } from '@nestjs-modules/mailer';
+import { MailService } from '../../common/mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { env } from '../../config/env';
@@ -42,7 +42,7 @@ export class AccountService {
     private readonly sessionsService: SessionsService,
     private readonly passwordBreachService: PasswordBreachService,
     private readonly jwtService: JwtService,
-    private readonly mailerService: MailerService,
+    private readonly mailService: MailService,
   ) {}
 
   /** Estado de la cuenta tal y como lo necesita la pantalla de configuración. */
@@ -523,7 +523,7 @@ export class AccountService {
     message: { to: string; subject: string; text: string; html: string },
     label: string,
   ): void {
-    void this.mailerService.sendMail(message).catch((error: Error) => {
+    void this.mailService.sendMail(message).catch((error: Error) => {
       this.logger.error(`Error enviando ${label}: ${error.message}`);
     });
   }

@@ -8,8 +8,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CharactersModule } from './modules/characters/characters.module';
 import { InterestsModule } from './modules/interests/interests.module';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { env } from './config/env';
+import { MailModule } from './common/mail/mail.module';
 import { RedisModule } from './common/redis/redis.module';
 import {
   ThrottlerStorageModule,
@@ -41,6 +40,7 @@ import { AdminModule } from './modules/admin/admin.module';
 @Module({
   imports: [
     PrismaModule,
+    MailModule,
     RedisModule,
     MediaStorageModule,
     QuotaModule,
@@ -81,24 +81,6 @@ import { AdminModule } from './modules/admin/admin.module';
         ],
         storage,
       }),
-    }),
-    MailerModule.forRoot({
-      transport: env.mail.host
-        ? {
-            host: env.mail.host,
-            port: env.mail.port,
-            secure: env.mail.secure,
-            auth: {
-              user: env.mail.user,
-              pass: env.mail.pass,
-            },
-          }
-        : {
-            jsonTransport: true,
-          },
-      defaults: {
-        from: env.mail.from,
-      },
     }),
   ],
   controllers: [AppController],
