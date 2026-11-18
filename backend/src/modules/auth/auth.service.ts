@@ -79,6 +79,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
+    const birthDate = this.assertAdult(registerDto.birthDate);
     await this.assertPasswordNotBreached(registerDto.password);
 
     // La respuesta es idéntica exista o no el correo: un 409 permitía averiguar
@@ -93,6 +94,8 @@ export class AuthService {
       user = await this.usersService.createUser({
         email: registerDto.email,
         passwordHash: registerDto.password,
+        birthDate,
+        termsAcceptedAt: new Date(),
       });
     } catch (error) {
       if (error instanceof ConflictException) {
@@ -760,6 +763,33 @@ export class AuthService {
         'Esta contraseña apareció en filtraciones de datos conocidas. Por favor, elige una diferente.',
       );
     }
+  }
+
+  /** La edad y el consentimiento se validan en servidor, no solo en la UI. */
+  private assertAdult(rawBirthDate: string): Date {
+    const birthDate = new Date(rawBirthDate);
+    if (Number.isNaN(birthDate.getTime())) {
+      throw new BadRequestException('La fecha de nacimiento no es válida.');
+    }
+
+    const today = new Date();
+    if (birthDate.getTime() > today.getTime()) {
+      throw new BadRequestException('La fecha de nacimiento no es válida.');
+    }
+
+    let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    const month = today.getUTCMonth() - birthDate.getUTCMonth();
+    if (month < 0 || (month === 0 && today.getUTCDate() < birthDate.getUTCDate())) {
+      age -= 1;
+    }
+
+    if (age < 18) {
+      throw new BadRequestException(
+        'Debes tener al menos 18 años para crear una cuenta en Withyouly.',
+      );
+    }
+
+    return birthDate;
   }
 
   private sendPasswordChangedEmail(user: User) {

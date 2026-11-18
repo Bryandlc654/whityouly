@@ -1,7 +1,5 @@
 import { API_URL } from './api';
 
-const ACCESS_TOKEN_KEY = 'accessToken';
-
 /** Evento global para que la app cierre la sesión de forma coordinada. */
 export const SESSION_EXPIRED_EVENT = 'withyouly:session-expired';
 
@@ -10,20 +8,21 @@ export const ROLE_CACHE_KEY = 'withyouly-role';
 export const SESSION_CHANGED_EVENT = 'withyouly:session-changed';
 
 /**
- * El access token (de vida corta) se guarda en el navegador para adjuntarlo a
- * las peticiones. El refresh token (de vida larga) vive en una cookie httpOnly
- * emitida por el backend, por lo que no es accesible desde JavaScript.
+ * El access token vive solo en memoria. No se persiste en localStorage: un XSS
+ * no puede leerlo de forma persistente y, al recargar, se recupera con la
+ * cookie httpOnly de refresco. El refresh token sigue siendo inaccesible a JS.
  */
+let accessToken: string | null = null;
+
 export const tokenStorage = {
   getAccess(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    return accessToken;
   },
-  setAccess(accessToken: string): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  setAccess(next: string): void {
+    accessToken = next;
   },
   clear(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    accessToken = null;
     try {
       sessionStorage.removeItem(ROLE_CACHE_KEY);
     } catch {
@@ -57,6 +56,18 @@ async function refreshAccessToken(): Promise<boolean> {
   }
 
   return refreshInFlight;
+}
+
+/**
+ * Garantiza que hay un access token en memoria, recuperándolo con la cookie de
+ * refresco si la pestaña se acaba de cargar. Devuelve null para invitados.
+ */
+export async function ensureAccessToken(): Promise<string | null> {
+  if (tokenStorage.getAccess()) {
+    return tokenStorage.getAccess();
+  }
+  const refreshed = await refreshAccessToken();
+  return refreshed ? tokenStorage.getAccess() : null;
 }
 
 /**

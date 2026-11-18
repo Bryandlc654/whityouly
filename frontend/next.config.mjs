@@ -51,6 +51,9 @@ const securityHeaders = [
 const nextConfig = {
   // Deja de anunciar la versión del framework.
   poweredByHeader: false,
+  // El optimizador de imágenes es superficie de CPU/disco y aquí no aporta:
+  // los avatares ya usan `unoptimized` y el resto de medios viene de la API.
+  images: { unoptimized: true },
   // En la VM cada build va a su propia carpeta y el servidor lee un enlace
   // (.next-live) que se cambia al terminar: así un despliegue no borra los
   // archivos que está sirviendo. En local y en Vercel sigue siendo .next.

@@ -1,4 +1,14 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsNotEmpty, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsNotEmpty,
+  Matches,
+  IsDateString,
+  IsBoolean,
+  Equals,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 const normalizeEmail = ({ value }: { value: unknown }) =>
@@ -25,6 +35,13 @@ export class RegisterDto {
   @MaxLength(MAX_PASSWORD_LENGTH, { message: 'La contraseña no puede superar los 72 caracteres' })
   @Matches(PASSWORD_PATTERN, { message: PASSWORD_PATTERN_MESSAGE })
   password!: string;
+
+  @IsDateString({}, { message: 'La fecha de nacimiento no es válida' })
+  birthDate!: string;
+
+  @IsBoolean()
+  @Equals(true, { message: 'Debes aceptar los términos y la política de privacidad' })
+  acceptTerms!: boolean;
 }
 
 export class LoginDto {

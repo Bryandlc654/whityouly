@@ -137,11 +137,15 @@ describe('AuthService', () => {
     const result = await service.register({
       email: 'user@example.com',
       password: 'Secret123',
+      birthDate: '1990-01-01',
+      acceptTerms: true,
     } as any);
 
     expect(mocks.usersService.createUser).toHaveBeenCalledWith({
       email: 'user@example.com',
       passwordHash: 'Secret123',
+      birthDate: new Date('1990-01-01'),
+      termsAcceptedAt: expect.any(Date),
     });
     expect(mocks.mailerService.sendMail).toHaveBeenCalledTimes(1);
     expect(result).not.toHaveProperty('accessToken');
@@ -153,8 +157,28 @@ describe('AuthService', () => {
     mocks.passwordBreachService.isBreached.mockResolvedValue(true);
 
     await expect(
-      service.register({ email: 'user@example.com', password: 'Secret123' } as any),
+      service.register({
+      email: 'user@example.com',
+      password: 'Secret123',
+      birthDate: '1990-01-01',
+      acceptTerms: true,
+    } as any),
     ).rejects.toThrow();
+    expect(mocks.usersService.createUser).not.toHaveBeenCalled();
+  });
+
+  it('rechaza el registro de una persona menor de edad', async () => {
+    const nearlyAdult = new Date();
+    nearlyAdult.setUTCFullYear(nearlyAdult.getUTCFullYear() - 17);
+
+    await expect(
+      service.register({
+        email: 'menor@example.com',
+        password: 'Secret123',
+        birthDate: nearlyAdult.toISOString().slice(0, 10),
+        acceptTerms: true,
+      } as any),
+    ).rejects.toThrow(/18 años/);
     expect(mocks.usersService.createUser).not.toHaveBeenCalled();
   });
 
@@ -164,6 +188,8 @@ describe('AuthService', () => {
     const result = await service.register({
       email: 'user@example.com',
       password: 'Secret123',
+      birthDate: '1990-01-01',
+      acceptTerms: true,
     });
 
     expect(result.message).toContain('Cuenta creada');
@@ -327,7 +353,12 @@ describe('AuthService', () => {
 
     beforeEach(async () => {
       mocks.usersService.createUser.mockResolvedValue({ id: 'user-1', email: 'user@example.com', passwordHash: 'h', isEmailVerified: false });
-      await service.register({ email: 'user@example.com', password: 'Secret123' } as any);
+      await service.register({
+        email: 'user@example.com',
+        password: 'Secret123',
+        birthDate: '1990-01-01',
+        acceptTerms: true,
+      } as any);
     });
 
     it('envía un código de 6 dígitos y guarda solo su hash', () => {

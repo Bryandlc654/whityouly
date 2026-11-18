@@ -45,6 +45,8 @@ function generatePassword(length = 14): string {
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -77,7 +79,12 @@ export default function RegisterPage() {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          birthDate,
+          acceptTerms: acceptedTerms,
+        }),
       });
 
       if (!res.ok) {
@@ -179,7 +186,14 @@ export default function RegisterPage() {
             <label htmlFor="signupBirth">{t('auth.register.birth')}</label>
             <div className="input-with-icon">
               <Icon name="calendar" />
-              <input id="signupBirth" name="birth" type="date" required />
+              <input
+                id="signupBirth"
+                name="birth"
+                type="date"
+                required
+                value={birthDate}
+                onChange={(event) => setBirthDate(event.target.value)}
+              />
             </div>
 
             <div className="label-row">
@@ -227,7 +241,12 @@ export default function RegisterPage() {
             ) : null}
 
             <label className="consent-row">
-              <input type="checkbox" required />
+              <input
+                type="checkbox"
+                required
+                checked={acceptedTerms}
+                onChange={(event) => setAcceptedTerms(event.target.checked)}
+              />
               <span>{t('auth.register.consent')}</span>
             </label>
 

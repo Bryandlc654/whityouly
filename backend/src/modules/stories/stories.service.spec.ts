@@ -57,7 +57,10 @@ describe('StoriesService', () => {
         findUnique: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn(),
+        delete: vi.fn(),
       },
+      bookmark: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      notification: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
       storyUpdate: {
         count: vi.fn().mockResolvedValue(0),
         aggregate: vi.fn().mockResolvedValue({ _max: { stageOrder: 0 } }),
@@ -456,14 +459,13 @@ describe('StoriesService', () => {
 
     const result = await service.remove('user-1', 'story-1');
 
-    expect(prisma.story.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: 'DELETED', withdrawnAt: null }),
-      }),
-    );
+    expect(prisma.story.delete).toHaveBeenCalledWith({ where: { id: 'story-1' } });
     expect(prisma.mediaAsset.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { entityType: 'NONE', entityId: null } }),
     );
+    expect(prisma.bookmark.deleteMany).toHaveBeenCalledWith({
+      where: { targetType: 'STORY', targetId: 'story-1' },
+    });
     expect(result).toEqual({ id: 'story-1' });
   });
 

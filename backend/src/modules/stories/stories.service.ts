@@ -840,11 +840,6 @@ export class StoriesService {
         select: { mediaAssetId: true, audioAssetId: true },
       });
 
-      await tx.storyUpdate.updateMany({
-        where: { storyId },
-        data: { mediaAssetId: null, audioAssetId: null },
-      });
-
       const assetIds = attached
         .flatMap((row) => [row.mediaAssetId, row.audioAssetId])
         .filter((id): id is string => Boolean(id));
@@ -855,10 +850,14 @@ export class StoriesService {
         });
       }
 
-      await tx.story.update({
-        where: { id: storyId },
-        data: { status: StoryStatus.DELETED, withdrawnAt: null, updatedAt: new Date() },
+      // Borrado real: el texto, las etapas y las referencias desaparecen. La
+      // baja lógica anterior conservaba el contenido en la base aunque la
+      // persona lo hubiera eliminado.
+      await tx.bookmark.deleteMany({ where: { targetType: 'STORY', targetId: storyId } });
+      await tx.notification.deleteMany({
+        where: { entityType: 'STORY', entityId: storyId },
       });
+      await tx.story.delete({ where: { id: storyId } });
     });
 
     return { id: storyId };

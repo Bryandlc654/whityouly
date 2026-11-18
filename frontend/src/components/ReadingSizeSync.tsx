@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { fetchAccount, type ReadingSize } from '@/lib/account';
-import { tokenStorage } from '@/lib/auth';
+import { ensureAccessToken } from '@/lib/auth';
 
 const STORAGE_KEY = 'withyouly-reading-size';
 const VALID: ReadingSize[] = ['NORMAL', 'LARGE', 'LARGER'];
@@ -42,12 +42,14 @@ export default function ReadingSizeSync() {
     };
 
     const syncFromServer = () => {
-      if (!tokenStorage.getAccess()) return;
-      void fetchAccount().then((result) => {
-        if (result.status === 'ok') {
-          const size = result.data.preferences.readingSize;
-          if (isReadingSize(size)) applyReadingSize(size);
-        }
+      void ensureAccessToken().then((token) => {
+        if (!token) return;
+        void fetchAccount().then((result) => {
+          if (result.status === 'ok') {
+            const size = result.data.preferences.readingSize;
+            if (isReadingSize(size)) applyReadingSize(size);
+          }
+        });
       });
     };
 

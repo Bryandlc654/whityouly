@@ -33,6 +33,10 @@ model User {
   id               String            @id @default(uuid())
   email            String            @unique
   isEmailVerified  Boolean           @default(false)
+  /// Fecha de nacimiento declarada al registrarse. El servidor exige 18+.
+  birthDate        DateTime?
+  /// Momento en que se aceptaron los términos y la política de privacidad.
+  termsAcceptedAt  DateTime?
   /// Código de verificación de correo (6 dígitos), guardado solo como hash.
   emailVerificationCodeHash      String?
   emailVerificationCodeExpiresAt DateTime?

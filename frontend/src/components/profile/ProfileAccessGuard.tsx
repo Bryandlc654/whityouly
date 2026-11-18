@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { listAuthorPreferences } from '@/lib/contentPreferences';
-import { tokenStorage } from '@/lib/auth';
+import { ensureAccessToken } from '@/lib/auth';
 import Icon from '@/components/wy/Icon';
 
 /**
@@ -23,10 +23,10 @@ export default function ProfileAccessGuard({
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
-    if (!tokenStorage.getAccess()) return;
-
     let active = true;
-    void listAuthorPreferences().then((result) => {
+    void ensureAccessToken().then(async (token) => {
+      if (!active || !token) return;
+      const result = await listAuthorPreferences();
       if (!active || result.status !== 'ok') return;
       const name = authorName.trim().toLowerCase();
       setBlocked(
