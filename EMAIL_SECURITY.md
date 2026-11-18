@@ -7,6 +7,7 @@ Estado comprobado el 18/11/2026:
 | SPF | Presente: `v=spf1 include:_spf.mail.hostinger.com ~all` |
 | DKIM | **Sin publicar** en los selectores habituales |
 | DMARC | Presente pero en modo observación: `v=DMARC1; p=none` |
+| CAA | **Sin registros** (verificado por DNS-over-HTTPS) |
 
 El envío sale por Hostinger SMTP (`smtp.hostinger.com`). Sin DKIM y con
 `p=none`, cualquiera puede falsificar el remitente `@withyouly.com` y los
@@ -31,6 +32,15 @@ Valor:  v=DMARC1; p=quarantine; sp=quarantine; adkim=s; aspf=s; pct=100; fo=1; r
 
 ```text
 v=spf1 include:_spf.mail.hostinger.com -all
+```
+
+4. Publicar CAA para restringir qué autoridades pueden emitir certificados para
+   el dominio (hoy no hay ninguno):
+
+```text
+withyouly.com. CAA 0 issue "letsencrypt.org"
+withyouly.com. CAA 0 issuewild "letsencrypt.org"
+withyouly.com. CAA 0 iodef "mailto:security@withyouly.com"
 ```
 
 ## Verificación

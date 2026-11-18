@@ -29,6 +29,18 @@ async function bootstrap() {
     }),
   );
   app.use(cookieParser());
+
+  // Las respuestas de la API pueden contener datos privados (perfil, sesiones,
+  // exportaciones). Evitamos que un proxy o el navegador las cachee. Los medios
+  // firmados conservan su propia política de caché.
+  const mediaPath = new URL(env.storage.publicBaseUrl).pathname.replace(/\/$/, '') || '/media';
+  app.use((req, res, next) => {
+    if (!req.path.startsWith(mediaPath)) {
+      res.setHeader('Cache-Control', 'private, no-store');
+    }
+    next();
+  });
+
   app.enableCors({
     origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
@@ -175,7 +187,7 @@ async function bootstrap() {
   }
 
   // Iniciar el servidor
-  await app.listen(env.port);
+  await app.listen(env.port, env.apiHost);
   console.log(`🚀 Servidor corriendo en: http://localhost:${env.port}`);
 }
 bootstrap();

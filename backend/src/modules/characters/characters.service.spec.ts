@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { Prisma } from '@prisma/client';
 import {
   CharactersService,
+  escapeLikePattern,
   normalizeCharacterName,
   sanitizeBio,
   sanitizeTagline,
@@ -663,5 +664,9 @@ describe('CharactersService', () => {
       expect(result.bio).toBeNull();
       expect(result.interests).toEqual([]);
     });
+  });
+
+  it('escapa los comodines de LIKE para buscar texto literal', () => {
+    expect(escapeLikePattern('100%_real\\nombre')).toBe('100\\%\\_real\\\\nombre');
   });
 });

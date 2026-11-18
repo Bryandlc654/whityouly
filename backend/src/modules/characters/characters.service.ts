@@ -66,6 +66,14 @@ export function normalizeCharacterName(name: string): string {
 }
 
 /**
+ * Escapa los comodines de `LIKE` para que una búsqueda por texto literal no
+ * interprete `%` o `_` como patrones. Se usa junto a `ESCAPE '\'`.
+ */
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+/**
  * Limpia la biografía antes de guardarla:
  * - elimina caracteres de control (salvo el salto de línea) y los invisibles o
  *   de dirección, que permiten ocultar texto, suplantar palabras o evadir
@@ -389,12 +397,13 @@ export class CharactersService {
     }
 
     const take = Math.min(Math.max(limit, 1), 30);
+    const pattern = escapeLikePattern(q);
 
     const ids = await this.prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
       SELECT "id", "name" FROM "characters"
-      WHERE lower("name") LIKE '%' || lower(${q}) || '%'
+      WHERE lower("name") LIKE '%' || lower(${pattern}) || '%' ESCAPE '\\'
         AND ("privacySettings" IS NULL OR "privacySettings"->>'profileVisibility' = 'PUBLIC')
-      ORDER BY (lower("name") LIKE lower(${q}) || '%') DESC, lower("name") ASC
+      ORDER BY (lower("name") LIKE lower(${pattern}) || '%' ESCAPE '\\') DESC, lower("name") ASC
       LIMIT ${take}
     `);
 

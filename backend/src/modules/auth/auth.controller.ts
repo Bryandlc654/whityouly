@@ -34,7 +34,8 @@ import { env } from '../../config/env';
 
 type AuthenticatedRequest = Request & { user: { userId: string; sessionId?: string } };
 
-const REFRESH_COOKIE = 'wy_refresh';
+const LEGACY_REFRESH_COOKIE = 'wy_refresh';
+const SECURE_REFRESH_COOKIE = '__Secure-wy_refresh';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -176,7 +177,7 @@ export class AuthController {
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     // Solo la cookie. Aceptar el token en el cuerpo haría esta ruta alcanzable
     // desde cualquier web con una petición simple, sin que CORS la detenga.
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = this.refreshTokenFrom(req);
     if (!refreshToken) {
       throw new UnauthorizedException('No hay una sesión activa');
     }
@@ -194,7 +195,7 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Origen no permitido.' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.clearRefreshCookie(res);
-    return this.authService.logout(req.cookies?.[REFRESH_COOKIE] ?? '');
+    return this.authService.logout(this.refreshTokenFrom(req) ?? '');
   }
 
   @Post('logout-all')
@@ -285,12 +286,29 @@ export class AuthController {
     };
   }
 
+  private refreshCookieName(): string {
+    return env.cookie.secure ? SECURE_REFRESH_COOKIE : LEGACY_REFRESH_COOKIE;
+  }
+
+  private refreshTokenFrom(req: Request): string | undefined {
+    return (
+      req.cookies?.[this.refreshCookieName()] ??
+      req.cookies?.[LEGACY_REFRESH_COOKIE]
+    ) as string | undefined;
+  }
+
   private setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
-    res.cookie(REFRESH_COOKIE, token, { ...this.refreshCookieOptions(), expires: expiresAt });
+    res.cookie(this.refreshCookieName(), token, {
+      ...this.refreshCookieOptions(),
+      expires: expiresAt,
+    });
   }
 
   private clearRefreshCookie(res: Response): void {
-    res.clearCookie(REFRESH_COOKIE, this.refreshCookieOptions());
+    // Se limpian ambos nombres para cerrar también sesiones emitidas antes del
+    // cambio al prefijo __Secure-.
+    res.clearCookie(this.refreshCookieName(), this.refreshCookieOptions());
+    res.clearCookie(LEGACY_REFRESH_COOKIE, this.refreshCookieOptions());
   }
 
   private sessionMeta(req: Request): SessionMeta {

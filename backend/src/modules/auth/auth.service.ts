@@ -498,28 +498,35 @@ export class AuthService {
       throw new BadRequestException('El enlace de verificación es inválido o ha expirado');
     }
 
-    const decoded = this.jwtService.decode(token) as TokenPayload | null;
-    if (!decoded?.sub || decoded.type !== 'email-verification') {
-      throw new BadRequestException('El enlace de verificación es inválido o ha expirado');
-    }
-
-    const user = await this.usersService.findById(decoded.sub);
-    if (!user) {
-      throw new BadRequestException('El enlace de verificación es inválido o ha expirado');
-    }
-
+    // Primero se valida la firma; no se confía en el `sub` de un token sin
+    // verificar. Después se comprueba que el token siga correspondiendo al
+    // estado actual de la cuenta (uso único).
+    let payload: TokenPayload & { ph?: string };
     try {
-      await this.jwtService.verifyAsync(token, {
-        secret: this.verificationSecret(user),
+      payload = await this.jwtService.verifyAsync<TokenPayload & { ph?: string }>(token, {
+        secret: env.jwtSecret,
         algorithms: ['HS256'],
       });
     } catch {
-      throw new BadRequestException('El enlace de verificación es inválido, ya fue usado o ha expirado');
+      throw new BadRequestException('El enlace de verificación es inválido o ha expirado');
     }
 
-    if (!user.isEmailVerified) {
-      await this.usersService.markEmailAsVerified(user.id);
+    if (!payload.sub || payload.type !== 'email-verification') {
+      throw new BadRequestException('El enlace de verificación es inválido o ha expirado');
     }
+
+    const user = await this.usersService.findById(payload.sub);
+    if (
+      !user ||
+      user.isEmailVerified ||
+      payload.ph !== this.verificationState(user)
+    ) {
+      throw new BadRequestException(
+        'El enlace de verificación es inválido, ya fue usado o ha expirado',
+      );
+    }
+
+    await this.usersService.markEmailAsVerified(user.id);
 
     return { message: 'Correo verificado exitosamente. Ya puedes iniciar sesión.' };
   }
@@ -705,8 +712,13 @@ export class AuthService {
 
   private async sendVerificationEmail(user: User) {
     const token = await this.jwtService.signAsync(
-      { sub: user.id, email: user.email, type: 'email-verification' },
-      { secret: this.verificationSecret(user), expiresIn: env.jwtEmailVerificationExpiresIn },
+      {
+        sub: user.id,
+        email: user.email,
+        type: 'email-verification',
+        ph: this.verificationState(user),
+      },
+      { secret: env.jwtSecret, expiresIn: env.jwtEmailVerificationExpiresIn },
     );
     const verifyLink = `${env.frontendUrl}/verify-email?token=${encodeURIComponent(token)}`;
 
@@ -751,9 +763,15 @@ export class AuthService {
 
   // El secreto depende del estado de verificación: una vez verificado, el token
   // deja de ser válido (uso único) sin necesidad de almacenar el token en la BD.
-  private verificationSecret(user: Pick<User, 'passwordHash' | 'isEmailVerified'>): string {
-    const state = user.isEmailVerified ? 'done' : 'pending';
-    return `${env.jwtSecret}:verify:${user.passwordHash ?? 'none'}:${state}`;
+  /**
+   * Huella del estado que hace el enlace de un solo uso: al verificar el correo
+   * (o cambiar la contraseña) deja de coincidir. No es un secreto; la firma sí.
+   */
+  private verificationState(user: Pick<User, 'passwordHash' | 'isEmailVerified'>): string {
+    return createHash('sha256')
+      .update(`${user.passwordHash ?? 'none'}:${user.isEmailVerified ? 'done' : 'pending'}`)
+      .digest('hex')
+      .slice(0, 32);
   }
 
   private async assertPasswordNotBreached(password: string) {

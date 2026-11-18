@@ -57,6 +57,10 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   isProduction: process.env.NODE_ENV === 'production',
   port: parseNumber(process.env.PORT, 3000),
+  // En producción la API solo escucha en loopback: Nginx es la única entrada.
+  apiHost:
+    process.env.API_HOST ??
+    (process.env.NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0'),
   trustProxy: parseNumber(process.env.TRUST_PROXY, 1),
   jwtSecret,
   // Secreto independiente para refresh tokens. Si no se define (o queda vacío en
