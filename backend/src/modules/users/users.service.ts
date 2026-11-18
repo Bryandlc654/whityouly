@@ -121,4 +121,39 @@ export class UsersService {
     });
     return user.emailVerificationAttempts;
   }
+
+  async setMfaSecret(id: string, encryptedSecret: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { mfaSecret: encryptedSecret, mfaEnabled: false },
+    });
+  }
+
+  async enableMfa(id: string, recoveryCodeHashes: string[]): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        mfaEnabled: true,
+        mfaRecoveryCodes: recoveryCodeHashes,
+      },
+    });
+  }
+
+  async disableMfa(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        mfaEnabled: false,
+        mfaSecret: null,
+        mfaRecoveryCodes: [],
+      },
+    });
+  }
+
+  async replaceRecoveryCodes(id: string, hashes: string[]): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { mfaRecoveryCodes: hashes },
+    });
+  }
 }

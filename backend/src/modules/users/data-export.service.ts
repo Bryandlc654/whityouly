@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { signedMediaUrl } from '../../common/storage/media-signature';
 
 /**
  * Exportación de datos de la propia cuenta. Incluye metadatos y contenido
@@ -345,8 +346,8 @@ export class DataExportService {
           content: stage.content,
           stageOrder: stage.stageOrder,
           createdAt: stage.createdAt,
-          mediaUrl: stage.mediaAsset?.fileUrl ?? null,
-          audioUrl: stage.audioAsset?.fileUrl ?? null,
+          mediaUrl: signedMediaUrl(stage.mediaAsset?.fileUrl),
+          audioUrl: signedMediaUrl(stage.audioAsset?.fileUrl),
         })),
       })),
       comments,
@@ -362,7 +363,7 @@ export class DataExportService {
       treeStyles,
       creations: creations.map((creation) => ({
         ...creation,
-        mediaUrl: creation.mediaAsset?.fileUrl ?? null,
+        mediaUrl: signedMediaUrl(creation.mediaAsset?.fileUrl),
         mediaAsset: undefined,
       })),
       reports,

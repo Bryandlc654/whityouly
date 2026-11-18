@@ -19,6 +19,7 @@ import {
 import { assertAudioLooksValid, type AudioInput } from '../../common/media/process-audio';
 import { MEDIA_STORAGE, type MediaStorage } from '../../common/storage/media-storage';
 import { audioKey, keyFromPublicUrl, mediaKey } from '../../common/storage/media-keys';
+import { signedMediaUrl } from '../../common/storage/media-signature';
 
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MAX_PAGE_SIZE = 50;
@@ -330,7 +331,7 @@ export class FilesService {
   }): MediaFile {
     return {
       id: asset.id,
-      fileUrl: asset.fileUrl,
+      fileUrl: signedMediaUrl(asset.fileUrl) as string,
       originalName: asset.originalName,
       mimeType: asset.mimeType,
       // BigInt no se puede serializar en JSON: sin esto la respuesta revienta.

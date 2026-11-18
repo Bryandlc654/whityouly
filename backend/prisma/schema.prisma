@@ -39,6 +39,11 @@ model User {
   emailVerificationAttempts      Int       @default(0)
   passwordHash     String?
   internalUsername String?           @unique
+  mfaEnabled       Boolean           @default(false)
+  /// Secreto TOTP cifrado con AES-256-GCM. Nunca se devuelve tras el alta.
+  mfaSecret        String?
+  /// Códigos de recuperación: solo se guardan sus hashes SHA-256.
+  mfaRecoveryCodes String[]          @default([])
   role             Role              @default(USER)
   status           Status            @default(ACTIVE)
   createdAt        DateTime          @default(now())
@@ -69,8 +74,28 @@ model User {
   treeGarden         TreeGarden?
   treeStyles         TreeStyle[]
   authorPreferences  AuthorPreference[]
+  adminAuditLogs     AdminAuditLog[]   @relation("AdminAuditActor")
 
   @@map("users")
+}
+
+/// Registro central de acciones administrativas que no pasan por moderación
+/// (roles, estados, catálogo, destacados, archivos y soporte).
+model AdminAuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String
+  action       String
+  targetType   String
+  targetId     String?
+  metadata     Json?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  actor User @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("admin_audit_logs")
 }
 
 /// Nota libre del diario privado. No exige emocion ni intensidad. La papelera

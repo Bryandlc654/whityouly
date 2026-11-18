@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoriesService } from '../stories/stories.service';
 import { visibleAvatar } from '../../common/privacy/character-privacy';
+import { signedMediaUrl } from '../../common/storage/media-signature';
 
 export interface SavedStory {
   id: string;
@@ -112,8 +113,8 @@ export class BookmarksService {
           opening: opening
             ? {
                 content: opening.content,
-                mediaUrl: opening.mediaAsset?.fileUrl ?? null,
-                audioUrl: opening.audioAsset?.fileUrl ?? null,
+                mediaUrl: signedMediaUrl(opening.mediaAsset?.fileUrl),
+                audioUrl: signedMediaUrl(opening.audioAsset?.fileUrl),
               }
             : null,
           savedAt: row.createdAt,

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { AuthService } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -87,7 +87,7 @@ describe('AuthService', () => {
       },
       passwordBreachService: { isBreached: vi.fn().mockResolvedValue(false) },
       loginAttemptsService: {
-        getStatus: vi.fn().mockResolvedValue({ locked: false, retryAfterSeconds: 0 }),
+        getStatus: vi.fn().mockResolvedValue({ locked: false, retryAfterSeconds: 0, delayMs: 0 }),
         recordFailure: vi.fn().mockResolvedValue(undefined),
         reset: vi.fn().mockResolvedValue(undefined),
       },
@@ -158,6 +158,18 @@ describe('AuthService', () => {
     expect(mocks.usersService.createUser).not.toHaveBeenCalled();
   });
 
+  it('no revela si el correo ya está registrado', async () => {
+    mocks.usersService.createUser.mockRejectedValue(new ConflictException('ya existe'));
+
+    const result = await service.register({
+      email: 'user@example.com',
+      password: 'Secret123',
+    });
+
+    expect(result.message).toContain('Cuenta creada');
+    expect(mocks.mailerService.sendMail).not.toHaveBeenCalled();
+  });
+
   it('revoca todas las sesiones al reutilizar un refresh token ya rotado', async () => {
     mocks.jwtService.verifyAsync.mockResolvedValue({
       sub: 'user-1',
@@ -219,7 +231,10 @@ describe('AuthService', () => {
       service.login({ email: 'user@example.com', password: 'Secret123' } as any),
     ).rejects.toThrow('Credenciales inválidas');
 
-    expect(mocks.loginAttemptsService.recordFailure).toHaveBeenCalledWith('user@example.com');
+    expect(mocks.loginAttemptsService.recordFailure).toHaveBeenCalledWith(
+      'user@example.com',
+      'unknown',
+    );
     expect(mocks.auditService.logLoginFailure).toHaveBeenCalled();
   });
 
@@ -361,6 +376,22 @@ describe('AuthService', () => {
       expect(mocks.usersService.markEmailAsVerified).not.toHaveBeenCalled();
     });
 
+    it('no confirma si la cuenta ya estaba verificada sin validar el código', async () => {
+      mocks.usersService.findByEmail.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+        isEmailVerified: true,
+        emailVerificationCodeHash: 'aa',
+        emailVerificationCodeExpiresAt: new Date(Date.now() + 60_000),
+        emailVerificationAttempts: 0,
+      });
+
+      await expect(
+        service.verifyEmailCode({ email: 'user@example.com', code: '123456' }),
+      ).rejects.toThrow(/incorrecto o ha expirado/);
+      expect(mocks.usersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
+
     it('bloquea tras agotar los intentos aunque el código sea correcto', async () => {
       mocks.usersService.findByEmail.mockResolvedValue({
         id: 'user-1',
@@ -369,7 +400,7 @@ describe('AuthService', () => {
         emailVerificationCodeExpiresAt: new Date(Date.now() + 60_000),
         emailVerificationAttempts: 5,
       });
-      await expect(service.verifyEmailCode({ email: 'user@example.com', code: codeFromMail() })).rejects.toThrow(/intentos/);
+      await expect(service.verifyEmailCode({ email: 'user@example.com', code: codeFromMail() })).rejects.toThrow(/incorrecto o ha expirado/);
       expect(mocks.usersService.markEmailAsVerified).not.toHaveBeenCalled();
     });
   });

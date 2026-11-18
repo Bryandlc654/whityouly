@@ -12,6 +12,7 @@ import { env } from '../../config/env';
 import { isOwnMediaUrl } from '../../common/storage/media-keys';
 import { isAvatarCatalogUrl } from './avatar-presets';
 import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
+import { signedMediaUrl } from '../../common/storage/media-signature';
 
 // Vista del propietario: incluye sus ajustes de privacidad pero nunca `userId`.
 const OWNER_CHARACTER_SELECT = {
@@ -670,8 +671,8 @@ function toPublicStorySummary(story: {
     opening: opening
       ? {
           content: opening.content,
-          mediaUrl: opening.mediaAsset?.fileUrl ?? null,
-          audioUrl: opening.audioAsset?.fileUrl ?? null,
+          mediaUrl: signedMediaUrl(opening.mediaAsset?.fileUrl),
+          audioUrl: signedMediaUrl(opening.audioAsset?.fileUrl),
         }
       : null,
     createdAt: story.createdAt,

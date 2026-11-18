@@ -24,6 +24,9 @@ import {
   ResetPasswordDto,
   ResendVerificationDto,
   VerifyEmailCodeDto,
+  MfaCodeDto,
+  MfaVerifyLoginDto,
+  MfaDisableDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CsrfOriginGuard } from './guards/csrf-origin.guard';
@@ -83,9 +86,83 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const tokens = await this.authService.login(loginDto, this.sessionMeta(req));
+    const result = await this.authService.login(loginDto, this.sessionMeta(req));
+    if ('mfaRequired' in result) {
+      return result;
+    }
+    this.setRefreshCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
+    return { accessToken: result.accessToken };
+  }
+
+  @Post('mfa/verify-login')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Completar el inicio de sesión con el código MFA' })
+  async verifyMfaLogin(
+    @Body() dto: MfaVerifyLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.verifyMfaLogin(
+      dto.challengeToken,
+      dto.code,
+      this.sessionMeta(req),
+    );
     this.setRefreshCookie(res, tokens.refreshToken, tokens.refreshTokenExpiresAt);
     return { accessToken: tokens.accessToken };
+  }
+
+  @Get('mfa')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estado de la verificación en dos pasos' })
+  mfaStatus(@Req() req: AuthenticatedRequest) {
+    return this.authService.mfaStatus(req.user.userId);
+  }
+
+  @Post('mfa/setup')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Generar un secreto TOTP para activar MFA' })
+  setupMfa(@Req() req: AuthenticatedRequest) {
+    return this.authService.setupMfa(req.user.userId);
+  }
+
+  @Post('mfa/enable')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Activar MFA confirmando un código' })
+  enableMfa(@Req() req: AuthenticatedRequest, @Body() dto: MfaCodeDto) {
+    return this.authService.enableMfa(req.user.userId, dto.code, req.user.sessionId);
+  }
+
+  @Post('mfa/disable')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Desactivar MFA (contraseña + código)' })
+  disableMfa(@Req() req: AuthenticatedRequest, @Body() dto: MfaDisableDto) {
+    return this.authService.disableMfa(
+      req.user.userId,
+      req.user.sessionId,
+      dto.password,
+      dto.code,
+    );
+  }
+
+  @Post('mfa/step-up')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Token breve para acciones administrativas destructivas' })
+  stepUp(@Req() req: AuthenticatedRequest, @Body() dto: MfaCodeDto) {
+    return this.authService.stepUp(req.user.userId, dto.code);
   }
 
   @Post('refresh')

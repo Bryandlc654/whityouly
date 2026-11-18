@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
 import { RolesGuard } from './roles.guard';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -9,24 +10,29 @@ describe('RolesGuard', () => {
   let guard: RolesGuard;
   let reflector: { getAllAndOverride: ReturnType<typeof vi.fn> };
   let prisma: { user: { findUnique: ReturnType<typeof vi.fn> } };
+  let jwt: { verifyAsync: ReturnType<typeof vi.fn> };
 
-  function contextFor(userId?: string) {
+  function contextFor(userId?: string, method = 'GET', headers: Record<string, unknown> = {}) {
     return {
       getHandler: () => 'handler',
       getClass: () => 'class',
-      switchToHttp: () => ({ getRequest: () => ({ user: userId ? { userId } : undefined }) }),
+      switchToHttp: () => ({
+        getRequest: () => ({ user: userId ? { userId } : undefined, method, headers }),
+      }),
     } as never;
   }
 
   beforeEach(async () => {
     reflector = { getAllAndOverride: vi.fn() };
     prisma = { user: { findUnique: vi.fn() } };
+    jwt = { verifyAsync: vi.fn().mockResolvedValue({ sub: 'sa-1', type: 'step-up' }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RolesGuard,
         { provide: Reflector, useValue: reflector },
         { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: jwt },
       ],
     }).compile();
 
@@ -35,16 +41,43 @@ describe('RolesGuard', () => {
 
   it('deja pasar a un ADMIN cuando el endpoint pide ADMIN o SUPERADMIN', async () => {
     reflector.getAllAndOverride.mockReturnValue(['ADMIN', 'SUPERADMIN']);
-    prisma.user.findUnique.mockResolvedValue({ role: 'ADMIN', status: 'ACTIVE' });
+    prisma.user.findUnique.mockResolvedValue({ role: 'ADMIN', status: 'ACTIVE', mfaEnabled: false });
 
     await expect(guard.canActivate(contextFor('u-1'))).resolves.toBe(true);
   });
 
-  it('deja pasar a un SUPERADMIN a un endpoint que solo pide ADMIN', async () => {
+  it('exige MFA activo a un SUPERADMIN', async () => {
     reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    prisma.user.findUnique.mockResolvedValue({ role: 'SUPERADMIN', status: 'ACTIVE' });
+    prisma.user.findUnique.mockResolvedValue({ role: 'SUPERADMIN', status: 'ACTIVE', mfaEnabled: false });
+
+    await expect(guard.canActivate(contextFor('sa-1'))).rejects.toMatchObject({
+      response: { code: 'MFA_ENROLL_REQUIRED' },
+    });
+  });
+
+  it('deja pasar a un SUPERADMIN con MFA en una lectura', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    prisma.user.findUnique.mockResolvedValue({ role: 'SUPERADMIN', status: 'ACTIVE', mfaEnabled: true });
 
     await expect(guard.canActivate(contextFor('sa-1'))).resolves.toBe(true);
+  });
+
+  it('exige step-up en mutaciones de SUPERADMIN', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    prisma.user.findUnique.mockResolvedValue({ role: 'SUPERADMIN', status: 'ACTIVE', mfaEnabled: true });
+
+    await expect(guard.canActivate(contextFor('sa-1', 'PATCH'))).rejects.toMatchObject({
+      response: { code: 'STEP_UP_REQUIRED' },
+    });
+  });
+
+  it('acepta un step-up válido en mutaciones de SUPERADMIN', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    prisma.user.findUnique.mockResolvedValue({ role: 'SUPERADMIN', status: 'ACTIVE', mfaEnabled: true });
+
+    await expect(
+      guard.canActivate(contextFor('sa-1', 'PATCH', { 'x-step-up': 'token' })),
+    ).resolves.toBe(true);
   });
 
   it('bloquea a un USER en un endpoint de ADMIN', async () => {
@@ -111,7 +144,7 @@ describe('RolesGuard', () => {
     );
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'u-1' },
-      select: { role: true, status: true },
+      select: { role: true, status: true, mfaEnabled: true },
     });
     expect(ROLES_KEY).toBe('roles');
   });

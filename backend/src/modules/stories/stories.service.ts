@@ -37,6 +37,7 @@ import {
 import { STORY_FOLLOW_LEVEL } from '../follows/follow-levels';
 import { ContentPreferencesService } from '../content-preferences/content-preferences.service';
 import { visibleAvatar } from '../../common/privacy/character-privacy';
+import { signedMediaUrl } from '../../common/storage/media-signature';
 import { translateStory } from '../../common/translation/translate';
 
 const MAX_PAGE_SIZE = 50;
@@ -1745,8 +1746,8 @@ export class StoriesService {
     return {
       id: stage.id,
       content: stage.content,
-      mediaUrl: stage.mediaAsset?.fileUrl ?? null,
-      audioUrl: stage.audioAsset?.fileUrl ?? null,
+      mediaUrl: signedMediaUrl(stage.mediaAsset?.fileUrl),
+      audioUrl: signedMediaUrl(stage.audioAsset?.fileUrl),
       transcript: stage.transcript ?? null,
       updateKind: stage.updateKind ?? null,
       stageOrder: stage.stageOrder,

@@ -15,6 +15,7 @@ import AdminFeaturedPanel from '@/components/admin/AdminFeatured';
 import AdminTaxonomyPanel from '@/components/admin/AdminTaxonomy';
 import AdminFilesPanel from '@/components/admin/AdminFiles';
 import AdminSupportPanel from '@/components/admin/AdminSupport';
+import AdminStepUp from '@/components/admin/AdminStepUp';
 import { ADMIN_TAB_IDS } from '@/components/admin/nav';
 import type { AdminTab } from '@/components/admin/types';
 
@@ -139,6 +140,7 @@ export default function AdminPage() {
       onLogout={() => void logout()}
       toast={toast}
     >
+      <AdminStepUp />
       {tab === 'overview' ? <AdminOverviewPanel onNavigate={changeTab} /> : null}
       {tab === 'users' ? <AdminUsersPanel currentUserId={account.id} notify={notify} /> : null}
       {tab === 'content' ? <AdminContentPanel notify={notify} /> : null}

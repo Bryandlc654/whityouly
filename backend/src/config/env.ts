@@ -62,6 +62,11 @@ export const env = {
   // Secreto independiente para refresh tokens. Si no se define (o queda vacío en
   // el .env), se deriva del principal.
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET?.trim() || `${jwtSecret}:refresh`,
+  mediaUrlSecret: process.env.MEDIA_URL_SECRET?.trim() || `${jwtSecret}:media`,
+  mediaUrlTtlMs: parseNumber(process.env.MEDIA_URL_TTL_MS, 24 * 60 * 60_000),
+  mfaSecret: process.env.MFA_SECRET?.trim() || `${jwtSecret}:mfa`,
+  mfaIssuer: process.env.MFA_ISSUER?.trim() || 'Withyouly',
+  mfaStepUpExpiresIn: duration(process.env.MFA_STEP_UP_EXPIRES_IN, '5m'),
   jwtAccessExpiresIn: duration(process.env.JWT_ACCESS_EXPIRES_IN, '15m'),
   jwtRefreshExpiresIn: duration(process.env.JWT_REFRESH_EXPIRES_IN, '7d'),
   jwtEmailVerificationExpiresIn: duration(process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN, '24h'),
@@ -74,6 +79,10 @@ export const env = {
   redisUrl: process.env.REDIS_URL ?? '',
   passwordBreachCheckEnabled: process.env.PASSWORD_BREACH_CHECK_ENABLED !== 'false',
   loginMaxAttempts: parseNumber(process.env.LOGIN_MAX_ATTEMPTS, 5),
+  loginIpMaxAttempts: parseNumber(process.env.LOGIN_IP_MAX_ATTEMPTS, 30),
+  loginAccountDelayThreshold: parseNumber(process.env.LOGIN_ACCOUNT_DELAY_THRESHOLD, 10),
+  loginAccountDelayStepMs: parseNumber(process.env.LOGIN_ACCOUNT_DELAY_STEP_MS, 250),
+  loginAccountDelayMaxMs: parseNumber(process.env.LOGIN_ACCOUNT_DELAY_MAX_MS, 5_000),
   loginLockDurationMs: parseNumber(process.env.LOGIN_LOCK_DURATION_MS, 15 * 60_000),
   passwordResetCooldownMs: parseNumber(process.env.PASSWORD_RESET_COOLDOWN_MS, 60_000),
   emailResendCooldownMs: parseNumber(process.env.EMAIL_RESEND_COOLDOWN_MS, 60_000),
@@ -181,7 +190,7 @@ export const env = {
   translation: {
     // Traducción automática de relatos. `none` la desactiva.
     // `mymemory` no necesita clave, pero envía el texto a un servicio externo.
-    provider: (process.env.TRANSLATION_PROVIDER ?? 'mymemory') as
+    provider: (process.env.TRANSLATION_PROVIDER ?? 'none') as
       | 'none'
       | 'mymemory'
       | 'openai'

@@ -76,3 +76,28 @@ export class ResendVerificationDto {
   @MaxLength(254, { message: 'El correo es demasiado largo' })
   email!: string;
 }
+
+/** Código TOTP de 6 dígitos o un código de recuperación con formato XXXX-XXXX. */
+export class MfaCodeDto {
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.replace(/\s+/g, '').toUpperCase() : value,
+  )
+  @IsString()
+  @Matches(/^(\d{6}|[A-Z0-9]{4}-[A-Z0-9]{4})$/, {
+    message: 'El código no es válido',
+  })
+  code!: string;
+}
+
+export class MfaVerifyLoginDto extends MfaCodeDto {
+  @IsString()
+  @IsNotEmpty({ message: 'El desafío de verificación es requerido' })
+  challengeToken!: string;
+}
+
+export class MfaDisableDto extends MfaCodeDto {
+  @IsString()
+  @IsNotEmpty({ message: 'La contraseña es requerida' })
+  @MaxLength(MAX_PASSWORD_LENGTH)
+  password!: string;
+}

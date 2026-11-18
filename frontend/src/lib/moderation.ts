@@ -1,5 +1,5 @@
 import { API_URL } from './api';
-import { authFetch } from './auth';
+import { adminFetch as authFetch } from './admin';
 import { REPORT_REASONS, type ReportReason } from './comments';
 import type { LoadResult } from './account';
 

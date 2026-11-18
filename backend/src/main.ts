@@ -9,6 +9,8 @@ import { env } from './config/env';
 import { isAllowedOrigin } from './config/origins';
 import { MEDIA_STORAGE, type MediaStorage } from './common/storage/media-storage';
 import { LocalMediaStorage } from './common/storage/local-media-storage';
+import { isSafeMediaKey } from './common/storage/media-keys';
+import { verifyMediaSignature } from './common/storage/media-signature';
 import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
 
 async function bootstrap() {
@@ -37,6 +39,37 @@ async function bootstrap() {
   const mediaStorage = app.get<MediaStorage>(MEDIA_STORAGE);
   if (mediaStorage.driver === 'local') {
     const basePath = new URL(env.storage.publicBaseUrl).pathname.replace(/\/$/, '') || '/media';
+
+    // Los archivos de la biblioteca exigen una URL firmada y vigente. Sin esto,
+    // conocer la URL de un relato privado bastaba para descargarlo. Los
+    // avatares siguen siendo públicos porque se muestran en perfiles abiertos.
+    app.use(basePath, (req, res, next) => {
+      let key: string;
+      try {
+        key = decodeURIComponent(req.path).replace(/^\/+/, '');
+      } catch {
+        res.status(400).json({ message: 'Ruta de archivo inválida.' });
+        return;
+      }
+
+      if (!isSafeMediaKey(key)) {
+        res.status(404).json({ message: 'Archivo no encontrado.' });
+        return;
+      }
+
+      if (key.startsWith('avatars/')) {
+        next();
+        return;
+      }
+
+      if (!verifyMediaSignature(key, req.query.exp, req.query.sig)) {
+        res.status(403).json({ message: 'El enlace del archivo es inválido o ha expirado.' });
+        return;
+      }
+
+      next();
+    });
+
     app.use(
       basePath,
       express.static((mediaStorage as LocalMediaStorage).publicDir(), {

@@ -297,3 +297,70 @@ export async function confirmEmailChange(token: string): Promise<LoadResult<{ me
     return { status: 'error', message: 'No se pudo contactar con el servidor.' };
   }
 }
+
+export interface MfaStatus {
+  enabled: boolean;
+  recoveryCodesRemaining: number;
+}
+
+export async function fetchMfaStatus(): Promise<LoadResult<MfaStatus>> {
+  try {
+    const response = await authFetch(`${API_URL}/auth/mfa`);
+    if (!response.ok) {
+      return { status: 'error', message: await readError(response, 'No se pudo consultar MFA.') };
+    }
+    return { status: 'ok', data: (await response.json()) as MfaStatus };
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+}
+
+export async function setupMfa(): Promise<LoadResult<{ secret: string; otpauthUrl: string }>> {
+  try {
+    const response = await authFetch(`${API_URL}/auth/mfa/setup`, { method: 'POST' });
+    if (!response.ok) {
+      return { status: 'error', message: await readError(response, 'No se pudo iniciar MFA.') };
+    }
+    return {
+      status: 'ok',
+      data: (await response.json()) as { secret: string; otpauthUrl: string },
+    };
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+}
+
+export async function enableMfa(code: string): Promise<LoadResult<{ recoveryCodes: string[] }>> {
+  try {
+    const response = await authFetch(`${API_URL}/auth/mfa/enable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) {
+      return { status: 'error', message: await readError(response, 'El código no es válido.') };
+    }
+    return { status: 'ok', data: (await response.json()) as { recoveryCodes: string[] } };
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+}
+
+export async function disableMfa(input: {
+  password: string;
+  code: string;
+}): Promise<LoadResult<{ enabled: false }>> {
+  try {
+    const response = await authFetch(`${API_URL}/auth/mfa/disable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) {
+      return { status: 'error', message: await readError(response, 'No se pudo desactivar MFA.') };
+    }
+    return { status: 'ok', data: (await response.json()) as { enabled: false } };
+  } catch {
+    return { status: 'error', message: 'No se pudo contactar con el servidor.' };
+  }
+}

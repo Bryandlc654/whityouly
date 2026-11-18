@@ -1,5 +1,66 @@
 import { API_URL } from './api';
 import { authFetch } from './auth';
+
+const STEP_UP_KEY = 'withyouly-admin-step-up';
+
+/**
+ * Petición administrativa con step-up. Si el backend pide confirmación MFA,
+ * abre el diálogo global, obtiene un token breve y reintenta una vez.
+ */
+export async function adminFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const withStepUp = (token: string | null): RequestInit => ({
+    ...init,
+    headers: {
+      ...(init.headers ?? {}),
+      ...(token ? { 'x-step-up': token } : {}),
+    },
+  });
+
+  const stored =
+    typeof window !== 'undefined' ? sessionStorage.getItem(STEP_UP_KEY) : null;
+  const response = await authFetch(input, withStepUp(stored));
+
+  if (response.status !== 403) {
+    return response;
+  }
+
+  let body: { code?: string } | null = null;
+  try {
+    body = (await response.clone().json()) as { code?: string };
+  } catch {
+    /* sin cuerpo */
+  }
+
+  if (body?.code === 'MFA_ENROLL_REQUIRED') {
+    window.dispatchEvent(new Event('withyouly:mfa-enroll-required'));
+    return response;
+  }
+
+  if (body?.code !== 'STEP_UP_REQUIRED') {
+    return response;
+  }
+
+  const token = await new Promise<string | null>((resolve) => {
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(null), 120_000);
+    window.dispatchEvent(
+      new CustomEvent('withyouly:step-up-required', { detail: { resolve: finish } }),
+    );
+  });
+
+  if (!token) {
+    return response;
+  }
+
+  sessionStorage.setItem(STEP_UP_KEY, token);
+  return authFetch(input, withStepUp(token));
+}
 import type { LoadResult } from './account';
 import type { ReportStatus } from './moderation';
 import type { SupportCategory, SupportStatus, SupportTicket } from './support';
@@ -145,7 +206,7 @@ async function request<T>(
 ): Promise<LoadResult<T>> {
   let response: Response;
   try {
-    response = await authFetch(`${API_URL}${path}`, {
+    response = await adminFetch(`${API_URL}${path}`, {
       ...init,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });

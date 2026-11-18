@@ -20,6 +20,9 @@ export default function LoginPage() {
   const [sessionExpired, setSessionExpired] = useState(false);
   // Cuenta sin verificar: se pide el código en lugar de solo mostrar el error.
   const [verifyMode, setVerifyMode] = useState(false);
+  // Segundo factor: el login devuelve un desafío en vez de una sesión.
+  const [mfaChallenge, setMfaChallenge] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
 
   const router = useRouter();
   const { t } = useI18n();
@@ -39,6 +42,28 @@ export default function LoginPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     }).catch(() => undefined);
+  };
+
+  const finishLogin = async (accessToken: string) => {
+    setMfaChallenge(null);
+    setVerifyMode(false);
+    tokenStorage.setAccess(accessToken);
+    window.dispatchEvent(new Event('withyouly:session-changed'));
+
+    setSuccess(true);
+
+    let destination = '/feed';
+    try {
+      const character = await authFetch(`${API_URL}/characters/me`);
+      if (character.status === 404) destination = '/onboarding';
+      else destination = consumeReturnTo('/feed');
+    } catch {
+      /* el feed decide cuando termine de cargar */
+    }
+
+    setTimeout(() => {
+      router.push(destination);
+    }, 900);
   };
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -65,28 +90,45 @@ export default function LoginPage() {
         throw new Error(message);
       }
 
-      setVerifyMode(false);
       const data = await res.json();
-      tokenStorage.setAccess(data.accessToken);
-      window.dispatchEvent(new Event('withyouly:session-changed'));
-
-      setSuccess(true);
-
-      let destination = '/feed';
-      try {
-        const character = await authFetch(`${API_URL}/characters/me`);
-        if (character.status === 404) destination = '/onboarding';
-        else destination = consumeReturnTo('/feed');
-      } catch {
-        /* el feed decide cuando termine de cargar */
+      if (data.mfaRequired) {
+        setMfaChallenge(data.challengeToken);
+        setMfaCode('');
+        setLoading(false);
+        return;
       }
 
-      setTimeout(() => {
-        router.push(destination);
-      }, 900);
+      await finishLogin(data.accessToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.login.invalid'));
       setVerifyMode(false);
+      setLoading(false);
+    }
+  };
+
+  const handleMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaChallenge) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${API_URL}/auth/mfa/verify-login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeToken: mfaChallenge, code: mfaCode }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(extractErrorMessage(errorData, t('auth.mfa.expired')));
+      }
+
+      const data = await res.json();
+      await finishLogin(data.accessToken);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('auth.login.invalid'));
       setLoading(false);
     }
   };
@@ -105,7 +147,42 @@ export default function LoginPage() {
         </>
       }
     >
-      {verifyMode ? (
+      {mfaChallenge ? (
+        <form className="reference-form" onSubmit={handleMfa}>
+          <h1>{t('auth.mfa.title')}</h1>
+          <p>{t('auth.mfa.subtitle')}</p>
+          {error ? <div className="auth-error">{error}</div> : null}
+
+          <label htmlFor="mfa-code">{t('auth.mfa.code')}</label>
+          <div className="input-with-icon">
+            <Icon name="lock" />
+            <input
+              id="mfa-code"
+              name="mfa-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              required
+              autoFocus
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value)}
+            />
+          </div>
+
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t('auth.mfa.recoveryHint')}
+          </p>
+
+          <button
+            className="primary reference-submit"
+            type="submit"
+            disabled={loading || mfaCode.replace(/\s+/g, '').length < 6}
+          >
+            {loading ? t('auth.login.submitting') : t('auth.mfa.submit')}
+          </button>
+        </form>
+      ) : verifyMode ? (
         <div className="reference-form">
           <h1>{t('auth.verify.title')}</h1>
           <VerifyCodeForm

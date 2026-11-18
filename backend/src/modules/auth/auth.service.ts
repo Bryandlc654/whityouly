@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -19,6 +26,15 @@ import { PasswordBreachService } from './password-breach.service';
 import { LoginAttemptsService } from './login-attempts.service';
 import { AuthAuditService } from './auth-audit.service';
 import { CooldownService } from '../../common/cooldown/cooldown.service';
+import {
+  decryptMfaSecret,
+  encryptMfaSecret,
+  generateRecoveryCodes,
+  generateTotpSecret,
+  hashRecoveryCode,
+  otpauthUrl,
+  verifyTotp,
+} from '../../common/security/totp';
 
 // Hash de referencia (contraseña aleatoria) para igualar el tiempo de respuesta
 // cuando el usuario no existe y evitar enumeración de cuentas por timing.
@@ -65,19 +81,33 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     await this.assertPasswordNotBreached(registerDto.password);
 
-    const user = await this.usersService.createUser({
-      email: registerDto.email,
-      passwordHash: registerDto.password,
-    });
+    // La respuesta es idéntica exista o no el correo: un 409 permitía averiguar
+    // qué direcciones tienen cuenta. Si ya existe, no se envía nada y la
+    // persona puede usar login o recuperación.
+    const generic = {
+      message: 'Cuenta creada. Por favor, revisa tu correo electrónico para verificarla.',
+    };
+
+    let user: User;
+    try {
+      user = await this.usersService.createUser({
+        email: registerDto.email,
+        passwordHash: registerDto.password,
+      });
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        return generic;
+      }
+      throw error;
+    }
 
     await this.sendVerificationEmail(user);
-
-    return { message: 'Cuenta creada. Por favor, revisa tu correo electrónico para verificarla.' };
+    return generic;
   }
 
   async login(loginDto: LoginDto, meta: SessionMeta = {}) {
-    // Bloqueo por cuenta: frena ataques distribuidos que evaden el límite por IP.
-    const lockStatus = await this.loginAttemptsService.getStatus(loginDto.email);
+    const ip = meta.ipAddress ?? 'unknown';
+    const lockStatus = await this.loginAttemptsService.getStatus(loginDto.email, ip);
     if (lockStatus.locked) {
       await this.auditService.logAccountLocked({
         ip: meta.ipAddress,
@@ -89,6 +119,12 @@ export class AuthService {
       );
     }
 
+    // Retardo progresivo por cuenta: frena el ataque distribuido sin dejar la
+    // cuenta inaccesible para su dueño.
+    if (lockStatus.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, lockStatus.delayMs));
+    }
+
     const user = await this.usersService.findByEmail(loginDto.email);
 
     // Comparamos siempre contra un hash válido para no filtrar si el correo existe.
@@ -98,7 +134,7 @@ export class AuthService {
     );
 
     if (!user || !user.passwordHash || !isPasswordValid) {
-      await this.loginAttemptsService.recordFailure(loginDto.email);
+      await this.loginAttemptsService.recordFailure(loginDto.email, ip);
       await this.auditService.logLoginFailure({
         userId: user?.id ?? null,
         ip: meta.ipAddress,
@@ -124,8 +160,18 @@ export class AuthService {
       throw new UnauthorizedException('Por favor, verifica tu correo electrónico antes de iniciar sesión');
     }
 
+    // Con MFA activo no se emite sesión todavía: se devuelve un desafío de
+    // corta vida y el código se valida en /auth/mfa/verify-login.
+    if (user.mfaEnabled) {
+      const challengeToken = await this.jwtService.signAsync(
+        { sub: user.id, type: 'mfa' },
+        { secret: env.jwtSecret, expiresIn: '5m' },
+      );
+      return { mfaRequired: true as const, challengeToken };
+    }
+
     // Éxito: limpiamos el contador de fallos y registramos el evento.
-    await this.loginAttemptsService.reset(loginDto.email);
+    await this.loginAttemptsService.reset(loginDto.email, ip);
 
     // Actualización transparente del costo del hash si la política cambió.
     if (this.usersService.isPasswordHashOutdated(user.passwordHash)) {
@@ -139,6 +185,188 @@ export class AuthService {
     });
 
     return this.issueSession(user, meta);
+  }
+
+  async verifyMfaLogin(
+    challengeToken: string,
+    code: string,
+    meta: SessionMeta = {},
+  ) {
+    let payload: TokenPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<TokenPayload>(challengeToken, {
+        secret: env.jwtSecret,
+        algorithms: ['HS256'],
+      });
+    } catch {
+      throw new UnauthorizedException('El desafío de verificación expiró. Inicia sesión de nuevo.');
+    }
+
+    if (!payload.sub || payload.type !== 'mfa') {
+      throw new UnauthorizedException('El desafío de verificación no es válido.');
+    }
+
+    const user = await this.usersService.findById(payload.sub);
+    if (!user || !user.mfaEnabled || !user.mfaSecret) {
+      throw new UnauthorizedException('La verificación en dos pasos no está activa.');
+    }
+    if (user.status !== 'ACTIVE' && user.status !== 'DELETION_PENDING') {
+      throw new UnauthorizedException('Tu cuenta no está activa');
+    }
+
+    const result = await this.consumeMfaCode(user, code);
+    if (!result.valid) {
+      throw new UnauthorizedException('Código de verificación incorrecto.');
+    }
+
+    await this.loginAttemptsService.reset(user.email, meta.ipAddress ?? 'unknown');
+    await this.auditService.logLoginSuccess({
+      userId: user.id,
+      ip: meta.ipAddress,
+      deviceInfo: meta.deviceInfo,
+    });
+
+    return this.issueSession(user, meta);
+  }
+
+  async mfaStatus(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('La cuenta ya no existe.');
+    }
+    return {
+      enabled: user.mfaEnabled,
+      recoveryCodesRemaining: user.mfaRecoveryCodes.length,
+    };
+  }
+
+  /** Genera un secreto nuevo. No queda activo hasta confirmarlo con un código. */
+  async setupMfa(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('La cuenta ya no existe.');
+    }
+    if (user.mfaEnabled) {
+      throw new BadRequestException('La verificación en dos pasos ya está activada.');
+    }
+
+    const secret = generateTotpSecret();
+    await this.usersService.setMfaSecret(user.id, encryptMfaSecret(secret));
+
+    return {
+      secret,
+      otpauthUrl: otpauthUrl(user.email, secret),
+    };
+  }
+
+  async enableMfa(userId: string, code: string, sessionId?: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('La cuenta ya no existe.');
+    }
+    if (user.mfaEnabled) {
+      throw new BadRequestException('La verificación en dos pasos ya está activada.');
+    }
+    if (!user.mfaSecret) {
+      throw new BadRequestException('Primero genera el secreto de verificación.');
+    }
+
+    let secret: string;
+    try {
+      secret = decryptMfaSecret(user.mfaSecret);
+    } catch {
+      throw new BadRequestException('El secreto de verificación es inválido. Genera uno nuevo.');
+    }
+    if (!verifyTotp(secret, code)) {
+      throw new BadRequestException('El código no es válido. Revisa la hora de tu dispositivo.');
+    }
+
+    const recoveryCodes = generateRecoveryCodes();
+    await this.usersService.enableMfa(
+      user.id,
+      recoveryCodes.map((item) => hashRecoveryCode(item)),
+    );
+
+    // Cualquier sesión abierta antes de activar MFA pudo ser el motivo de la
+    // activación: se cierran las demás y se conserva la actual.
+    if (sessionId) {
+      await this.sessionsService.revokeAllForUserExcept(user.id, sessionId);
+    } else {
+      await this.sessionsService.revokeAllForUser(user.id);
+    }
+
+    return { recoveryCodes };
+  }
+
+  async disableMfa(userId: string, sessionId: string | undefined, password: string, code: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user?.passwordHash || !user.mfaSecret) {
+      throw new BadRequestException('La verificación en dos pasos no está activa.');
+    }
+    if (!(await bcrypt.compare(password, user.passwordHash))) {
+      throw new UnauthorizedException('La contraseña actual no es correcta.');
+    }
+    if (!(await this.consumeMfaCode(user, code)).valid) {
+      throw new UnauthorizedException('Código de verificación incorrecto.');
+    }
+
+    await this.usersService.disableMfa(user.id);
+    if (sessionId) {
+      await this.sessionsService.revokeAllForUserExcept(user.id, sessionId);
+    } else {
+      await this.sessionsService.revokeAllForUser(user.id);
+    }
+
+    return { enabled: false };
+  }
+
+  /** Token breve que autoriza una acción administrativa destructiva. */
+  async stepUp(userId: string, code: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user?.mfaEnabled || !user.mfaSecret) {
+      throw new ForbiddenException('Activa la verificación en dos pasos antes de continuar.');
+    }
+
+    let secret: string;
+    try {
+      secret = decryptMfaSecret(user.mfaSecret);
+    } catch {
+      throw new ForbiddenException('El secreto de verificación es inválido.');
+    }
+    if (!verifyTotp(secret, code)) {
+      throw new UnauthorizedException('Código de verificación incorrecto.');
+    }
+
+    const stepUpToken = await this.jwtService.signAsync(
+      { sub: userId, type: 'step-up' },
+      { secret: env.jwtSecret, expiresIn: env.mfaStepUpExpiresIn },
+    );
+
+    return { stepUpToken, expiresInSeconds: 300 };
+  }
+
+  private async consumeMfaCode(
+    user: User,
+    code: string,
+  ): Promise<{ valid: boolean }> {
+    if (user.mfaSecret) {
+      try {
+        if (verifyTotp(decryptMfaSecret(user.mfaSecret), code)) {
+          return { valid: true };
+        }
+      } catch {
+        /* secreto corrupto: se intenta con el código de recuperación */
+      }
+    }
+
+    const hash = hashRecoveryCode(code);
+    if (user.mfaRecoveryCodes.includes(hash)) {
+      const remaining = user.mfaRecoveryCodes.filter((item) => item !== hash);
+      await this.usersService.replaceRecoveryCodes(user.id, remaining);
+      return { valid: true };
+    }
+
+    return { valid: false };
   }
 
   async refresh(refreshToken: string, meta: SessionMeta = {}) {
@@ -303,27 +531,22 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException(invalid);
     }
-    if (user.isEmailVerified) {
-      return { message: 'Tu correo ya estaba verificado. Ya puedes iniciar sesión.' };
-    }
+    // No se confirma si la cuenta ya estaba verificada antes de validar el
+    // código: hacerlo permitía enumerar correos registrados.
     if (
+      user.isEmailVerified ||
       !user.emailVerificationCodeHash ||
       !user.emailVerificationCodeExpiresAt ||
-      user.emailVerificationCodeExpiresAt.getTime() < Date.now()
+      user.emailVerificationCodeExpiresAt.getTime() < Date.now() ||
+      user.emailVerificationAttempts >= EMAIL_CODE_MAX_ATTEMPTS
     ) {
-      throw new BadRequestException('El código ha expirado. Pide uno nuevo.');
-    }
-    if (user.emailVerificationAttempts >= EMAIL_CODE_MAX_ATTEMPTS) {
-      throw new BadRequestException('Demasiados intentos. Pide un código nuevo.');
+      throw new BadRequestException(invalid);
     }
 
     const expected = Buffer.from(user.emailVerificationCodeHash, 'hex');
     const received = Buffer.from(this.hashEmailCode(user.id, dto.code), 'hex');
     if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
-      const attempts = await this.usersService.recordEmailVerificationFailure(user.id);
-      if (attempts >= EMAIL_CODE_MAX_ATTEMPTS) {
-        throw new BadRequestException('Demasiados intentos. Pide un código nuevo.');
-      }
+      await this.usersService.recordEmailVerificationFailure(user.id);
       throw new BadRequestException(invalid);
     }
 
