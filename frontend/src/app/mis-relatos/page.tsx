@@ -14,6 +14,7 @@ import ShareStoryModal, { type ShareStoryData } from '@/components/wy/ShareStory
 import type { StoryDraftSeed } from '@/components/wy/StoryForm';
 import StoryMetaModal, { type EditableStory } from '@/components/wy/StoryMetaModal';
 import StoryDetailModal from '@/components/wy/StoryDetailModal';
+import StoryViewer from '@/components/wy/StoryViewer';
 import { listSavedStories, unsaveStory, type SavedStory } from '@/lib/bookmarks';
 import {
   deleteStory,
@@ -139,6 +140,7 @@ export default function MyStoriesPage() {
   const [shareStory, setShareStory] = useState<ShareStoryData | null>(null);
   const [metaStory, setMetaStory] = useState<EditableStory | null>(null);
   const [detail, setDetail] = useState<MyStory | null>(null);
+  const [reader, setReader] = useState<{ id: string; title: string } | null>(null);
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
   const [toast, setToast] = useState('');
@@ -616,6 +618,12 @@ export default function MyStoriesPage() {
             onClose={() => setDetail(null)}
             onChanged={() => void loadStories(filter)}
           />
+        ) : reader ? (
+          <StoryViewer
+            storyId={reader.id}
+            title={reader.title}
+            onClose={() => setReader(null)}
+          />
         ) : null
       }
       sheet={sheet ? <Sheet title={sheet.title} rows={sheet.rows} onClose={() => setSheet(null)} /> : null}
@@ -774,7 +782,7 @@ export default function MyStoriesPage() {
                       <button
                         className="story-title-button"
                         type="button"
-                        onClick={() => void openDetail(story)}
+                        onClick={() => setReader({ id: story.id, title: story.title })}
                       >
                         {story.title}
                       </button>
@@ -792,8 +800,12 @@ export default function MyStoriesPage() {
                   </div>
 
                   <div className="story-row-actions">
-                    <button className="secondary" type="button" onClick={() => continueStory(story)}>
-                      Continuar relato
+                    <button
+                      className="secondary"
+                      type="button"
+                      onClick={() => setReader({ id: story.id, title: story.title })}
+                    >
+                      Leer completo
                     </button>
                     <button
                       className="icon-btn"
