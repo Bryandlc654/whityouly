@@ -385,3 +385,8 @@
 .wy .login-aside-photo h2 em{font-style:normal;color:#FF8F80}
 .wy .login-aside-photo p{color:rgba(255,255,255,.92);font-size:clamp(17px,1.5vw,22px);line-height:1.45;max-width:34ch;margin:18px 0 0;text-shadow:0 1px 14px rgba(0,0,0,.32)}
 @media(max-width:980px){.wy .login-aside-photo{display:none}}
+
+/* Titulo de las tarjetas visuales: las reglas globales de lectura lo tenian de negro. */
+body .wy .post .visual-story-card .visual-story-card-copy h2{color:inherit;text-shadow:0 2px 18px rgba(10,8,25,.35)}
+body .wy .post .visual-story-card.is-light .visual-story-card-copy h2{text-shadow:none}
+

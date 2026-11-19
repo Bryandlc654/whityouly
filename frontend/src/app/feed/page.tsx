@@ -237,7 +237,24 @@ export default function FeedPage() {
       return;
     }
 
-    setFeedItems(feed.data.items);
+    // La publicación recién creada se muestra primero, aunque el ranking la
+    // hubiera colocado después. Luego se limpia el parámetro de la URL.
+    const items = [...feed.data.items];
+    const publishedId =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('publicado')
+        : null;
+    if (publishedId) {
+      const index = items.findIndex((item) => item.id === publishedId);
+      if (index > 0) {
+        items.unshift(items.splice(index, 1)[0]);
+      }
+      if (index >= 0) {
+        window.history.replaceState(window.history.state, '', '/feed');
+      }
+    }
+
+    setFeedItems(items);
     setFeedLoading(false);
   }, []);
 

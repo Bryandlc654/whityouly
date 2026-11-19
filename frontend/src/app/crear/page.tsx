@@ -38,8 +38,10 @@ export default function CreateStoryPage() {
       <CreateStoryV58
         characterName={character.name}
         avatarUrl={character.avatarUrl}
-        onCreated={(_story, published) => {
-          router.push(published ? '/feed' : '/mis-relatos');
+        onCreated={(story, published) => {
+          router.push(
+            published ? `/feed?publicado=${encodeURIComponent(story.id)}` : '/mis-relatos',
+          );
           router.refresh();
         }}
       />
