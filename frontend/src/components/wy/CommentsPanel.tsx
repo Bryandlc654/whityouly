@@ -41,6 +41,9 @@ interface Props {
 
 const initials = (name: string) => name.trim().slice(0, 2).toUpperCase();
 
+/** Paneles abiertos: evita que el «atrás» de un desmontaje cierre el siguiente. */
+let openCommentPanels = 0;
+
 function relativeTime(value: string): string {
   const time = new Date(value).getTime();
   if (Number.isNaN(time)) return '';
@@ -74,7 +77,12 @@ export default function CommentsPanel({ storyId, title, author, viewerName, view
   const [reportFor, setReportFor] = useState<string | null>(null);
   const [deleteFor, setDeleteFor] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const onCloseRef = useRef(onClose);
   const notify = onNotify ?? (() => undefined);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const load = useCallback(async () => {
     const result = await listComments(storyId);
@@ -96,14 +104,40 @@ export default function CommentsPanel({ storyId, title, author, viewerName, view
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, []);
+
+  // El panel ocupa la pantalla en móvil. Se registra una entrada de historial
+  // para que el botón «atrás» del teléfono lo cierre en lugar de salir del feed.
+  useEffect(() => {
+    const marker = 'withyoulyCommentsPanel';
+    const previousState = window.history.state;
+    openCommentPanels += 1;
+    if (!previousState?.[marker]) {
+      window.history.pushState({ ...(previousState ?? {}), [marker]: true }, '');
+    }
+
+    const onPop = () => onCloseRef.current();
+    window.addEventListener('popstate', onPop);
+
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      openCommentPanels -= 1;
+      // Si se cerró con la X o el fondo, se retira la entrada ficticia. El
+      // pequeño retraso evita que un remontaje de React la elimine dos veces.
+      window.setTimeout(() => {
+        if (openCommentPanels === 0 && window.history.state?.[marker]) {
+          window.history.back();
+        }
+      }, 0);
+    };
+  }, []);
 
   const submit = async () => {
     const content = text.trim();
