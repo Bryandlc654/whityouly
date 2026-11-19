@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
@@ -74,7 +74,7 @@ export default function FollowingPage() {
 
   useEffect(() => {
     const verify = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         router.replace('/login');
         return;
       }

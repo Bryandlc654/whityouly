@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { countryLabel, languageLabel } from '@/lib/locales';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import { authFetch, ensureAccessToken, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
@@ -81,7 +81,8 @@ export default function StoryPage() {
 
     setStoryLoading(true);
     setError('');
-    const result = tokenStorage.getAccess() ? await viewStory(storyId) : await viewPublicStory(storyId);
+    const token = await ensureAccessToken();
+    const result = token ? await viewStory(storyId) : await viewPublicStory(storyId);
     setStoryLoading(false);
 
     if (result.status === 'ok') {
@@ -96,7 +97,7 @@ export default function StoryPage() {
 
   useEffect(() => {
     const verify = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         setGuest(true);
         setLoading(false);
         return;

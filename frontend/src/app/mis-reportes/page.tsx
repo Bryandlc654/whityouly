@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { tokenStorage } from '@/lib/auth';
+import { ensureAccessToken } from '@/lib/auth';
 import ProfileShell from '@/components/wy/ProfileShell';
 import {
   listMyReports,
@@ -101,11 +101,13 @@ export default function MyReportsPage() {
   );
 
   useEffect(() => {
-    if (!tokenStorage.getAccess()) {
-      router.replace('/login');
-      return;
-    }
-    void load(filter);
+    void (async () => {
+      if (!(await ensureAccessToken())) {
+        router.replace('/login');
+        return;
+      }
+      void load(filter);
+    })();
   }, [filter, load, router]);
 
   const empty = !loading && !error && reports.length === 0;

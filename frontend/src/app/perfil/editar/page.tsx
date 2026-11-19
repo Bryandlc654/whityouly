@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, authFetch, tokenStorage } from '@/lib/auth';
 import {
   parseOwnerCharacter,
   removeCharacterAvatar,
@@ -34,7 +34,7 @@ export default function EditProfilePage() {
     setError('');
 
     const load = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         router.replace('/login');
         return;
       }

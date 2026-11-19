@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { fetchAccount, type Account } from '@/lib/account';
-import { authFetch, tokenStorage } from '@/lib/auth';
+import { authFetch, ensureAccessToken, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from '@/components/wy/Shell';
 import RightRail from '@/components/wy/RightRail';
@@ -44,12 +44,12 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
   }, []);
 
   useEffect(() => {
-    if (!tokenStorage.getAccess()) {
-      router.replace('/login');
-      return;
-    }
-
     void (async () => {
+      if (!(await ensureAccessToken())) {
+        router.replace('/login');
+        return;
+      }
+
       await reload();
 
       try {

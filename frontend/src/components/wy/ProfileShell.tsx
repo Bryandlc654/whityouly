@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import { authFetch, ensureAccessToken, logout as endSession } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import WyFrame, { type WyRoute } from './Shell';
 import RightRail from './RightRail';
@@ -36,21 +36,21 @@ export default function ProfileShell({ children, className }: { children: ReactN
   }, []);
 
   useEffect(() => {
-    // La página es pública: sin sesión no se pide nada.
-    if (!tokenStorage.getAccess()) return;
-
     void (async () => {
+      // La página es pública: sin sesión no se pide nada.
+      if (!(await ensureAccessToken())) return;
+
       try {
         const res = await authFetch(`${API_URL}/characters/me`);
         if (res.ok) setCharacter(await res.json());
       } catch {
         /* la barra se muestra sin avatar */
       }
-    })();
 
-    void unreadNotificationsCount().then((result) => {
-      if (result.status === 'ok') setUnreadCount(result.data.count);
-    });
+      void unreadNotificationsCount().then((result) => {
+        if (result.status === 'ok') setUnreadCount(result.data.count);
+      });
+    })();
   }, []);
 
   const logout = useCallback(async () => {

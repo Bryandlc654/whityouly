@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import { authFetch, ensureAccessToken, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
@@ -166,7 +166,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     const verifySession = async () => {
-      const token = tokenStorage.getAccess();
+      const token = await ensureAccessToken();
 
       if (!token) {
         router.replace('/login');

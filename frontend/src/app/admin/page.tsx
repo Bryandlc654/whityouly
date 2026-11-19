@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchAccount, type Account } from '@/lib/account';
-import { logout as endSession, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, logout as endSession, tokenStorage } from '@/lib/auth';
 import Icon from '@/components/wy/Icon';
 import { useI18n } from '@/components/providers/I18nProvider';
 import AdminShell from '@/components/admin/AdminShell';
@@ -56,7 +56,7 @@ export default function AdminPage() {
     let active = true;
 
     const bootstrap = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         router.replace('/login');
         return;
       }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
 import { fetchAccount } from '@/lib/account';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import Avatar from '@/components/wy/Avatar';
 import Icon from '@/components/wy/Icon';
@@ -185,7 +185,7 @@ export default function ExplorePage() {
 
   useEffect(() => {
     const verify = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         router.replace('/login');
         return;
       }

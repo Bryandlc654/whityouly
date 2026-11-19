@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
 import { fetchAccount } from '@/lib/account';
-import { ROLE_CACHE_KEY, SESSION_CHANGED_EVENT, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, ROLE_CACHE_KEY, SESSION_CHANGED_EVENT } from '@/lib/auth';
 import { useI18n } from '@/components/providers/I18nProvider';
 
 let roleInFlight: Promise<string | null> | null = null;
@@ -29,13 +29,13 @@ export default function AdminEntry() {
   useEffect(() => {
     let active = true;
 
-    const resolve = () => {
+    const resolve = async () => {
       const cached = readRole();
       if (cached) {
         setRole(cached);
         return;
       }
-      if (!tokenStorage.getAccess()) return;
+      if (!(await ensureAccessToken())) return;
 
       if (!roleInFlight) {
         roleInFlight = fetchAccount()
@@ -61,11 +61,11 @@ export default function AdminEntry() {
       });
     };
 
-    resolve();
+    void resolve();
 
     const onSessionChanged = () => {
       setRole(null);
-      resolve();
+      void resolve();
     };
 
     window.addEventListener(SESSION_CHANGED_EVENT, onSessionChanged);

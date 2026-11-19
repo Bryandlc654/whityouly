@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, tokenStorage } from '@/lib/auth';
+import { authFetch, ensureAccessToken } from '@/lib/auth';
 import CreateStoryV58 from '@/components/wy/CreateStoryV58';
 import ProfileShell from '@/components/wy/ProfileShell';
 
@@ -15,12 +15,12 @@ export default function CreateStoryPage() {
   });
 
   useEffect(() => {
-    if (!tokenStorage.getAccess()) {
-      router.replace('/login');
-      return;
-    }
-
     void (async () => {
+      if (!(await ensureAccessToken())) {
+        router.replace('/login');
+        return;
+      }
+
       try {
         const res = await authFetch(`${API_URL}/characters/me`);
         if (res.ok) {

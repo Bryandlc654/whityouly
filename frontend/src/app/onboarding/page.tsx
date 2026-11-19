@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, authFetch, tokenStorage } from '@/lib/auth';
 import {
   checkNameAvailability,
   createCharacter,
@@ -68,7 +68,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     let active = true;
     const verify = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         router.replace('/login');
         return;
       }

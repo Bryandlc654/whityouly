@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
+import { ensureAccessToken, authFetch, logout as endSession, tokenStorage } from '@/lib/auth';
 import type { CharacterSummary } from '@/components/feed/types';
 import { fetchPublicProfile, type PublicProfile } from '@/lib/characters';
 import Avatar from '@/components/wy/Avatar';
@@ -84,7 +84,7 @@ export default function ConnectionsPage() {
     let active = true;
 
     const load = async () => {
-      if (!tokenStorage.getAccess()) {
+      if (!(await ensureAccessToken())) {
         router.replace('/login');
         return;
       }
