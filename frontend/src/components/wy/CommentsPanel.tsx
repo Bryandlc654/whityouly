@@ -139,6 +139,41 @@ export default function CommentsPanel({ storyId, title, author, viewerName, view
     };
   }, []);
 
+  // Ajusta el panel al teclado virtual. `100dvh` no siempre se reduce en iOS;
+  // con visualViewport se calcula la altura realmente visible y el espacio que
+  // ocupa el teclado, y el CSS del panel usa esas variables.
+  useEffect(() => {
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+
+    const apply = () => {
+      const layoutHeight = window.innerHeight;
+      const visualHeight = viewport?.height ?? layoutHeight;
+      const offsetTop = viewport?.offsetTop ?? 0;
+      const keyboardInset = Math.max(0, layoutHeight - visualHeight - offsetTop);
+
+      root.style.setProperty('--visual-height', `${visualHeight}px`);
+      root.style.setProperty('--keyboard-inset', `${keyboardInset}px`);
+    };
+
+    apply();
+    const raf = window.requestAnimationFrame(apply);
+    window.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+    viewport?.addEventListener('resize', apply);
+    viewport?.addEventListener('scroll', apply);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', apply);
+      window.removeEventListener('orientationchange', apply);
+      viewport?.removeEventListener('resize', apply);
+      viewport?.removeEventListener('scroll', apply);
+      root.style.removeProperty('--visual-height');
+      root.style.removeProperty('--keyboard-inset');
+    };
+  }, []);
+
   const submit = async () => {
     const content = text.trim();
     if (!content || busy) return;

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
 // Sistema visual del prototipo Withyouly v7: las reglas viven bajo .wy, así que
@@ -28,6 +28,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Whityouly",
   description: "Refugio anónimo",
+};
+
+// En móvil el teclado virtual debe reducir el área visible: así el panel de
+// comentarios y su campo de escritura quedan por encima del teclado.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({
