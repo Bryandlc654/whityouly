@@ -390,3 +390,9 @@
 body .wy .post .visual-story-card .visual-story-card-copy h2{color:inherit;text-shadow:0 2px 18px rgba(10,8,25,.35)}
 body .wy .post .visual-story-card.is-light .visual-story-card-copy h2{text-shadow:none}
 
+
+/* Boton central + de la barra inferior: centrar el icono en el cuadrado. */
+body .wy .bottom-nav .create-fab{display:flex;align-items:center;justify-content:center;padding:0}
+body .wy .bottom-nav .create-fab>span{display:grid;place-items:center;line-height:0}
+body .wy .bottom-nav .create-fab svg{display:block;width:25px;height:25px}
+
