@@ -20,9 +20,11 @@ export const tokenStorage = {
   },
   setAccess(next: string): void {
     accessToken = next;
+    bootstrapPromise = null;
   },
   clear(): void {
     accessToken = null;
+    bootstrapPromise = null;
     try {
       sessionStorage.removeItem(ROLE_CACHE_KEY);
     } catch {
@@ -32,6 +34,12 @@ export const tokenStorage = {
 };
 
 let refreshInFlight: Promise<boolean> | null = null;
+/**
+ * Recuperación inicial de la sesión. Se comparte entre peticiones y páginas para
+ * que una carga privada no envíe peticiones sin token (y provoque 401 en
+ * cascada) antes de que termine el primer refresco.
+ */
+let bootstrapPromise: Promise<boolean> | null = null;
 
 async function refreshAccessToken(): Promise<boolean> {
   if (!refreshInFlight) {
@@ -66,8 +74,21 @@ export async function ensureAccessToken(): Promise<string | null> {
   if (tokenStorage.getAccess()) {
     return tokenStorage.getAccess();
   }
-  const refreshed = await refreshAccessToken();
+  const refreshed = await bootstrapSession();
   return refreshed ? tokenStorage.getAccess() : null;
+}
+
+async function bootstrapSession(): Promise<boolean> {
+  if (tokenStorage.getAccess()) return true;
+  if (!bootstrapPromise) {
+    bootstrapPromise = refreshAccessToken().then((ok) => {
+      // Un fallo no se memoriza: si la sesión se abre en otra pestaña, la
+      // siguiente petición puede recuperarla.
+      if (!ok) bootstrapPromise = null;
+      return ok;
+    });
+  }
+  return bootstrapPromise;
 }
 
 /**
@@ -84,9 +105,23 @@ export async function authFetch(input: string, init: RequestInit = {}): Promise<
     },
   });
 
+  // Recupera la sesión antes de la primera petición: evita enviar peticiones
+  // sin token al cargar una página privada y el 401 en cascada que generaban.
+  await bootstrapSession();
+
   const response = await fetch(input, buildInit(tokenStorage.getAccess()));
 
   if (response.status !== 401) {
+    return response;
+  }
+
+  // Sin token en memoria no hay nada que renovar: la cookie de sesión no era
+  // válida (invitado o sesión cerrada).
+  if (!tokenStorage.getAccess()) {
+    tokenStorage.clear();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     return response;
   }
 

@@ -167,7 +167,7 @@ export function markNotificationRead(id: string): Promise<LoadResult<{ id: strin
   return request(
     `/notifications/${encodeURIComponent(id)}/read`,
     { method: 'POST' },
-    'No se pudo marcar la notificaciÃ³n.',
+    'No se pudo marcar la notificación.',
     (body) => {
       const record = (body ?? {}) as Record<string, unknown>;
       return typeof record.id === 'string' ? { id: record.id, status: 'READ' as const } : null;

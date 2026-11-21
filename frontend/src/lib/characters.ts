@@ -411,7 +411,7 @@ export function checkNameAvailability(
   if (!name) {
     return Promise.resolve({
       status: 'ok',
-      data: { available: false, reason: 'Escribe un seudÃ³nimo.' },
+      data: { available: false, reason: 'Escribe un seudónimo.' },
     });
   }
 

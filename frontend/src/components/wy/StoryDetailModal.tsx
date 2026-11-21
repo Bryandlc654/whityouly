@@ -307,7 +307,7 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
                     onClick={() => void submitEdit()}
                     disabled={busy || (!editText.trim() && !editImageUrl && !editAudioUrl)}
                   >
-                    {busy ? 'Guardandoâ€¦' : 'Guardar etapa'}
+                    {busy ? 'Guardando…' : 'Guardar etapa'}
                   </button>
                 </div>
               </div>
@@ -334,13 +334,13 @@ export default function StoryDetailModal({ story, onClose, onChanged }: Props) {
         ))}
       </div>
 
-      <label className="field-label">AÃ±adir una nueva etapa</label>
+      <label className="field-label">Añadir una nueva etapa</label>
       <textarea
         className="field"
         value={addText}
         maxLength={5000}
         style={{ minHeight: 100 }}
-        placeholder="Â¿CÃ³mo sigue la historia?"
+        placeholder="¿Cómo sigue la historia?"
         onChange={(event) => setAddText(event.target.value)}
       />
       <div className="row-between" style={{ marginTop: 8 }}>

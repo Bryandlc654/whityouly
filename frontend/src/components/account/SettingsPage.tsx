@@ -143,7 +143,7 @@ export default function SettingsPage({ title, copy, showBack = true, children }:
           </div>
         )}
 
-        {loading ? <p className="muted small">Cargando tus ajustesâ€¦</p> : null}
+        {loading ? <p className="muted small">Cargando tus ajustes…</p> : null}
 
         {!loading && error && !account ? (
           <div className="auth-error" role="alert">
