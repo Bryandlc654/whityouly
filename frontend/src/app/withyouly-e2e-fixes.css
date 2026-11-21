@@ -420,3 +420,7 @@ body .wy .bottom-nav .create-fab svg{display:block;width:25px;height:25px}
 .wy input[type=search]::-webkit-search-cancel-button,
 .wy input[type=search]::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
 
+
+/* Ajustes: titulo de seccion alineado a la izquierda, como el resto del panel. */
+.wy .settings-subpage .section-heading{max-width:none;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:22px 2px 11px;text-align:left}
+
