@@ -19,6 +19,41 @@ function formatDate(value: string): string {
   }).format(date);
 }
 
+/**
+ * El servidor guarda el user-agent completo. Para la lista de dispositivos basta
+ * con una etiqueta corta y reconocible.
+ */
+function formatDevice(value?: string | null): string {
+  if (!value) return 'Dispositivo desconocido';
+
+  const browser = /Edg\//.test(value)
+    ? 'Edge'
+    : /OPR\/|Opera/.test(value)
+      ? 'Opera'
+      : /Chrome\//.test(value)
+        ? 'Chrome'
+        : /Firefox\//.test(value)
+          ? 'Firefox'
+          : /Safari\//.test(value)
+            ? 'Safari'
+            : null;
+
+  const system = /Android/.test(value)
+    ? 'Android'
+    : /iPhone|iPad|iPod/.test(value)
+      ? 'iOS'
+      : /Windows/.test(value)
+        ? 'Windows'
+        : /Mac OS X|Macintosh/.test(value)
+          ? 'macOS'
+          : /Linux/.test(value)
+            ? 'Linux'
+            : null;
+
+  if (browser && system) return `${browser} · ${system}`;
+  return browser ?? system ?? 'Dispositivo desconocido';
+}
+
 export default function SessionsSection() {
   const [sessions, setSessions] = useState<AuthSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +170,7 @@ export default function SessionsSection() {
             <Icon name={session.current ? 'check' : 'user'} />
           </span>
           <div>
-            <b>{session.deviceInfo || 'Dispositivo desconocido'}</b>
+            <b title={session.deviceInfo ?? undefined}>{formatDevice(session.deviceInfo)}</b>
             <small>
               {session.ipAddress ? `${session.ipAddress} · ` : ''}
               {session.current ? 'Sesión actual' : `Inició el ${formatDate(session.createdAt)}`}

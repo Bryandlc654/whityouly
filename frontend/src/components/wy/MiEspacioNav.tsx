@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 
@@ -24,9 +25,21 @@ const ITEMS: {
 
 export default function MiEspacioNav({ active }: Props) {
   const router = useRouter();
+  const navRef = useRef<HTMLElement | null>(null);
+
+  // En móvil la fila se desplaza en horizontal: la sección activa debe quedar
+  // visible, no fuera del borde derecho.
+  useEffect(() => {
+    const current = navRef.current?.querySelector<HTMLButtonElement>('button.active');
+    current?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [active]);
 
   return (
-    <nav className="emotion-nav diary-nav mi-space-nav" aria-label="Mi espacio personal">
+    <nav
+      ref={navRef}
+      className="emotion-nav diary-nav mi-space-nav"
+      aria-label="Mi espacio personal"
+    >
       {ITEMS.map((item) => {
         const current = active === item.id;
         return (
