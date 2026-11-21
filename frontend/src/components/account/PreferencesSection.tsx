@@ -10,12 +10,6 @@ interface Props {
   onSaved: (account: Account) => void;
 }
 
-const THEMES = [
-  { value: 'light', label: 'Claro' },
-  { value: 'dark', label: 'Oscuro' },
-  { value: 'system', label: 'Según el sistema' },
-];
-
 const READING_SIZES: { value: AccountPreferences['readingSize']; label: string }[] = [
   { value: 'NORMAL', label: 'Normal' },
   { value: 'LARGE', label: 'Grande' },
@@ -77,19 +71,9 @@ export default function PreferencesSection({ account, onSaved }: Props) {
         </h2>
 
         <label className="field-label">Apariencia</label>
-        <div className="segmented">
-          {THEMES.map((theme) => (
-            <button
-              key={theme.value}
-              type="button"
-              className={preferences.theme === theme.value ? 'active' : undefined}
-              aria-pressed={preferences.theme === theme.value}
-              onClick={() => setPreferences((prev) => ({ ...prev, theme: theme.value }))}
-            >
-              {theme.label}
-            </button>
-          ))}
-        </div>
+        <p className="hint" style={{ margin: '0 0 8px' }}>
+          Whityouly usa el tema claro. El tema oscuro estará disponible próximamente.
+        </p>
       </div>
 
       <div>

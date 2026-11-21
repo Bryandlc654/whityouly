@@ -406,3 +406,17 @@ body .wy .bottom-nav .create-fab svg{display:block;width:25px;height:25px}
 /* Perfil publico: el enlace de seguidores queda alineado con la tarjeta. */
 @media(max-width:520px){body .wy .profile-links{padding:0 22px}}
 
+
+/* Ajustes de privacidad: casillas con el color de la marca. */
+.wy .settings-row input[type=checkbox]{accent-color:#6246F5;width:20px;height:20px;flex:0 0 20px}
+
+
+/* Boton Ver todas del estado de animo: los tres puntos deben verse. */
+.wy .mood-choices-illustrated .mood-illustration.mood-more-dots{display:flex;align-items:center;justify-content:center;gap:4px}
+.wy .mood-choices-illustrated .mood-illustration.mood-more-dots>span{display:block;width:5px;height:5px;flex:0 0 5px;border-radius:50%;background:#5b3df5}
+
+
+/* Buscador: una sola X para limpiar (sin el boton nativo duplicado). */
+.wy input[type=search]::-webkit-search-cancel-button,
+.wy input[type=search]::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+
