@@ -236,6 +236,60 @@ describe('AuthService', () => {
     expect(mocks.sessionsService.revokeAllForUser).not.toHaveBeenCalled();
   });
 
+  it('conserva el tope absoluto de la sesión al rotar el refresh token', async () => {
+    const absoluteExpiresAt = new Date(Date.now() + 10 * 86_400_000);
+    const tokenHash = createHash('sha256').update('refresh-token').digest('hex');
+
+    mocks.jwtService.verifyAsync.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user@example.com',
+      sid: 'session-1',
+      type: 'refresh',
+    });
+    mocks.sessionsService.findById.mockResolvedValue({
+      id: 'session-1',
+      userId: 'user-1',
+      refreshToken: tokenHash,
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 86_400_000),
+      absoluteExpiresAt,
+    });
+    mocks.usersService.findById.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      status: 'ACTIVE',
+    });
+
+    await service.refresh('refresh-token');
+
+    const created = mocks.sessionsService.create.mock.calls[0][0];
+    expect(created.absoluteExpiresAt).toEqual(absoluteExpiresAt);
+    expect(created.expiresAt.getTime()).toBeLessThanOrEqual(absoluteExpiresAt.getTime());
+    expect(mocks.sessionsService.revoke).toHaveBeenCalledWith('session-1');
+  });
+
+  it('rechaza una sesión cuyo tope absoluto ya venció', async () => {
+    const tokenHash = createHash('sha256').update('refresh-token').digest('hex');
+
+    mocks.jwtService.verifyAsync.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user@example.com',
+      sid: 'session-1',
+      type: 'refresh',
+    });
+    mocks.sessionsService.findById.mockResolvedValue({
+      id: 'session-1',
+      userId: 'user-1',
+      refreshToken: tokenHash,
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 86_400_000),
+      absoluteExpiresAt: new Date(Date.now() - 1_000),
+    });
+
+    await expect(service.refresh('refresh-token')).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(mocks.sessionsService.create).not.toHaveBeenCalled();
+  });
+
   it('bloquea el login cuando la cuenta supera los intentos fallidos', async () => {
     mocks.loginAttemptsService.getStatus.mockResolvedValue({
       locked: true,

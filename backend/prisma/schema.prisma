@@ -192,7 +192,10 @@ model Session {
   refreshToken String    @unique
   deviceInfo   String?
   ipAddress    String?
+  /// Caducidad del refresh token actual (se renueva en cada rotación).
   expiresAt    DateTime
+  /// Tope absoluto de la sesión: no se extiende con la actividad.
+  absoluteExpiresAt DateTime
   createdAt    DateTime  @default(now())
   revokedAt    DateTime?
 

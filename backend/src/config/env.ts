@@ -72,7 +72,10 @@ export const env = {
   mfaIssuer: process.env.MFA_ISSUER?.trim() || 'Withyouly',
   mfaStepUpExpiresIn: duration(process.env.MFA_STEP_UP_EXPIRES_IN, '5m'),
   jwtAccessExpiresIn: duration(process.env.JWT_ACCESS_EXPIRES_IN, '15m'),
-  jwtRefreshExpiresIn: duration(process.env.JWT_REFRESH_EXPIRES_IN, '7d'),
+  jwtRefreshExpiresIn: duration(process.env.JWT_REFRESH_EXPIRES_IN, '30d'),
+  // Tope absoluto de la sesión, independiente de cuánto se use. Evita que una
+  // sesión robada se renueve indefinidamente con actividad.
+  sessionAbsoluteDays: Math.max(parseNumber(process.env.SESSION_ABSOLUTE_DAYS, 30), 1),
   jwtEmailVerificationExpiresIn: duration(process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN, '24h'),
   // El cambio de correo tiene una ventana corta: el enlace solo sirve para
   // confirmar que la persona controla la dirección nueva.

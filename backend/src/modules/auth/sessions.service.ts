@@ -7,6 +7,7 @@ export interface CreateSessionInput {
   userId: string;
   refreshTokenHash: string;
   expiresAt: Date;
+  absoluteExpiresAt: Date;
   deviceInfo?: string | null;
   ipAddress?: string | null;
 }
@@ -22,6 +23,7 @@ export class SessionsService {
         userId: data.userId,
         refreshToken: data.refreshTokenHash,
         expiresAt: data.expiresAt,
+        absoluteExpiresAt: data.absoluteExpiresAt,
         deviceInfo: data.deviceInfo ?? null,
         ipAddress: data.ipAddress ?? null,
       },

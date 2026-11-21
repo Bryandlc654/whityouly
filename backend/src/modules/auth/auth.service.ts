@@ -58,6 +58,23 @@ interface TokenPayload {
 
 const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
+/** Convierte duraciones tipo `15m`, `30d` a milisegundos. */
+function durationToMs(value: string): number {
+  const match = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d|w)?$/i.exec(value.trim());
+  if (!match) return 0;
+  const amount = Number(match[1]);
+  const unit = (match[2] ?? 'ms').toLowerCase() as 'ms' | 's' | 'm' | 'h' | 'd' | 'w';
+  const factors = {
+    ms: 1,
+    s: 1_000,
+    m: 60_000,
+    h: 3_600_000,
+    d: 86_400_000,
+    w: 604_800_000,
+  };
+  return Math.floor(amount * factors[unit]);
+}
+
 // Comparación en tiempo constante para hashes del mismo largo.
 const safeEqual = (a: string, b: string): boolean => {
   const bufferA = Buffer.from(a);
@@ -414,14 +431,20 @@ export class AuthService {
       throw new UnauthorizedException('La sesión ha expirado');
     }
 
+    const absoluteExpiresAt = session.absoluteExpiresAt ?? session.expiresAt;
+    if (absoluteExpiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException('La sesión ha expirado');
+    }
+
     const user = await this.usersService.findById(session.userId);
     if (!user || (user.status !== 'ACTIVE' && user.status !== 'DELETION_PENDING')) {
       throw new UnauthorizedException('La cuenta no está activa');
     }
 
-    // Rotación: se revoca la sesión actual y se emite una nueva.
+    // Rotación: se revoca la sesión actual y se emite una nueva, conservando el
+    // tope absoluto para que la actividad no alargue la sesión indefinidamente.
     await this.sessionsService.revoke(session.id);
-    return this.issueSession(user, meta);
+    return this.issueSession(user, meta, absoluteExpiresAt);
   }
 
   async logout(refreshToken: string) {
@@ -678,28 +701,44 @@ export class AuthService {
     return { message: 'Contraseña actualizada exitosamente. Ya puedes iniciar sesión.' };
   }
 
-  private async issueSession(user: User, meta: SessionMeta) {
+  private async issueSession(user: User, meta: SessionMeta, absoluteExpiresAt?: Date) {
     const sessionId = randomUUID();
     const basePayload = { sub: user.id, email: user.email, sid: sessionId };
+    const now = Date.now();
+
+    // Tope absoluto: se fija al iniciar sesión y se conserva en cada rotación.
+    const absolute = absoluteExpiresAt ?? new Date(now + env.sessionAbsoluteDays * 86_400_000);
+    const remainingMs = absolute.getTime() - now;
+    if (remainingMs <= 0) {
+      throw new UnauthorizedException('La sesión ha expirado. Inicia sesión de nuevo.');
+    }
 
     const accessToken = await this.jwtService.signAsync(
       { ...basePayload, type: 'access' },
       { expiresIn: env.jwtAccessExpiresIn },
     );
 
+    // El refresh token nunca dura más que el tope absoluto de la sesión.
+    const configuredRefreshMs = durationToMs(env.jwtRefreshExpiresIn);
+    const refreshTtlMs = Math.min(
+      configuredRefreshMs > 0 ? configuredRefreshMs : remainingMs,
+      remainingMs,
+    );
+    const refreshExpiresInSeconds = Math.max(1, Math.floor(refreshTtlMs / 1_000));
+
     const refreshToken = await this.jwtService.signAsync(
       { ...basePayload, type: 'refresh' },
-      { secret: env.jwtRefreshSecret, expiresIn: env.jwtRefreshExpiresIn },
+      { secret: env.jwtRefreshSecret, expiresIn: refreshExpiresInSeconds },
     );
 
-    const decoded = this.jwtService.decode(refreshToken) as { exp: number };
-    const refreshTokenExpiresAt = new Date(decoded.exp * 1000);
+    const refreshTokenExpiresAt = new Date(now + refreshExpiresInSeconds * 1_000);
 
     await this.sessionsService.create({
       id: sessionId,
       userId: user.id,
       refreshTokenHash: hashToken(refreshToken),
       expiresAt: refreshTokenExpiresAt,
+      absoluteExpiresAt: absolute,
       ipAddress: meta.ipAddress ?? null,
       deviceInfo: meta.deviceInfo ?? null,
     });
