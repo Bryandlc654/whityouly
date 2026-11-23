@@ -424,3 +424,8 @@ body .wy .bottom-nav .create-fab svg{display:block;width:25px;height:25px}
 /* Ajustes: titulo de seccion alineado a la izquierda, como el resto del panel. */
 .wy .settings-subpage .section-heading{max-width:none;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:22px 2px 11px;text-align:left}
 
+
+/* Dentro de modales, el texto de una tarjeta visual conserva el color legible del tema. */
+.wy .modal .visual-story-card .visual-story-card-copy p,
+.wy .sheet .visual-story-card .visual-story-card-copy p{color:inherit}
+
