@@ -157,7 +157,7 @@ export default function PostCard({
             author={story.author}
             compact
           />
-          <button className="post-more" type="button" onClick={onComment}>
+          <button className="post-more" type="button" onClick={onOpenStory}>
             {t('post.openFull')}
           </button>
         </>
