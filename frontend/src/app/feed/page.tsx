@@ -27,13 +27,14 @@ import {
 } from '@/lib/interactions';
 import { saveStory, unsaveStory } from '@/lib/bookmarks';
 import { saveAuthorPreference } from '@/lib/contentPreferences';
-import { getFeed, reportStory, type FollowingStory } from '@/lib/stories';
+import { getFeed, pauseStoryComments, reportStory, resumeStoryComments, type FollowingStory } from '@/lib/stories';
 import { REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/moderation';
 import { unreadNotificationsCount } from '@/lib/notifications';
 import type { FeedStory } from '@/components/wy/feedData';
 import { createEmotionalLog, daypartToLoggedAt, getEmotionalTodayStatus } from '@/lib/emotionalMap';
 import { useI18n } from '@/components/providers/I18nProvider';
 import PageSkeleton, { SkeletonList } from '@/components/wy/PageSkeleton';
+import StoryMetaModal, { type EditableStory } from '@/components/wy/StoryMetaModal';
 
 /** Ventana en la que un personaje cuenta como nuevo para la guía de publicación. */
 const NEW_CHARACTER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -147,6 +148,7 @@ export default function FeedPage() {
   const [introMode, setIntroMode] = useState<'choices' | 'guide'>('choices');
 
   const [sheet, setSheet] = useState<{ title: string; rows: SheetRow[] } | null>(null);
+  const [metaStory, setMetaStory] = useState<EditableStory | null>(null);
   const [toast, setToast] = useState('');
   const [feedTab, setFeedTab] = useState<'for-you' | 'following'>('for-you');
   const [summaryHidden, setSummaryHidden] = useState(false);
@@ -477,16 +479,83 @@ export default function FeedPage() {
           : 'Relato escrito',
     });
   };
+  const openStoryEditor = (storyId: string) => {
+    const story = (feedItems ?? []).find((item) => item.id === storyId);
+    if (!story) return;
+
+    setSheet(null);
+    setMetaStory({
+      id: story.id,
+      title: story.title,
+      // El feed solo contiene relatos públicos.
+      visibility: 'PUBLIC',
+      categories: story.categories,
+      emotions: story.emotions,
+      tags: story.tags,
+      language: story.language,
+      countryCode: story.countryCode,
+      visualCardTheme: story.visualCardTheme,
+      contentWarning: story.contentWarning,
+      musicLabel: story.musicLabel,
+      externalShare: story.externalShare !== false,
+      guestReadable: story.guestReadable !== false,
+    });
+  };
+
+  const toggleStoryComments = async (storyId: string) => {
+    const story = (feedItems ?? []).find((item) => item.id === storyId);
+    if (!story) return;
+
+    setSheet(null);
+    const result = story.commentsPaused
+      ? await resumeStoryComments(storyId)
+      : await pauseStoryComments(storyId);
+
+    if (result.status !== 'ok') {
+      notify(result.message);
+      return;
+    }
+
+    setFeedItems((prev) =>
+      prev
+        ? prev.map((item) =>
+            item.id === storyId
+              ? { ...item, commentsPaused: result.data.commentsPaused }
+              : item,
+          )
+        : prev,
+    );
+    notify(
+      result.data.commentsPaused ? 'Comentarios pausados.' : 'Comentarios reabiertos.',
+    );
+  };
+
   const openPostMenu = (storyId: string) => {
     const story = (feedItems ?? []).find((item) => item.id === storyId);
     const authorName = story?.author.name;
+    const isOwn = Boolean(story && authorName === name);
+
     setSheet({
       title: 'Opciones del relato',
       rows: [
+        ...(isOwn
+          ? [
+              {
+                label: 'Editar relato',
+                icon: 'edit' as const,
+                onClick: () => openStoryEditor(storyId),
+              },
+              {
+                label: story?.commentsPaused ? 'Reabrir comentarios' : 'Pausar comentarios',
+                icon: 'message' as const,
+                onClick: () => void toggleStoryComments(storyId),
+              },
+            ]
+          : []),
         { label: 'Seguir actualizaciones', icon: 'bell', onClick: () => void toggleFollowStory(storyId) },
         { label: 'Guardar relato', icon: 'bookmark', onClick: () => void toggleSave(storyId) },
         { label: 'Compartir relato', icon: 'share', onClick: () => shareFromId(storyId) },
-        ...(authorName && authorName !== name
+        ...(authorName && !isOwn
           ? [
               {
                 label: 'Silenciar autor',
@@ -521,12 +590,16 @@ export default function FeedPage() {
               },
             ]
           : []),
-        {
-          label: 'Reportar contenido',
-          icon: 'flag',
-          danger: true,
-          onClick: () => openReportMenu(storyId),
-        },
+        ...(isOwn
+          ? []
+          : [
+              {
+                label: 'Reportar contenido',
+                icon: 'flag' as const,
+                danger: true,
+                onClick: () => openReportMenu(storyId),
+              },
+            ]),
       ],
     });
   };
@@ -693,6 +766,16 @@ export default function FeedPage() {
                     : document.querySelector('.composer-trigger');
                 target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
               }, 80);
+            }}
+          />
+        ) : metaStory ? (
+          <StoryMetaModal
+            story={metaStory}
+            onClose={() => setMetaStory(null)}
+            onSaved={() => {
+              setMetaStory(null);
+              notify('Cambios guardados.');
+              void loadFeed({ silent: true });
             }}
           />
         ) : shareStory ? (
