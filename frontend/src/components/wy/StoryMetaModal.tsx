@@ -63,6 +63,15 @@ export default function StoryMetaModal({ story, onClose, onSaved }: Props) {
     };
   }, []);
 
+  // Cerrar con Escape, como el resto de modales de la app.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   const canSubmit = title.trim().length >= 3 && !saving;
 
   async function submit() {
