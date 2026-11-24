@@ -3,6 +3,7 @@ import {
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
+import { spawn } from 'node:child_process';
 import { audioExtensionForMime } from '../storage/media-keys';
 
 export interface AudioInput {
@@ -58,8 +59,80 @@ function looksLikeAudio(buffer: Buffer): boolean {
 }
 
 /**
+ * Convierte el audio a MP3 mono 96 kbps. WebM/Opus es el formato que graban
+ * muchos navegadores, pero Safari/iOS no lo reproduce de forma fiable. El MP3
+ * es compatible con iPhone, Android y navegadores de escritorio.
+ *
+ * Devuelve `null` si ffmpeg no está disponible o la conversión falla; en ese
+ * caso quien llama conserva el archivo original para no bloquear la subida.
+ */
+export function transcodeAudioToMp3(input: Buffer): Promise<Buffer | null> {
+  const MAX_OUTPUT_BYTES = 25 * 1024 * 1024;
+  const TIMEOUT_MS = 60_000;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer: NodeJS.Timeout | undefined;
+    const finish = (value: Buffer | null) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(value);
+    };
+
+    const ffmpeg = spawn(
+      'ffmpeg',
+      [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-i',
+        'pipe:0',
+        '-vn',
+        '-ac',
+        '1',
+        '-ar',
+        '44100',
+        '-b:a',
+        '96k',
+        '-f',
+        'mp3',
+        'pipe:1',
+      ],
+      { stdio: ['pipe', 'pipe', 'ignore'] },
+    );
+
+    const chunks: Buffer[] = [];
+    let size = 0;
+
+    timer = setTimeout(() => {
+      ffmpeg.kill('SIGKILL');
+      finish(null);
+    }, TIMEOUT_MS);
+
+    ffmpeg.on('error', () => finish(null));
+    ffmpeg.stdout.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > MAX_OUTPUT_BYTES) {
+        ffmpeg.kill('SIGKILL');
+        finish(null);
+        return;
+      }
+      chunks.push(chunk);
+    });
+    ffmpeg.on('close', (code) => {
+      finish(code === 0 && size > 0 ? Buffer.concat(chunks) : null);
+    });
+
+    ffmpeg.stdin.on('error', () => undefined);
+    ffmpeg.stdin.end(input);
+  });
+}
+
+/**
  * Valida un audio declarado y devuelve la extensión con la que guardarlo.
- * No se transcribe ni se re-codifica: se acepta tal cual, con tope de tamaño.
+ * La re-codificación a MP3 se hace después; aquí solo se comprueba el tipo y
+ * que los bytes iniciales parezcan audio.
  */
 export function assertAudioLooksValid(file: AudioInput, maxBytes: number): { extension: string } {
   if (!file?.buffer || file.buffer.length === 0) {

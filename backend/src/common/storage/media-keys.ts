@@ -66,6 +66,26 @@ export function audioExtensionForMime(mime: string | undefined): string | null {
   return AUDIO_EXTENSION_BY_MIME[mime.toLowerCase()] ?? null;
 }
 
+/**
+ * `express.static` deduce el tipo por la extensión y sirve `.webm` como
+ * `video/webm`. Para los audios de la biblioteca el tipo debe ser `audio/*`;
+ * de lo contrario algunos navegadores rechazan el archivo en `<audio>`.
+ */
+const AUDIO_CONTENT_TYPE: Record<string, string> = {
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  ogg: 'audio/ogg',
+  wav: 'audio/wav',
+  webm: 'audio/webm',
+};
+
+export function audioContentTypeForKey(key: string): string | null {
+  const dot = key.lastIndexOf('.');
+  if (dot < 0) return null;
+  return AUDIO_CONTENT_TYPE[key.slice(dot + 1).toLowerCase()] ?? null;
+}
+
 /** Clave de un audio de la biblioteca personal. */
 export function audioKey(userId: string, randomToken: string, extension: string): string {
   return `media/${userId}/${randomToken}.${extension}`;

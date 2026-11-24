@@ -1,4 +1,9 @@
-import { isOwnMediaUrl, isSafeMediaKey, keyFromPublicUrl } from './media-keys';
+import {
+  audioContentTypeForKey,
+  isOwnMediaUrl,
+  isSafeMediaKey,
+  keyFromPublicUrl,
+} from './media-keys';
 
 const BASE = 'https://cdn.whityouly.com';
 
@@ -35,5 +40,12 @@ describe('media-keys', () => {
   it('valida la pertenencia al almacenamiento propio', () => {
     expect(isOwnMediaUrl(`${BASE}/avatars/char-1/abc.webp`, BASE)).toBe(true);
     expect(isOwnMediaUrl('https://evil.example/avatar.png', BASE)).toBe(false);
+  });
+
+  it('asigna el tipo de audio correcto aunque la extensión sea webm', () => {
+    expect(audioContentTypeForKey('media/user/a.webm')).toBe('audio/webm');
+    expect(audioContentTypeForKey('media/user/a.mp3')).toBe('audio/mpeg');
+    expect(audioContentTypeForKey('media/user/a.m4a')).toBe('audio/mp4');
+    expect(audioContentTypeForKey('media/user/a.webp')).toBeNull();
   });
 });

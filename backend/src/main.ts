@@ -9,7 +9,7 @@ import { env } from './config/env';
 import { isAllowedOrigin } from './config/origins';
 import { MEDIA_STORAGE, type MediaStorage } from './common/storage/media-storage';
 import { LocalMediaStorage } from './common/storage/local-media-storage';
-import { isSafeMediaKey } from './common/storage/media-keys';
+import { audioContentTypeForKey, isSafeMediaKey } from './common/storage/media-keys';
 import { verifyMediaSignature } from './common/storage/media-signature';
 import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
 
@@ -79,6 +79,8 @@ async function bootstrap() {
         return;
       }
 
+      // Necesario para corregir el Content-Type de los audios en static.
+      res.locals.mediaKey = key;
       next();
     });
 
@@ -96,6 +98,9 @@ async function bootstrap() {
           res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
           res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          const mediaKey = typeof res.locals.mediaKey === 'string' ? res.locals.mediaKey : '';
+          const audioType = audioContentTypeForKey(mediaKey);
+          if (audioType) res.setHeader('Content-Type', audioType);
         },
       }),
     );

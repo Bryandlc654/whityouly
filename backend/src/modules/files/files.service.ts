@@ -16,7 +16,7 @@ import {
   processImage,
   type ImageInput,
 } from '../../common/media/process-image';
-import { assertAudioLooksValid, type AudioInput } from '../../common/media/process-audio';
+import { assertAudioLooksValid, transcodeAudioToMp3, type AudioInput } from '../../common/media/process-audio';
 import { MEDIA_STORAGE, type MediaStorage } from '../../common/storage/media-storage';
 import { audioKey, keyFromPublicUrl, mediaKey } from '../../common/storage/media-keys';
 import { signedMediaUrl } from '../../common/storage/media-signature';
@@ -118,8 +118,9 @@ export class FilesService {
   }
 
   /**
-   * Sube un audio a la biblioteca personal. No se re-codifica (haría falta
-   * ffmpeg): se valida la firma de los bytes y el tamaño, y se guarda tal cual.
+   * Sube un audio a la biblioteca personal. Se valida la firma de los bytes y
+   * el tamaño, y se re-codifica a MP3 para que suene también en iPhone y en
+   * cualquier Android. Si ffmpeg no está disponible, se guarda el original.
    */
   async uploadAudio(userId: string, file: AudioInput): Promise<MediaFile> {
     const { extension } = assertAudioLooksValid(file, env.audio.maxBytes);
@@ -139,12 +140,19 @@ export class FilesService {
 
     await this.assertWithinStorageQuota(userId);
 
-    const key = audioKey(userId, randomUUID(), extension);
-    const mimeType = file.mimetype ?? 'application/octet-stream';
+    const mp3 = await transcodeAudioToMp3(file.buffer);
+    if (!mp3) {
+      this.logger.warn('No se pudo convertir el audio a MP3; se guarda el formato original.');
+    }
+
+    const storedBuffer = mp3 ?? file.buffer;
+    const storedExtension = mp3 ? 'mp3' : extension;
+    const mimeType = mp3 ? 'audio/mpeg' : file.mimetype ?? 'application/octet-stream';
+    const key = audioKey(userId, randomUUID(), storedExtension);
 
     await this.storage.put({
       key,
-      body: file.buffer,
+      body: storedBuffer,
       contentType: mimeType,
       cacheControl: CACHE_CONTROL,
     });
@@ -157,7 +165,7 @@ export class FilesService {
           key,
           originalName: this.sanitizeOriginalName(file.originalname),
           mimeType,
-          sizeBytes: BigInt(file.buffer.byteLength),
+          sizeBytes: BigInt(storedBuffer.byteLength),
           entityType: 'NONE',
         },
         select: ASSET_SELECT,
