@@ -132,6 +132,8 @@ whityouly/
 
 Node.js 20+ y un PostgreSQL accesible (Neon sirve). Redis es opcional: sin él, los contadores de seguridad viven en memoria del proceso.
 
+Para publicar audio, instala **ffmpeg** (`apt install ffmpeg` en Debian/Ubuntu). Al subir un audio se convierte a MP3 mono 96 kbps para que suene también en iPhone y Android; si ffmpeg no está disponible, se guarda el formato original y el audio puede fallar en Safari/iOS.
+
 ### Backend
 
 ```bash
