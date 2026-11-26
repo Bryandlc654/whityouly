@@ -450,11 +450,18 @@ export default function ConnectionsPage() {
                 <div className="social-people">
                   {items.map((person) => (
                     <article className="social-person" key={`${tab}-${person.name}`}>
-                      <Avatar
-                        initials={initialsOf(person.name)}
-                        avatarUrl={person.avatarUrl}
-                        size="sm"
-                      />
+                      <button
+                        className="explore-person-avatar"
+                        type="button"
+                        onClick={() => openProfile(person)}
+                        aria-label={`Ver perfil de ${person.name}`}
+                      >
+                        <Avatar
+                          initials={initialsOf(person.name)}
+                          avatarUrl={person.avatarUrl}
+                          size="sm"
+                        />
+                      </button>
                       <div className="social-person-main">
                         <button
                           className="social-person-name"

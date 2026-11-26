@@ -433,3 +433,10 @@ body .wy .bottom-nav .create-fab svg{display:block;width:25px;height:25px}
 /* Lector en movil: altura con respaldo para navegadores sin dvh. */
 @media(max-width:720px){body .wy .modal.story-viewer{height:92vh;height:min(92dvh,100%)}}
 
+
+/* Resultados de personas: el avatar y el nombre abren el perfil. */
+.wy .explore-person-avatar{border:0;background:transparent;padding:0;cursor:pointer;border-radius:50%;flex:0 0 auto;line-height:0}
+.wy .explore-person-avatar:hover{box-shadow:0 0 0 3px var(--purple-3)}
+.wy .explore-person-name{border:0;background:transparent;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.wy .explore-person-name:hover{color:var(--purple);text-decoration:underline}
+

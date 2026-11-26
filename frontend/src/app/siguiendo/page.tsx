@@ -258,11 +258,18 @@ export default function FollowingPage() {
             <div className="following-list">
               {following.map((person) => (
                 <article key={person.name} className="card follow-row following-author">
-                  <Avatar
-                    initials={initialsOf(person.name)}
-                    avatarUrl={person.avatarUrl}
-                    size="sm"
-                  />
+                  <button
+                    className="explore-person-avatar"
+                    type="button"
+                    onClick={() => router.push(`/personaje/${encodeURIComponent(person.name)}`)}
+                    aria-label={`Ver perfil de ${person.name}`}
+                  >
+                    <Avatar
+                      initials={initialsOf(person.name)}
+                      avatarUrl={person.avatarUrl}
+                      size="sm"
+                    />
+                  </button>
                   <div>
                     <button
                       className="author-name"

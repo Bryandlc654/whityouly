@@ -664,11 +664,22 @@ export default function ExplorePage() {
   const renderPerson = (person: CharacterSearchItem) => {
     const isSelf = person.name === character?.name;
     const isFollowing = following.has(person.name);
+    const openProfile = () =>
+      router.push(isSelf ? '/cuenta' : `/personaje/${encodeURIComponent(person.name)}`);
     return (
       <article key={person.name} className="card follow-row explore-person">
-        <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
+        <button
+          className="explore-person-avatar"
+          type="button"
+          onClick={openProfile}
+          aria-label={`Ver perfil de ${person.name}`}
+        >
+          <Avatar initials={initialsOf(person.name)} avatarUrl={person.avatarUrl} size="sm" />
+        </button>
         <div>
-          <b>{person.name}</b>
+          <button className="explore-person-name" type="button" onClick={openProfile}>
+            <b>{person.name}</b>
+          </button>
           <small>@{person.name.toLowerCase()}</small>
           {person.tagline ? <small>{person.tagline}</small> : null}
         </div>
