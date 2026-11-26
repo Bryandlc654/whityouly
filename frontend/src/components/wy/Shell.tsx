@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import type { IconName } from './icons';
 import HeaderSearch from './HeaderSearch';
@@ -72,7 +73,7 @@ function TopBar({
           <LanguageSwitcher />
           <AdminEntry />
           <button
-            className="icon-btn"
+            className="icon-btn topbar-help"
             type="button"
             onClick={() => onNavigate('help')}
             aria-label={t('nav.help')}
@@ -143,6 +144,7 @@ function BottomNav({
   onNavigate,
 }: Pick<FrameProps, 'activeRoute' | 'onNavigate'>) {
   const { t } = useI18n();
+  const router = useRouter();
   return (
     <nav className="bottom-nav" aria-label={t('nav.mobileSection')}>
       <button
@@ -161,7 +163,7 @@ function BottomNav({
         <span data-icon="search"><Icon name="search" /></span>
         <small>{t('nav.explore')}</small>
       </button>
-      <button className="create-fab" type="button" onClick={() => onNavigate('my-stories')} aria-label={t('nav.create')}>
+      <button className="create-fab" type="button" onClick={() => router.push('/crear')} aria-label={t('nav.create')}>
         <span data-icon="plus"><Icon name="plus" /></span>
       </button>
       <button
